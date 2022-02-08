@@ -1,0 +1,7 @@
+Metamap batch Process
+=====================
+API-KEY: 878ac70e-61d8-4949-9d09-377faa561cb6
+(base) [rgoli@node0234 examples]$ #../run.sh GenericBatchNew --command "metamap -ADy" --email rgoli@clemson.edu sample.txt 
+(base) [rgoli@node0234 examples]$ pwd
+/home/rgoli/MetaMap-src/MetaMapAPI/SKR_Web_API_V2_4/examples
+(base) [rgoli@node0234 examples]$ 
