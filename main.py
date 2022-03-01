@@ -1,6 +1,11 @@
 import argparse
 import os
-from modules import preProcessData
+from modules import createDataset as data
+from modules import preProcessData as ppd
+import config
+
+# Get the absolute path under the current working directory
+WORKING_PATH = os.path.dirname(os.getcwd())
 
 if __name__ == "__main__":
     
@@ -18,9 +23,18 @@ if __name__ == "__main__":
     print("Features: {}".format(args.features))
     print("+"*50)
     
+    pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
+    json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
+    if not os.path.exists(json_data_folder): os.mkdir(json_data_folder)
+    interim_data_folder = os.path.join(WORKING_PATH, config.INTERIM_DATA)
+    if not os.path.exists(interim_data_folder): os.mkdir(interim_data_folder)
+
     if args.mode=="predict":
         pass
     elif args.mode == "test":
         pass
+    elif args.mode == "createData":
+        fullData = data.load_pubmed_data(pubmed_data_folder)
+        data.generate_dataset(fullData, json_data_folder)
     else:
-        pass
+        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
