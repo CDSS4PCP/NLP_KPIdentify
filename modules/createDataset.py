@@ -4,7 +4,7 @@ import spacy
 import scispacy
 from scispacy.linking import EntityLinker
 import pubmed_parser as pp
-import tqdm
+from tqdm import tqdm
 
 def load_pubmed_data(path):
     '''
@@ -29,7 +29,8 @@ def generate_dataset(fullData, json_data_path):
     pmid_arr =[]
     dataset = []
     p_id=0
-    with tqdm(enumerate(fullData)) as pbar1:
+    total_len = len(fullData)
+    with tqdm(enumerate(fullData),total=total_len) as pbar1:
         for index, paper in pbar1:
     # for paper in fullData:
             comb_arr.append(paper['title']+' '+paper['abstract'])
@@ -42,12 +43,12 @@ def generate_dataset(fullData, json_data_path):
             data["results"] = ""
             dataset.append(data)
             p_id += 1
-            pbar1.set_description("The %s-th JSON pre-processing is completed! %s"%(p_id,index))
+            pbar1.set_description("JSON pre-processing is completed for %s-th document!"%(p_id))
         
     idx=0
-    with tqdm(enumerate(nlp.pipe(comb_arr))) as pbar1:
+    with tqdm(nlp.pipe(comb_arr),total=total_len) as pbar1:
         # for doc in nlp.pipe(comb_arr):
-        for index, doc in pbar1:
+        for doc in pbar1:
             # text = [token.orth_ for token in doc if not token.is_punct | token.is_space] 
 
             kws = [str(x) for x in doc.ents]
@@ -55,7 +56,7 @@ def generate_dataset(fullData, json_data_path):
             
             dataset[idx]["keywords"]=kws
             idx+=1
-            pbar1.set_description("Synthetic Keywrods generated for %s! %s %s"%(dataset["id"],p_id,index))
+            pbar1.set_description("Synthetic Keywrods generated for %s-th document!"%idx)
 
     dataset_length = len(dataset)
     with open(os.path.join(json_data_path, "train.json"), "w") as outfile:
