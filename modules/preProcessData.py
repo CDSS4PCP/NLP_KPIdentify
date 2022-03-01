@@ -8,8 +8,8 @@ import numpy as np
 from nltk import sent_tokenize, word_tokenize, PorterStemmer
 from tqdm import tqdm
 
-from textrank import textrank
-from tf_idf import tf_idf
+# from textrank import textrank
+# from tf_idf import tf_idf
 from utils import read_json_datas, string_escape
 
 import config

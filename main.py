@@ -37,4 +37,5 @@ if __name__ == "__main__":
         fullData = data.load_pubmed_data(pubmed_data_folder)
         data.generate_dataset(fullData, json_data_folder)
     else:
-        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
+        # ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
+        pass
