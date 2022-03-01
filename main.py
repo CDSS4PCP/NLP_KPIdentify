@@ -18,9 +18,9 @@ if __name__ == "__main__":
     print("Features: {}".format(args.features))
     print("+"*50)
     
-    if mode=="predict":
+    if args.mode=="predict":
         pass
-    elif mode == "test":
+    elif args.mode == "test":
         pass
     else:
-        
+        pass
