@@ -11,7 +11,7 @@ import logging
 
 # from textrank import textrank
 # from tf_idf import tf_idf
-from modules.utils import read_json_datas, string_escape
+from modules.utils import read_json_datas, string_escape, read_json_array
 
 import config
 
@@ -45,7 +45,31 @@ def mark_keyword(keywords, words):
                         position[p_index + i] = 'K_I'
     return " ".join(words), position
 
-# # Construct datas
+# Construct features of data
+def build_features(path, sections, mode, save_folder):
+
+    cache_path = os.path.join(save_folder, "cache_%s"%mode)
+    if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
+
+    with tqdm(enumerate(read_json_array(path))) as pbar1:
+        for idx, document in pbar1:
+
+            # sentence segmentation
+            sentences = []
+            for section in sections:
+                text = document[section]
+                if type(text)==str:
+                    sentences.extend(sent_tokenize(text))
+                elif type(text)==list:
+                    for item in text:
+                        sentences.extend(sent_tokenize(item))
+            print(sentences)
+            return True, True
+            # Keywords
+
+
+
+            pbar1.set_description("%s-th document processed")  
 # def build_datas(path, fields, mode, save_folder):
 #     # Datas annotation and features combination
 #     global js
@@ -265,7 +289,7 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     
     logger.info('in build data set')
     
-    train_features, train_keywords = build_features(train_path, sections, 'train')
+    train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
     
     # train_datas, train_keywords = build_datas(train_path, fields, 'train', interim_folder)
     # test_datas, test_keywords = build_datas(test_path, fields, 'test', interim_folder)
