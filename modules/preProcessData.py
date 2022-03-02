@@ -19,6 +19,8 @@ import config
 stop_words = nltk.corpus.stopwords.words('english')
 english_punctuations = [',', '.', ':', ';', '``','?', '（','）','(', ')',
                 '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{']
+
+english_punctuations_arr= ''.join(english_punctuations)
 stemmer = PorterStemmer()
 
 logger = logging.getLogger(__name__)
@@ -52,35 +54,18 @@ def mark_keyword(keywords, sentences):
 #         print(j,'\t',i)
 
     final_mapper = []
+    final_tokens = []
     start=0
 #     print(sentence_lengths, len(mapper))
     for slen in sentence_lengths:
         final_mapper.append(mapper[start:start+slen])
+        final_tokens.append(complete_text[start:start+slen])
         start+=slen
 
 #     for i,j in zip(sentences,final_mapper):
 #         print(i,j)
     
-    return complete_text, final_mapper
-    # Initial marker variable
-    text = " ".join(words)
-    position, text_len  = ['0'] * len(words), len(text)
-    for keyword in keywords:
-        keyword_length, kw_num = len(keyword), len(keyword.split(" "))
-        index_list = [(i.start(), i.end()) for i in re.finditer(keyword.replace("+", "\+"), text)]
-        for start, end in index_list:
-            if text_len == keyword_length \
-                   or (end == text_len and text[start - 1] == ' ') \
-                   or (start == 0 and text[end] == ' ') \
-                   or (text[start - 1] == ' ' and text[end] == ' '):
-                p_index = len(text[:start].split(" ")) - 1
-                if kw_num == 1:
-                    position[p_index] = 'K_B'
-                else:
-                    position[p_index] = 'K_B'
-                    for i in range(1, kw_num):
-                        position[p_index + i] = 'K_I'
-    return " ".join(words), position
+    return complete_text, final_mapper, final_tokens
 
 # Construct features of data
 def build_features(path, sections, mode, save_folder):
@@ -88,8 +73,9 @@ def build_features(path, sections, mode, save_folder):
     cache_path = os.path.join(save_folder, "cache_%s"%mode)
     if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
 
+    count=0
     with tqdm(enumerate(read_json_array(path))) as pbar1:
-        for idx, document in pbar1:
+        for pidx, document in pbar1:
 
             # sentence segmentation
             sentences = []
@@ -102,8 +88,8 @@ def build_features(path, sections, mode, save_folder):
                         sentences.extend(sent_tokenize(item))
             print(sentences)
 
-            # keywords
-            keywords = document['keywords']
+            # pre-process keywords - remove punctuations
+            keywords = [kw.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr))) for kw in document['keywords']]
             print(keywords)
 
             ## Complete text of all sections
@@ -126,8 +112,12 @@ def build_features(path, sections, mode, save_folder):
                 tokens_list, labels_list = [], []
                 
                 for idx, sentence in enumerate(sentences):
-                    # remove punctuations from sentences
-                    sentence = sentence.lower().strip().translate(str.maketrans('','',''.join(english_punctuations)))
+                    # remove punctuations from sentence
+                    sentence = sentence.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
+                    
+                    # remove stop words from sentence
+                    sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
+                    
                     # replace the original sentence with punct removed sentence
                     sentences[idx]=sentence
 
@@ -144,23 +134,26 @@ def build_features(path, sections, mode, save_folder):
                     pos_list.append(pos)
                     length_list.append(length)
                     
-                    ## Add tokens for BIO marking of text
-                    tokens_list.append(words)
+                    # ## Add tokens for BIO marking of text
+                    # tokens_list.append(words)
                     
                 ## Add BIO Labels to the sentences
-                _, labels = mark_keyword(keywords, sentences)
+                _, labels, tokens = mark_keyword(keywords, sentences)
+                tokens_list.extend(tokens)
                 labels_list.extend(labels)
                 
 #             print(wfof_dict)
 #             print(pos_list)
 #             print(length_list)
-            print(labels_list)
-            print(tokens_list)     
+#             print(labels_list)
+#             print(tokens_list)
 
-            return True, True
+            count+=1
+            print('+'*50)
+            if count==2:
+                return True, True
 
-
-            pbar1.set_description("%s-th document processed")  
+            pbar1.set_description("%s-th document processed"%pidx)  
 
 
 def build_datas(path, fields, mode, save_folder):
