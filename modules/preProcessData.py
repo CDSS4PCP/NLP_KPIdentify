@@ -25,7 +25,16 @@ logger = logging.getLogger(__name__)
 
 ## Need to update it -- RoHaN
 # Mark Keywords
-def mark_keyword(keywords, words):
+def mark_keyword(keywords, sentences):
+
+    sentence_lengths = [len(x) for x in sentences]
+    print(sentence_lengths)
+
+    complete_text = ' '.join(sentences).split()
+
+    print(complete_text)
+
+    return True
     # Initial marker variable
     text = " ".join(words)
     position, text_len  = ['0'] * len(words), len(text)
@@ -77,7 +86,10 @@ def build_features(path, sections, mode, save_folder):
             if not os.path.exists(cache_path):
                 ## feature 1 word first occurence in complete text
                 for word in word_tokenize(plain_text):
+                    # Skip the word if it is puncutation or a stop word
                     if word in english_punctuations+stop_words: continue
+
+                    # Search word in the complete text
                     item = re.search(string_escape(word),plain_text)
                     if item!=None:
                         wfof_dict[word] = item.start()/len(plain_text)
@@ -85,8 +97,14 @@ def build_features(path, sections, mode, save_folder):
                 # fs.6-7 POS tag and length
                 pos_list, length_list = [], []
                 tokens_list, labels_list = [], []
-                for sentence in sentences:
+                
+                for idx, sentence in enumerate(sentences):
+                    # remove punctuations from sentences
                     sentence = sentence.lower().strip().translate(str.maketrans('','',string.punctuation))
+                    # replace the original sentence with punct removed sentence
+                    sentences[idx]=sentence
+
+                    # create list of words from a sentence
                     words = word_tokenize(sentence)
                     if len(words) <= 3: continue
 
@@ -110,6 +128,8 @@ def build_features(path, sections, mode, save_folder):
             # print(labels_list)
             # print(tokens_list)
             
+            mark_keyword(keywords, sentences)
+
             return True, True
 
 

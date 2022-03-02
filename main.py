@@ -14,7 +14,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/predict')
     parser.add_argument('--sections','-s', default=['title','abstract'], type=str, nargs='+', help='Sections in research paper to include: title/abstract/methods/results')
-    parser.add_argument('--features','-f', default=['CEM','TFIDF','LEN'], type=str, nargs='+', help='Features to include: Char Embeddings (CEM), Document Embeddings (DEM), Phrase Embeddings (PEM), TFIDF (Term Frequency - Inverse Document Frequency), Text Rank (TextR), Topic Rank (TopR), Position Rank (PosR), Multi-partite Rank (MR), Word First Occurence in Text (WFOT), Length of word (LEN)')
+    parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN'], type=str, nargs='+', help='Features to include: Char Embeddings (CEM), Document Embeddings (DEM), Phrase Embeddings (PEM), TFIDF (Term Frequency - Inverse Document Frequency), Text Rank (TextR), Topic Rank (TopR), Position Rank (PosR), Multi-partite Rank (MR), Word First Occurence in Text (WFOT), Length of word (LEN)')
     parser.add_argument("--log", "-log",default="warn",
                         help=("Provide logging level. "
                               "Example --log debug', default='warning'"))
