@@ -35,7 +35,7 @@ def mark_keyword(keywords, sentences):
 
     complete_text_len = len(complete_text)
     mapper = [0]*complete_text_len
-    kws = [x.split() for x in keywords]
+    kws = [x.lower().split() for x in keywords]
 
     for kw in kws:
         kw_len=len(kw)
@@ -43,26 +43,25 @@ def mark_keyword(keywords, sentences):
         while i<complete_text_len-kw_len:
             if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==[0]*kw_len:
                 mapper[i:i+kw_len]=['K_I']*kw_len
-                if kw_len>1:
-                    mapper[i]='K_B'
-
+                mapper[i]='K_B'
             i+=1
 
     # print(complete_text)
     # print(mapper)
-    # for i,j in zip(complete_text,mapper):
-    #     print(i,j)
+#     for i,j in zip(complete_text,mapper):
+#         print(j,'\t',i)
 
     final_mapper = []
     start=0
-    for end in sentence_lengths:
-        final_mapper.append(mapper[start:end])
-        start = end
+#     print(sentence_lengths, len(mapper))
+    for slen in sentence_lengths:
+        final_mapper.append(mapper[start:start+slen])
+        start+=slen
 
-    for i,j in zip(sentences,final_mapper):
-        print(i,j)
+#     for i,j in zip(sentences,final_mapper):
+#         print(i,j)
     
-    return True
+    return complete_text, final_mapper
     # Initial marker variable
     text = " ".join(words)
     position, text_len  = ['0'] * len(words), len(text)
@@ -128,7 +127,7 @@ def build_features(path, sections, mode, save_folder):
                 
                 for idx, sentence in enumerate(sentences):
                     # remove punctuations from sentences
-                    sentence = sentence.lower().strip().translate(str.maketrans('','',string.punctuation))
+                    sentence = sentence.lower().strip().translate(str.maketrans('','',''.join(english_punctuations)))
                     # replace the original sentence with punct removed sentence
                     sentences[idx]=sentence
 
@@ -141,22 +140,22 @@ def build_features(path, sections, mode, save_folder):
                         # Computational features
                         pos[w] = p
                         length[w] = len(w) 
+                        
                     pos_list.append(pos)
                     length_list.append(length)
-
-                    # tokens = [token.strip() for token in words
-                    #         if token.strip() not in english_punctuations + stop_words]
-                    # _, labels = mark_keyword(keywords, tokens)
-                    # labels_list.append(labels)
-                    # tokens_list.append(tokens)
-
-            print(wfof_dict)
-            print(pos_list)
-            print(length_list)
-            # print(labels_list)
-            # print(tokens_list)
-            
-            mark_keyword(keywords, sentences)
+                    
+                    ## Add tokens for BIO marking of text
+                    tokens_list.append(words)
+                    
+                ## Add BIO Labels to the sentences
+                _, labels = mark_keyword(keywords, sentences)
+                labels_list.extend(labels)
+                
+#             print(wfof_dict)
+#             print(pos_list)
+#             print(length_list)
+            print(labels_list)
+            print(tokens_list)     
 
             return True, True
 
