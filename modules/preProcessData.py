@@ -48,8 +48,19 @@ def mark_keyword(keywords, sentences):
 
             i+=1
 
-    print(complete_text)
-    print(mapper)
+    # print(complete_text)
+    # print(mapper)
+    # for i,j in zip(complete_text,mapper):
+    #     print(i,j)
+
+    final_mapper = []
+    start=0
+    for end in sentence_lengths:
+        final_mapper.append(mapper[start:end])
+        start = end
+
+    for i,j in zip(sentences,final_mapper):
+        print(i,j)
     
     return True
     # Initial marker variable
