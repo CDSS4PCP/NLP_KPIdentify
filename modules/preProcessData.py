@@ -27,13 +27,30 @@ logger = logging.getLogger(__name__)
 # Mark Keywords
 def mark_keyword(keywords, sentences):
 
-    sentence_lengths = [len(x) for x in sentences]
-    print(sentence_lengths)
+    sentence_lengths = [len(x.split()) for x in sentences]
+    logger.debug("Sentence length: %s"%sentence_lengths)
 
     complete_text = ' '.join(sentences).split()
+    logger.debug("Complete Text: %s"%complete_text)
+
+    complete_text_len = len(complete_text)
+    mapper = [0]*complete_text_len
+    kws = [x.split() for x in keywords]
+
+    for kw in kws:
+        kw_len=len(kw)
+        i=0
+        while i<complete_text_len-kw_len:
+            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==[0]*kw_len:
+                mapper[i:i+kw_len]=['K_I']*kw_len
+                if kw_len>1:
+                    mapper[i]='K_B'
+
+            i+=1
 
     print(complete_text)
-
+    print(mapper)
+    
     return True
     # Initial marker variable
     text = " ".join(words)
