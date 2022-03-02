@@ -108,43 +108,43 @@ def build_features(path, sections, mode, save_folder):
                 if item!=None:
                     wfof_dict[word] = item.start()/len(plain_text)
 
-                # fs.6-7 POS tag and length
-                pos_list, length_list = [], []
-                tokens_list, labels_list = [], []
+            # fs.6-7 POS tag and length
+            pos_list, length_list = [], []
+            tokens_list, labels_list = [], []
+            
+            for idx, sentence in enumerate(sentences):
+                # remove punctuations from sentence
+                sentence = sentence.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
                 
-                for idx, sentence in enumerate(sentences):
-                    # remove punctuations from sentence
-                    sentence = sentence.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
-                    
-                    # remove stop words from sentence
-                    sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
-                    
-                    # replace the original sentence with punct removed sentence
-                    sentences[idx]=sentence
-
-                # create list of words from a sentence
-                words = word_tokenize(sentence)
-                if len(words) <= 3: continue
-
-                pos, length = {}, {}
-                for i, (w, p) in enumerate(nltk.pos_tag(words)):
-                    # Computational features
-                    pos[w] = p
-                    length[w] = len(w) 
-                    
-                    # ## Add tokens for BIO marking of text
-                    # tokens_list.append(words)
-                    
-                ## Add BIO Labels to the sentences
-                _, labels, tokens = mark_keyword(keywords, sentences)
-                tokens_list.extend(tokens)
-                labels_list.extend(labels)
+                # remove stop words from sentence
+                sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
                 
-#             print(wfof_dict)
-#             print(pos_list)
-#             print(length_list)
-#             print(labels_list)
-#             print(tokens_list)
+                # replace the original sentence with punct removed sentence
+                sentences[idx]=sentence
+
+            # create list of words from a sentence
+            words = word_tokenize(sentence)
+            if len(words) <= 3: continue
+
+            pos, length = {}, {}
+            for i, (w, p) in enumerate(nltk.pos_tag(words)):
+                # Computational features
+                pos[w] = p
+                length[w] = len(w) 
+                
+                # ## Add tokens for BIO marking of text
+                # tokens_list.append(words)
+                
+            ## Add BIO Labels to the sentences
+            complete_text, labels, tokens = mark_keyword(keywords, sentences)
+            tokens_list.extend(tokens)
+            labels_list.extend(labels)
+                
+            # print(wfof_dict)
+            # print(pos_list)
+            # print(length_list)
+            # print(labels_list)
+            # print(tokens_list)
 
             count+=1
             print('+'*50)
