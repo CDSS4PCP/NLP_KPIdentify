@@ -48,45 +48,26 @@ def mark_keyword(keywords, sentences):
 
     # print(complete_text)
     # print(mapper)
-#     for i,j in zip(complete_text,mapper):
-#         print(j,'\t',i)
+    # for i,j in zip(complete_text,mapper):
+    #     print(j,'\t',i)
 
     final_mapper = []
     start=0
-#     print(sentence_lengths, len(mapper))
+    # print(sentence_lengths, len(mapper))
     for slen in sentence_lengths:
         final_mapper.append(mapper[start:start+slen])
         start+=slen
 
-#     for i,j in zip(sentences,final_mapper):
-#         print(i,j)
+    # for i,j in zip(sentences,final_mapper):
+    #     print(i,j)
     
     return complete_text, final_mapper
-    # Initial marker variable
-    text = " ".join(words)
-    position, text_len  = ['0'] * len(words), len(text)
-    for keyword in keywords:
-        keyword_length, kw_num = len(keyword), len(keyword.split(" "))
-        index_list = [(i.start(), i.end()) for i in re.finditer(keyword.replace("+", "\+"), text)]
-        for start, end in index_list:
-            if text_len == keyword_length \
-                   or (end == text_len and text[start - 1] == ' ') \
-                   or (start == 0 and text[end] == ' ') \
-                   or (text[start - 1] == ' ' and text[end] == ' '):
-                p_index = len(text[:start].split(" ")) - 1
-                if kw_num == 1:
-                    position[p_index] = 'K_B'
-                else:
-                    position[p_index] = 'K_B'
-                    for i in range(1, kw_num):
-                        position[p_index + i] = 'K_I'
-    return " ".join(words), position
 
 # Construct features of data
 def build_features(path, sections, mode, save_folder):
-
-    cache_path = os.path.join(save_folder, "cache_%s"%mode)
-    if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
+    # global js
+    # cache_path = os.path.join(save_folder, "cache_%s"%mode)
+    # if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
 
     with tqdm(enumerate(read_json_array(path))) as pbar1:
         for idx, document in pbar1:
@@ -109,53 +90,56 @@ def build_features(path, sections, mode, save_folder):
             ## Complete text of all sections
             plain_text = ' '.join(sentences).lower().strip()
 
+            # if not os.path.exists(cache_path):
+
+            ## feature 1 word first occurence in complete text
             wfof_dict = {}
-            if not os.path.exists(cache_path):
-                ## feature 1 word first occurence in complete text
-                for word in word_tokenize(plain_text):
-                    # Skip the word if it is puncutation or a stop word
-                    if word in english_punctuations+stop_words: continue
+            for word in word_tokenize(plain_text):
+                # Skip the word if it is puncutation or a stop word
+                if word in english_punctuations+stop_words: continue
 
-                    # Search word in the complete text
-                    item = re.search(string_escape(word),plain_text)
-                    if item!=None:
-                        wfof_dict[word] = item.start()/len(plain_text)
+                # Search word in the complete text
+                item = re.search(string_escape(word),plain_text)
+                if item!=None:
+                    wfof_dict[word] = item.start()/len(plain_text)
 
-                # fs.6-7 POS tag and length
-                pos_list, length_list = [], []
-                tokens_list, labels_list = [], []
-                
-                for idx, sentence in enumerate(sentences):
-                    # remove punctuations from sentences
-                    sentence = sentence.lower().strip().translate(str.maketrans('','',''.join(english_punctuations)))
-                    # replace the original sentence with punct removed sentence
-                    sentences[idx]=sentence
+            # fs.6-7 POS tag and length
+            pos_list, length_list = [], []
+            tokens_list, labels_list = [], []
+            
+            for idx, sentence in enumerate(sentences):
+                # remove punctuations from sentences
+                sentence = sentence.lower().strip().translate(str.maketrans('','',''.join(english_punctuations)))
+                # replace the original sentence with punct removed sentence
+                sentences[idx]=sentence
 
-                    # create list of words from a sentence
-                    words = word_tokenize(sentence)
-                    if len(words) <= 3: continue
+                # create list of words from a sentence
+                words = word_tokenize(sentence)
+                if len(words) <= 3: continue
 
-                    pos, length = {}, {}
-                    for i, (w, p) in enumerate(nltk.pos_tag(words)):
-                        # Computational features
-                        pos[w] = p
-                        length[w] = len(w) 
-                        
-                    pos_list.append(pos)
-                    length_list.append(length)
+                pos, length = {}, {}
+                for i, (w, p) in enumerate(nltk.pos_tag(words)):
+                    # Computational features
+                    pos[w] = p
+                    length[w] = len(w) 
                     
-                    ## Add tokens for BIO marking of text
-                    tokens_list.append(words)
-                    
-                ## Add BIO Labels to the sentences
-                _, labels = mark_keyword(keywords, sentences)
-                labels_list.extend(labels)
+                pos_list.append(pos)
+                length_list.append(length)
                 
-#             print(wfof_dict)
-#             print(pos_list)
-#             print(length_list)
-            print(labels_list)
-            print(tokens_list)     
+                ## Add tokens for BIO marking of text
+                tokens_list.append(words)
+                
+            ## Add BIO Labels to the sentences
+            complete_text, labels = mark_keyword(keywords, sentences)
+            labels_list.extend(labels)
+ 
+            # print(wfof_dict)
+            # print(pos_list)
+            # print(length_list)
+            # print(labels_list)
+            # print(tokens_list)
+
+
 
             return True, True
 
