@@ -3,6 +3,7 @@ import json
 import os
 import re
 import nltk
+import string
 from collections import Counter
 import numpy as np
 from nltk import sent_tokenize, word_tokenize, PorterStemmer
@@ -85,7 +86,7 @@ def build_features(path, sections, mode, save_folder):
                 pos_list, length_list = [], []
                 tokens_list, labels_list = [], []
                 for sentence in sentences:
-                    sentence = sentence.lower().strip()
+                    sentence = sentence.lower().strip().translate(str.maketrans('','',string.punctuation))
                     words = word_tokenize(sentence)
                     if len(words) <= 3: continue
 
@@ -97,17 +98,17 @@ def build_features(path, sections, mode, save_folder):
                     pos_list.append(pos)
                     length_list.append(length)
 
-                    tokens = [token.strip() for token in words
-                            if token.strip() not in english_punctuations + stop_words]
-                    _, labels = mark_keyword(keywords, tokens)
-                    labels_list.append(labels)
-                    tokens_list.append(tokens)
+                    # tokens = [token.strip() for token in words
+                    #         if token.strip() not in english_punctuations + stop_words]
+                    # _, labels = mark_keyword(keywords, tokens)
+                    # labels_list.append(labels)
+                    # tokens_list.append(tokens)
 
             print(wfof_dict)
             print(pos_list)
             print(length_list)
-            print(labels_list)
-            print(tokens_list)
+            # print(labels_list)
+            # print(tokens_list)
             
             return True, True
 
@@ -280,7 +281,7 @@ def build_datas(path, fields, mode, save_folder):
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
 
-5. save datas
+#5. save datas
 def save_datas(datas, keywords, data_type, save_folder):
     POS_VOCAB, WORD_VOCAB, CHAR_VOCAB = [], [], []
     texts, curr_index, last_index, infos = [], 0, 0, {}
