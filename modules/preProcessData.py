@@ -76,8 +76,8 @@ def build_features(path, sections, mode, save_folder):
     feature_data=[]
     wfof_dict_total, complete_text_total, tokens_list_total, labels_list_total  = [], [], [], []
 
-    count=0
-    with tqdm(enumerate(read_json_array(path))) as pbar1:
+    temp_json_read = read_json_array(path)
+    with tqdm(enumerate(temp_json_read),total=len(temp_json_read)) as pbar1:
         for pidx, document in pbar1:
 
             # sentence segmentation
@@ -116,14 +116,7 @@ def build_features(path, sections, mode, save_folder):
             tokens_list, labels_list = [], []
             
             for idx, sentence in enumerate(sentences):
-                # remove punctuations from sentence
-                sentence = sentence.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
-                
-                # remove stop words from sentence
-                sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
-                
-                # replace the original sentence with punct removed sentence
-                sentences[idx]=sentence
+                sentence = sentence.lower().strip()
 
                 # create list of words from a sentence
                 words = word_tokenize(sentence)
@@ -133,11 +126,32 @@ def build_features(path, sections, mode, save_folder):
                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
                     # Computational features
                     pos[w] = p
-                    length[w] = len(w) 
+                    # length[w] = len(w) 
                 
-                pos_list.append(pos)
-                length_list.append(length)
+                # pos_list.append(pos)
+                # length_list.append(length)
 
+                # remove punctuations from sentence
+                sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
+                
+                # remove stop words from sentence
+                # sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
+                temp_sent = []
+                temp_pos = []
+                temp_len = []
+                for word in sentence.split():
+                    if word in stop_words: continue
+                    temp_sent.append(word)
+                    temp_pos.append(pos[word])
+                    temp_len.append(len(word))
+
+                sentence = ' '.join(temp_sent)
+                print(temp_sent)
+                print(temp_pos)
+                print(temp_len)
+
+                # replace the original sentence with punct removed sentence
+                sentences[idx]=sentence
                 
             ## Add BIO Labels to the sentences
             complete_text, labels, tokens = mark_keyword(keywords, sentences)
@@ -163,50 +177,50 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-            # count+=1
-            # print('+'*50)
-            # if count==2:
-            #     return True, True
+            count+=1
+            print('+'*50)
+            if count==1:
+                return True, True
 
-            pbar1.set_description("%s-th document processed"%pidx)  
+            pbar1.set_description("%s-th document processed"%(pidx+1))  
 
-    ## features TF-IDF and Text Rank
-    tf_idf_dict = tf_idf(complete_text_total)
-    textrank_dict = textrank(complete_text_total)
+    # ## features TF-IDF and Text Rank
+    # tf_idf_dict = tf_idf(complete_text_total)
+    # textrank_dict = textrank(complete_text_total)
 
-    ## Merge Informations
-    return_datas, id_keywords = {}, {}
-    with tqdm(enumerate(feature_data)) as pbar2:
-        for d_index, data in pbar2:
-            p_id, rev_data = data[0], []
-            keywords = data[3]
-            for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
-                if len(tokens) <= 3: continue
-                POS = []
-                WFOF = np.zeros(shape=(len(tokens)))
-                LEN = np.zeros(shape=(len(tokens)))
-                TI = np.zeros(shape=(len(tokens)))
-                TR = np.zeros(shape=(len(tokens)))
-                for j in range(len(tokens)):
-                    token = tokens[j]
-                    try:
-                        print(data[4]['pos'][i][token])
-                        POS.append(data[4]['pos'][i][token])
-                        LEN[j] = data[4]['length'][i][token]
-                        WFOF[j] = data[4]['wfof'][token]
-                        TI[j] = tf_idf_dict[d_index][token]
-                        TR[j] = textrank_dict[d_index][token]
-                    except:
-                        pass
-                print(data[4]['pos'][i])
-                print(data[4])
-                print(POS)
-                assert len(tokens) == len(POS)
-                rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
-            return_datas[p_id] = rev_data
-            id_keywords[p_id] = keywords
-            pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
-    return return_datas, id_keywords
+    # ## Merge Informations
+    # return_datas, id_keywords = {}, {}
+    # with tqdm(enumerate(feature_data)) as pbar2:
+    #     for d_index, data in pbar2:
+    #         p_id, rev_data = data[0], []
+    #         keywords = data[3]
+    #         for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
+    #             if len(tokens) <= 3: continue
+    #             POS = []
+    #             WFOF = np.zeros(shape=(len(tokens)))
+    #             LEN = np.zeros(shape=(len(tokens)))
+    #             TI = np.zeros(shape=(len(tokens)))
+    #             TR = np.zeros(shape=(len(tokens)))
+    #             for j in range(len(tokens)):
+    #                 token = tokens[j]
+    #                 try:
+    #                     print(data[4]['pos'][i][token])
+    #                     POS.append(data[4]['pos'][i][token])
+    #                     LEN[j] = data[4]['length'][i][token]
+    #                     WFOF[j] = data[4]['wfof'][token]
+    #                     TI[j] = tf_idf_dict[d_index][token]
+    #                     TR[j] = textrank_dict[d_index][token]
+    #                 except:
+    #                     pass
+    #             print(data[4]['pos'][i])
+    #             print(data[4])
+    #             print(POS)
+    #             assert len(tokens) == len(POS)
+    #             rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
+    #         return_datas[p_id] = rev_data
+    #         id_keywords[p_id] = keywords
+    #         pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
+    # return return_datas, id_keywords
 
 
 def build_datas(path, fields, mode, save_folder):
@@ -429,23 +443,23 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     logger.info('in build data set')
     
     train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
-    test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
+    # test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
 
-    POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
-    POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
-    WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
-    CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
-    POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
-    # 3. Save word dictionary
-    WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
-    with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
-        fp.write("\n".join(WORD_VOCAB))
-    # Save character dictionary
-    CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
-    with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
-        fp.write("\n".join(CHAR_VOCAB))
-    # Save Dictionary of part of speech categories
-    POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
-    with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
-        fp.write("\n".join(POS_VOCAB))
-    print("\033[34mINFO: Dataset partition completed\033[0m")
+    # POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
+    # POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
+    # WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
+    # CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
+    # POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
+    # # 3. Save word dictionary
+    # WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
+    # with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
+    #     fp.write("\n".join(WORD_VOCAB))
+    # # Save character dictionary
+    # CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
+    # with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
+    #     fp.write("\n".join(CHAR_VOCAB))
+    # # Save Dictionary of part of speech categories
+    # POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
+    # with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
+    #     fp.write("\n".join(POS_VOCAB))
+    # print("\033[34mINFO: Dataset partition completed\033[0m")
