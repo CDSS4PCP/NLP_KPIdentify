@@ -126,10 +126,6 @@ def build_features(path, sections, mode, save_folder):
                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
                     # Computational features
                     pos[w] = p
-                    # length[w] = len(w) 
-                
-                # pos_list.append(pos)
-                # length_list.append(length)
 
                 # remove punctuations from sentence
                 sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
@@ -146,9 +142,8 @@ def build_features(path, sections, mode, save_folder):
                     temp_len.append(len(word))
 
                 sentence = ' '.join(temp_sent)
-                print(temp_sent)
-                print(temp_pos)
-                print(temp_len)
+                pos_list.append(temp_pos)
+                length_list.append(temp_len)
 
                 # replace the original sentence with punct removed sentence
                 sentences[idx]=sentence
@@ -177,50 +172,47 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-            count+=1
-            print('+'*50)
-            if count==1:
-                return True, True
+            # count+=1
+            # print('+'*50)
+            # if count==1:
+            #     return True, True
 
             pbar1.set_description("%s-th document processed"%(pidx+1))  
 
-    # ## features TF-IDF and Text Rank
-    # tf_idf_dict = tf_idf(complete_text_total)
-    # textrank_dict = textrank(complete_text_total)
+    ## features TF-IDF and Text Rank
+    tf_idf_dict = tf_idf(complete_text_total)
+    textrank_dict = textrank(complete_text_total)
 
-    # ## Merge Informations
-    # return_datas, id_keywords = {}, {}
-    # with tqdm(enumerate(feature_data)) as pbar2:
-    #     for d_index, data in pbar2:
-    #         p_id, rev_data = data[0], []
-    #         keywords = data[3]
-    #         for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
-    #             if len(tokens) <= 3: continue
-    #             POS = []
-    #             WFOF = np.zeros(shape=(len(tokens)))
-    #             LEN = np.zeros(shape=(len(tokens)))
-    #             TI = np.zeros(shape=(len(tokens)))
-    #             TR = np.zeros(shape=(len(tokens)))
-    #             for j in range(len(tokens)):
-    #                 token = tokens[j]
-    #                 try:
-    #                     print(data[4]['pos'][i][token])
-    #                     POS.append(data[4]['pos'][i][token])
-    #                     LEN[j] = data[4]['length'][i][token]
-    #                     WFOF[j] = data[4]['wfof'][token]
-    #                     TI[j] = tf_idf_dict[d_index][token]
-    #                     TR[j] = textrank_dict[d_index][token]
-    #                 except:
-    #                     pass
-    #             print(data[4]['pos'][i])
-    #             print(data[4])
-    #             print(POS)
-    #             assert len(tokens) == len(POS)
-    #             rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
-    #         return_datas[p_id] = rev_data
-    #         id_keywords[p_id] = keywords
-    #         pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
-    # return return_datas, id_keywords
+    ## Merge Informations
+    return_datas, id_keywords = {}, {}
+    with tqdm(enumerate(feature_data)) as pbar2:
+        for d_index, data in pbar2:
+            p_id, rev_data = data[0], []
+            id_keywords[p_id] = data[3] # Assignment Keywords
+            labels = data[2]
+            for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
+                if len(tokens) <= 3: continue
+                POS = data[4]['pos'][i]
+                LEN = data[4]['length'][i]
+                WFOF = np.zeros(shape=(len(tokens)))
+                TI = np.zeros(shape=(len(tokens)))
+                TR = np.zeros(shape=(len(tokens)))
+                for j in range(len(tokens)):
+                    token = tokens[j]
+                    try:
+                        WFOF[j] = data[4]['wfof'][token]
+                        TI[j] = tf_idf_dict[d_index][token]
+                        TR[j] = textrank_dict[d_index][token]
+                    except:
+                        pass
+                rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
+            return_datas[p_id] = rev_data
+
+            print(return_datas)
+            return True
+
+            pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
+    return return_datas, id_keywords
 
 
 def build_datas(path, fields, mode, save_folder):
