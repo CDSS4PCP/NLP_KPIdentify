@@ -118,17 +118,17 @@ def build_features(path, sections, mode, save_folder):
             for idx, sentence in enumerate(sentences):
                 sentence = sentence.lower().strip()
 
+                # remove punctuations from sentence
+                sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
+
                 # create list of words from a sentence
-                words = word_tokenize(sentence)
+                words = sentence.split() #word_tokenize(sentence)
                 if len(words) <= 3: continue
 
                 pos, length = {}, {}
                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
                     # Computational features
                     pos[w] = p
-
-                # remove punctuations from sentence
-                sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
                 
                 # remove stop words from sentence
                 # sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
