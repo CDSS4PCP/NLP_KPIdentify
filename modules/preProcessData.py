@@ -2,6 +2,7 @@
 import json
 import os
 import re
+from turtle import shape
 import nltk
 import string
 from collections import Counter
@@ -10,9 +11,9 @@ from nltk import sent_tokenize, word_tokenize, PorterStemmer
 from tqdm import tqdm
 import logging
 
-# from textrank import textrank
-# from tf_idf import tf_idf
 from modules.utils import read_json_datas, string_escape, read_json_array
+from modules.textrank import textrank
+from modules.tf_idf import tf_idf
 
 import config
 
@@ -25,8 +26,7 @@ stemmer = PorterStemmer()
 
 logger = logging.getLogger(__name__)
 
-## Need to update it -- RoHaN
-# Mark Keywords
+# Mark Keyphrases with BIO Format Labels
 def mark_keyword(keywords, sentences):
 
     sentence_lengths = [len(x.split()) for x in sentences]
@@ -73,6 +73,9 @@ def build_features(path, sections, mode, save_folder):
     # cache_path = os.path.join(save_folder, "cache_%s"%mode)
     # if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
 
+    feature_data=[]
+    wfof_dict_total, complete_text_total, tokens_list_total, labels_list_total  = [], [], [], []
+
     count=0
     with tqdm(enumerate(read_json_array(path))) as pbar1:
         for pidx, document in pbar1:
@@ -97,7 +100,7 @@ def build_features(path, sections, mode, save_folder):
 
             # if not os.path.exists(cache_path):
 
-            ## feature 1 word first occurence in complete text
+            ## feature word first occurence in complete text - WFOF
             wfof_dict = {}
             for word in word_tokenize(plain_text):
                 # Skip the word if it is puncutation or a stop word
@@ -108,7 +111,7 @@ def build_features(path, sections, mode, save_folder):
                 if item!=None:
                     wfof_dict[word] = item.start()/len(plain_text)
 
-            # fs.6-7 POS tag and length
+            # features POS tag and length (LEN)
             pos_list, length_list = [], []
             tokens_list, labels_list = [], []
             
@@ -122,36 +125,84 @@ def build_features(path, sections, mode, save_folder):
                 # replace the original sentence with punct removed sentence
                 sentences[idx]=sentence
 
-            # create list of words from a sentence
-            words = word_tokenize(sentence)
-            if len(words) <= 3: continue
+                # create list of words from a sentence
+                words = word_tokenize(sentence)
+                if len(words) <= 3: continue
 
-            pos, length = {}, {}
-            for i, (w, p) in enumerate(nltk.pos_tag(words)):
-                # Computational features
-                pos[w] = p
-                length[w] = len(w) 
+                pos, length = {}, {}
+                for i, (w, p) in enumerate(nltk.pos_tag(words)):
+                    # Computational features
+                    pos[w] = p
+                    length[w] = len(w) 
                 
-                # ## Add tokens for BIO marking of text
-                # tokens_list.append(words)
+                pos_list.append(pos)
+                length_list.append(length)
+
                 
             ## Add BIO Labels to the sentences
             complete_text, labels, tokens = mark_keyword(keywords, sentences)
             tokens_list.extend(tokens)
             labels_list.extend(labels)
-                
-            # print(wfof_dict)
-            # print(pos_list)
-            # print(length_list)
-            # print(labels_list)
-            # print(tokens_list)
 
-            count+=1
-            print('+'*50)
-            if count==2:
-                return True, True
+            logger.debug(wfof_dict)
+            logger.debug(pos_list)
+            logger.debug(length_list)
+            logger.debug(labels_list)
+            logger.debug(tokens_list)
+
+            # wfof_dict_total.append(wfof_dict)
+            # tokens_list_total.append(tokens_list)
+            # labels_list_total.append(labels_list)
+            complete_text_total.append(complete_text)
+
+            features = {
+                'wfof': wfof_dict,
+                'pos': pos_list,
+                'length': length_list
+            }
+
+            feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
+
+            # count+=1
+            # print('+'*50)
+            # if count==2:
+            #     return True, True
 
             pbar1.set_description("%s-th document processed"%pidx)  
+
+    ## features TF-IDF and Text Rank
+    tf_idf_dict = tf_idf(complete_text_total)
+    textrank_dict = textrank(complete_text_total)
+
+    ## Merge Informations
+    return_datas, id_keywords = {}, {}
+    with tqdm(enumerate(feature_data)) as pbar2:
+        for d_index, data in pbar2:
+            p_id, rev_data = data[0], []
+            keywords = data[3]
+            for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
+                if len(tokens) <= 3: continue
+                POS = []
+                WFOF = np.zeros(shape=(len(tokens)))
+                LEN = np.zeros(shape=(len(tokens)))
+                TI = np.zeros(shape=(len(tokens)))
+                TR = np.zeros(shape=(len(tokens)))
+                for j in range(len(tokens)):
+                    token = tokens[j]
+                    try:
+                        POS.append(data[4]['pos'][i][token])
+                        LEN[j] = data[4]['length'][i][token]
+                        WFOF[j] = data[4]['wfof'][token]
+                        TI[j] = tf_idf_dict[d_index][token]
+                        TR[j] = textrank_dict[d_index][token]
+                    except:
+                        pass
+                assert len(tokens) == len(POS)
+                rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
+            return_datas[p_id] = rev_data
+            id_keywords[p_id] = keywords
+            pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
+    return return_datas, id_keywords
 
 
 def build_datas(path, fields, mode, save_folder):
@@ -319,8 +370,8 @@ def build_datas(path, fields, mode, save_folder):
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
 
-#5. save datas
 def save_datas(datas, keywords, data_type, save_folder):
+    '''Save Dataset with Features'''
     POS_VOCAB, WORD_VOCAB, CHAR_VOCAB = [], [], []
     texts, curr_index, last_index, infos = [], 0, 0, {}
     for key, data in datas.items():
@@ -374,24 +425,23 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     logger.info('in build data set')
     
     train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
-    
-    # train_datas, train_keywords = build_datas(train_path, fields, 'train', interim_folder)
-    # test_datas, test_keywords = build_datas(test_path, fields, 'test', interim_folder)
-    # POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_datas, train_keywords, "train", interim_folder)
-    # POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_datas, test_keywords, "test", interim_folder)
-    # WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
-    # CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
-    # POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
-    # # 3. Save word dictionary
-    # WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(WORD_VOCAB))
-    # # Save character dictionary
-    # CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(CHAR_VOCAB))
-    # # Save Dictionary of part of speech categories
-    # POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(POS_VOCAB))
-    # print("\033[34mINFO: Dataset partition completed\033[0m")
+    test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
+
+    POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
+    POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
+    WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
+    CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
+    POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
+    # 3. Save word dictionary
+    WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
+    with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(WORD_VOCAB))
+    # Save character dictionary
+    CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
+    with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(CHAR_VOCAB))
+    # Save Dictionary of part of speech categories
+    POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
+    with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(POS_VOCAB))
+    print("\033[34mINFO: Dataset partition completed\033[0m")

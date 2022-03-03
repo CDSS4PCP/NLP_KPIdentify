@@ -33,17 +33,17 @@ if __name__ == "__main__":
     level = levels.get(args.log.lower())
     if level is None:
         raise ValueError(
-            f"log level given: {options.log}"
+            f"log level given: {args.log}"
             f" -- must be one of: {' | '.join(levels.keys())}")
     logging.basicConfig(level=level)
     logger = logging.getLogger(__name__)
     
-    print("+"*50)
+    print("="*100)
     print("Mode: {}".format(args.mode))
     print("Sections Included: {}".format(args.sections))
     print("Features: {}".format(args.features))
     print("Logging Level: {}".format(args.log))
-    print("+"*50)
+    print("="*100)
     
     pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
     json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
@@ -52,11 +52,25 @@ if __name__ == "__main__":
     if not os.path.exists(interim_data_folder): os.mkdir(interim_data_folder)
 
     if args.mode=="predict":
+        ## Inteference Mode
+        ## Take JSON document as input
+        ## Pre-Process JSON with Data Features
+        ## Load pre-trained model
+        ## Infer/Predict
+        pass
+    elif args.mode=='al':
+        ## Activate Active Learning
+        ## Pick test sample from Test Data Pool
+        ## Incremental Train with Active Learning
         pass
     elif args.mode == "test":
+        ## Metrics Calculation
         pass
     elif args.mode == "createData":
+        ## Read PubMed XML processed Data
         fullData = data.load_pubmed_data(pubmed_data_folder)
+        ## Generate JSON Files from XML
         data.generate_dataset(fullData, json_data_folder)
     else:
+        ## Build Data Features with JSON Data
         ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
