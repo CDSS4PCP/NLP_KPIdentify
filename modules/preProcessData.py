@@ -89,11 +89,11 @@ def build_features(path, sections, mode, save_folder):
                 elif type(text)==list:
                     for item in text:
                         sentences.extend(sent_tokenize(item))
-            print(sentences)
+            logger.debug(sentences)
 
             # pre-process keywords - remove punctuations
             keywords = [kw.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr))) for kw in document['keywords']]
-            print(keywords)
+            logger.debug(keywords)
 
             ## Complete text of all sections
             plain_text = ' '.join(sentences).lower().strip()
