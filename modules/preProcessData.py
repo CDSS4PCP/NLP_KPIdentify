@@ -27,7 +27,7 @@ stemmer = PorterStemmer()
 logger = logging.getLogger(__name__)
 
 # Mark Keyphrases with BIO Format Labels
-def mark_keyword(keywords, sentences):
+def mark_keyword_new(keywords, sentences):
 
     sentence_lengths = [len(x.split()) for x in sentences]
     logger.debug("Sentence length: %s"%sentence_lengths)
@@ -66,6 +66,28 @@ def mark_keyword(keywords, sentences):
     #     print(i,j)
     
     return complete_text, final_mapper, final_tokens
+
+# Mark Keywords
+def mark_keyword(keywords, words):
+    # Initial marker variable
+    text = " ".join(words)
+    position, text_len  = ['0'] * len(words), len(text)
+    for keyword in keywords:
+        keyword_length, kw_num = len(keyword), len(keyword.split(" "))
+        index_list = [(i.start(), i.end()) for i in re.finditer(keyword.replace("+", "\+"), text)]
+        for start, end in index_list:
+            if text_len == keyword_length \
+                   or (end == text_len and text[start - 1] == ' ') \
+                   or (start == 0 and text[end] == ' ') \
+                   or (text[start - 1] == ' ' and text[end] == ' '):
+                p_index = len(text[:start].split(" ")) - 1
+                if kw_num == 1:
+                    position[p_index] = 'K_B'
+                else:
+                    position[p_index] = 'K_B'
+                    for i in range(1, kw_num):
+                        position[p_index + i] = 'K_I'
+    return " ".join(words), position
 
 # Construct features of data
 def build_features(path, sections, mode, save_folder):
@@ -122,7 +144,7 @@ def build_features(path, sections, mode, save_folder):
                 sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
 
                 # create list of words from a sentence
-                words = sentence.split() #word_tokenize(sentence)
+                words = word_tokenize(sentence)
                 if len(words) <= 3: continue
 
                 pos, length = {}, {}
@@ -214,7 +236,6 @@ def build_features(path, sections, mode, save_folder):
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
 
-
 def build_datas(path, fields, mode, save_folder):
     # Datas annotation and features combination
     global js
@@ -247,9 +268,10 @@ def build_datas(path, fields, mode, save_folder):
             # ============================================================
             wfof_dict, wff_dict, wfr_dict, \
             iwor_dict, iwot_dict = {}, {}, {}, {}, {}
+            
             if not os.path.exists(cache_path):
                 # feature 1: word first occurrence in full_text (position)
-                plain_text = text['full_text'].lower().strip()
+                plain_text = ' '.join(sentences).lower().strip()
                 for word in word_tokenize(plain_text):
                     if word in english_punctuations + stop_words: continue
                     item = re.search(string_escape(word), plain_text)
@@ -258,24 +280,11 @@ def build_datas(path, fields, mode, save_folder):
                 wfof_dict_list.append(wfof_dict)
                 # feature 2: Full text word frequency count
                 wff_dict = Counter([stemmer.stem(token.strip())
-                                    for sentence in sent_tokenize(text['full_text'])
+                                    for sentence in sent_tokenize(plain_text)
                                     for token in word_tokenize(sentence.lower().strip())
                                     if token.strip() not in english_punctuations + stop_words])
                 wff_dict_list.append(wff_dict)
-                # feature 3: reference titles word frequency count
-                wfr_dict = Counter([stemmer.stem(token.strip())
-                                    for text in text['references']
-                                    for token in word_tokenize(text.lower().strip())
-                                    if token.strip() not in english_punctuations + stop_words])
-                wfr_dict_list.append(wfr_dict)
-                # feature 4: Does it appear in the title of the reference
-                plain_text = " ".join(text['references']).lower().strip()
-                for word in word_tokenize(plain_text):
-                    if word in english_punctuations + stop_words: continue
-                    word = stemmer.stem(word.strip())
-                    iwor_dict[word] = 1
-                iwor_dict_list.append(iwor_dict)
-                # feature 5: Does it appear in the title
+                # feature 3: Does it appear in the title
                 plain_text = text['title'].lower().strip()
                 for word in word_tokenize(plain_text):
                     if word in english_punctuations + stop_words: continue
@@ -284,9 +293,7 @@ def build_datas(path, fields, mode, save_folder):
                 iwot_dict_list.append(iwot_dict)
             else:
                 wfof_dict = js["wfof_dict_list"][index]
-                wfr_dict = js["wfr_dict_list"][index]
                 wff_dict = js["wff_dict_list"][index]
-                iwor_dict = js["iwor_dict_list"][index]
                 iwot_dict = js["iwot_dict_list"][index]
             # fs.6-7 pos and length
             pos_list, length_list = [], []
@@ -295,17 +302,17 @@ def build_datas(path, fields, mode, save_folder):
                 sentence = sentence.lower().strip()
                 words = word_tokenize(sentence)
                 if len(words) <= 3: continue
-                # 词性和词长
+
                 pos, length = {}, {}
                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
                     # Stem extraction
                     w_stem = stemmer.stem(w)
                     # Computational features
-                    pos[w_stem] = p  # 词性
-                    length[w_stem] = len(w_stem)  # 长度
+                    pos[w_stem] = p
+                    length[w_stem] = len(w_stem)
                 pos_list.append(pos)
                 length_list.append(length)
-                # 标签标注
+
                 tokens = [stemmer.stem(token.strip()) for token in words
                           if token.strip() not in english_punctuations + stop_words]
                 _, labels = mark_keyword(keywords, tokens)
@@ -314,9 +321,7 @@ def build_datas(path, fields, mode, save_folder):
             features = {
                 'wff': wff_dict,
                 'wfof': wfof_dict,
-                'wfr': wfr_dict,
                 'iwot': iwot_dict,
-                'iwor':  iwor_dict,
                 'pos': pos_list,
                 'length': length_list
             }
@@ -328,8 +333,6 @@ def build_datas(path, fields, mode, save_folder):
         json.dump({
             "wfof_dict_list": wfof_dict_list,
             "wff_dict_list": wff_dict_list,
-            "wfr_dict_list": wfr_dict_list,
-            "iwor_dict_list": iwor_dict_list,
             "iwot_dict_list": iwot_dict_list
         }, open(cache_path, 'w', encoding='utf-8'))
     # ======================================================
@@ -352,10 +355,8 @@ def build_datas(path, fields, mode, save_folder):
                 if len(tokens) <= 3: continue
                 POS = []
                 WFF = np.zeros(shape=(len(tokens)))
-                WFR = np.zeros(shape=(len(tokens)))
                 WFOF = np.zeros(shape=(len(tokens)))
                 IWOT = np.zeros(shape=(len(tokens)))
-                IWOR = np.zeros(shape=(len(tokens)))
                 LEN = np.zeros(shape=(len(tokens)))
                 TI = np.zeros(shape=(len(tokens)))
                 TR = np.zeros(shape=(len(tokens)))
@@ -368,13 +369,11 @@ def build_datas(path, fields, mode, save_folder):
                         WFOF[j] = data[4]['wfof'][token]
                         TI[j] = tf_idf_dict[d_index][token]
                         TR[j] = textrank_dict[d_index][token]
-                        WFR[j] = data[4]['wfr'][token]
-                        IWOR[j] = data[4]['iwor'][token]
                         IWOT[j] = data[4]['iwot'][token]
                     except:
                         pass
                 assert len(tokens) == len(POS)
-                rev_data.append([" ".join(tokens), labels, POS, LEN, WFF, WFOF, TI, TR, WFR, IWOR, IWOT])
+                rev_data.append([" ".join(tokens), labels, POS, LEN, WFF, WFOF, TI, TR, IWOT])
             return_datas[p_id] = rev_data
             id_keywords[p_id] = keywords
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
@@ -434,7 +433,7 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     
     logger.info('in build data set')
     
-    train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
+    train_features, train_keywords = build_datas(train_path, sections, 'train', interim_folder)
     # test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
 
     # POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
