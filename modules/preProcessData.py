@@ -190,6 +190,7 @@ def build_features(path, sections, mode, save_folder):
                 for j in range(len(tokens)):
                     token = tokens[j]
                     try:
+                        print(data[4]['pos'][i][token])
                         POS.append(data[4]['pos'][i][token])
                         LEN[j] = data[4]['length'][i][token]
                         WFOF[j] = data[4]['wfof'][token]
@@ -197,6 +198,9 @@ def build_features(path, sections, mode, save_folder):
                         TR[j] = textrank_dict[d_index][token]
                     except:
                         pass
+                print(data[4]['pos'][i])
+                print(data[4])
+                print(POS)
                 assert len(tokens) == len(POS)
                 rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
             return_datas[p_id] = rev_data
