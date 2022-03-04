@@ -19,7 +19,7 @@ import config
 
 stop_words = nltk.corpus.stopwords.words('english')
 english_punctuations = [',', '.', ':', ';', '``','?', '（','）','(', ')',
-                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{']
+                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{','=','']
 
 english_punctuations_arr= ''.join(english_punctuations)
 stemmer = PorterStemmer()
@@ -139,6 +139,7 @@ def build_features(path, sections, mode, save_folder):
             
             for idx, sentence in enumerate(sentences):
                 sentence = sentence.lower().strip()
+                sentence = re.sub('\d+\.*\d*', '', sentence)
 
                 # remove punctuations from sentence
                 sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
@@ -246,7 +247,8 @@ def build_datas(path, fields, mode, save_folder):
     if os.path.exists(cache_path): js = json.load(
         open(cache_path, 'r', encoding='utf-8'))
     p_id, id_datas = 0, []
-    with tqdm(enumerate(read_json_datas(path))) as pbar1:
+    temp_json_read = read_json_array(path)
+    with tqdm(enumerate(temp_json_read), total=len(temp_json_read)) as pbar1:
         for index, text in pbar1:
             # Sentence segmentation
             sentences = []
@@ -300,6 +302,13 @@ def build_datas(path, fields, mode, save_folder):
             tokens_list, labels_list = [], []
             for sentence in sentences:
                 sentence = sentence.lower().strip()
+                ## Remove Non-ASCII characters from the sentence
+                sentence = sentence.encode("ascii", "ignore").decode()
+                ## Remove Integer/Decimal/Float numbers from the sentence
+                sentence = re.sub('\d+\.*\d*', '', sentence)
+                ## Remove URL from sentence
+                sentence = re.sub('http[s]?://\S+', '', sentence)
+                
                 words = word_tokenize(sentence)
                 if len(words) <= 3: continue
 
@@ -434,23 +443,23 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     logger.info('in build data set')
     
     train_features, train_keywords = build_datas(train_path, sections, 'train', interim_folder)
-    # test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
+    test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
 
-    # POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
-    # POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
-    # WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
-    # CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
-    # POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
-    # # 3. Save word dictionary
-    # WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(WORD_VOCAB))
-    # # Save character dictionary
-    # CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(CHAR_VOCAB))
-    # # Save Dictionary of part of speech categories
-    # POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
-    # with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
-    #     fp.write("\n".join(POS_VOCAB))
-    # print("\033[34mINFO: Dataset partition completed\033[0m")
+    POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
+    POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
+    WORD_VOCAB = WORD_VOCAB1 + WORD_VOCAB2
+    CHAR_VOCAB = CHAR_VOCAB1 + CHAR_VOCAB2
+    POS_VOCAB = POS_VOCAB1 + POS_VOCAB2
+    # 3. Save word dictionary
+    WORD_VOCAB = ["[PAD]", "[UNK]"] + list(set(WORD_VOCAB))
+    with open(os.path.join(root_vocab_path, 'word_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(WORD_VOCAB))
+    # Save character dictionary
+    CHAR_VOCAB = ["[PAD]", "[UNK]"] + list(set(CHAR_VOCAB))
+    with open(os.path.join(root_vocab_path, 'char_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(CHAR_VOCAB))
+    # Save Dictionary of part of speech categories
+    POS_VOCAB = ["[PAD]", "[UNK]"] + list(set(POS_VOCAB))
+    with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
+        fp.write("\n".join(POS_VOCAB))
+    print("\033[34mINFO: Dataset partition completed\033[0m")

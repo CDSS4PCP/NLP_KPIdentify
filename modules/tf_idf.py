@@ -21,9 +21,10 @@ def cal_idf(datas):
 def tf_idf(datas):
     idf = cal_idf(datas)
     return_datas = []
-    with tqdm(range(len(datas))) as pbar:
-        for index in pbar:
-            words = datas[index]
+    temp_len_datas = len(datas)
+    with tqdm(enumerate(datas), total=temp_len_datas) as pbar:
+        for index,words in pbar:
+            # words = datas[index]
             num_words = len(words)
             tf = Counter(words)
             keywords = {}
