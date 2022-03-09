@@ -72,7 +72,7 @@ if __name__ == "__main__":
     elif args.mode == "test":
         ## Metrics Calculation
         s_time = time.time()
-        p, r, f1 = model.test(interim_data_folder, args.dataset_name, corpus_type, args.mode, args.features)
+        p, r, f1 = model.test(interim_data_folder, corpus_type, args.mode, args.features)
         print("\033[031mINFO: Total time of model test:%sS\033[0m"%round(time.time() - s_time, 3))
         pass
     elif args.mode == "createData":
