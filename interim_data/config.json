@@ -8,7 +8,7 @@
   "lstm_num_layers": 1,
   "is_bidirectional": "True",
   "dropout": 0.5,
-  "tags_path": "./datas/tags",
+  "tags_path": "./interim_data/tags",
   "epochs": 20,
   "batch_size": 128,
   "lr": 0.01,
