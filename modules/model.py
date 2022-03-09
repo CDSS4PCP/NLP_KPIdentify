@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 import os
-import torch
 import json
+from copy import deepcopy
+
 import pandas as pd
 import numpy as np
+
+import torch
 from torch import optim, nn
-from copy import deepcopy
-from modules.crf import CRF
-from utils import read_text
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
-from config import MODEL_FOLDER, RESULT_FOLDER
-from utils import  performance_metrics
 torch.manual_seed(2021)
+
+from config import MODEL_FOLDER, RESULT_FOLDER
+from modules.crf import CRF
+from modules.utils import  performance_metrics, read_text
+
 
 names = ['text', 'label', 'POS', 'LEN', 'WFF', 'WFOF', 'TI', 'TR', 'WFR', 'IWOR', 'IWOT']
 # Text processing object
