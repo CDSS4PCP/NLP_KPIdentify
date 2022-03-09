@@ -10,6 +10,8 @@ import numpy as np
 from nltk import sent_tokenize, word_tokenize, PorterStemmer
 from tqdm import tqdm
 import logging
+import unidecode
+import contractions
 
 from modules.utils import read_json_datas, string_escape, read_json_array
 from modules.textrank import textrank
@@ -26,8 +28,49 @@ stemmer = PorterStemmer()
 
 logger = logging.getLogger(__name__)
 
+def sent2words(sent):
+    '''Pre-process sentence text to words'''
+    
+    ## Expand Words
+    sent = contractions.fix(sent)
+    
+    ## Convert sentence to lowercase and strip whitespaces
+    sent = sent.lower().strip()
+    
+    ## Convert unicode characters in sentence to ASCII
+    sent = unidecode.unidecode(sent)
+    sent = sent.encode("ascii", "ignore").decode()
+    
+    ## Remove URL's from Sentence
+    sent = re.sub('http[s]?://\S+', '', sent)
+    
+    ## Remove words like 2.0-2
+    sent = re.sub('\d+\.*\d*\-+\d+\.*\d*', ' ', sent)
+    
+    # Remove punctuation characters
+    sent = sent.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
+    
+    pos, length = {}, {}
+    words = word_tokenize(sent)
+    for i, (w, p) in enumerate(nltk.pos_tag(words)):
+        # Computational features
+        pos[w] = p
+        length[w] = len(w)
+    
+    # Remove Stop Words
+    words = [word for word in word_tokenize(sent) if not word in stop_words]
+    
+    # Remove punctuation only strings from sentence
+    words = [word for word in words if not all(c in string.punctuation for c in word) and len(word)>1]
+    
+    # Remove Numericals from sentence
+    words = [x for x in words if not all(c.isdigit() for c in x)] 
+    
+    ## Return words, POS tags, lengths of words, processed sentence
+    return words, pos, length, ' '.join(words)
+
 # Mark Keyphrases with BIO Format Labels
-def mark_keyword_new(keywords, sentences):
+def mark_keyword_all_sentences(keywords, sentences):
 
     sentence_lengths = [len(x.split()) for x in sentences]
     logger.debug("Sentence length: %s"%sentence_lengths)
@@ -36,22 +79,26 @@ def mark_keyword_new(keywords, sentences):
     logger.debug("Complete Text: %s"%complete_text)
 
     complete_text_len = len(complete_text)
-    mapper = [0]*complete_text_len
-    kws = [x.lower().split() for x in keywords]
+    mapper = ['0']*complete_text_len
+    kws = [sent2words(x)[0] for x in keywords]
+#     print("Processed Keywords")
+#     print(kws)
 
     for kw in kws:
         kw_len=len(kw)
+        if kw_len == 0:
+            continue
         i=0
         while i<complete_text_len-kw_len:
-            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==[0]*kw_len:
+            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['0']*kw_len:
                 mapper[i:i+kw_len]=['K_I']*kw_len
                 mapper[i]='K_B'
             i+=1
 
-    # print(complete_text)
-    # print(mapper)
-    # for i,j in zip(complete_text,mapper):
-    #     print(j,'\t',i)
+#     print(complete_text)
+#     print(mapper)
+#     for i,j in zip(complete_text,mapper):
+#         print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []
@@ -99,6 +146,7 @@ def build_features(path, sections, mode, save_folder):
     wfof_dict_total, complete_text_total, tokens_list_total, labels_list_total  = [], [], [], []
 
     temp_json_read = read_json_array(path)
+    count=0
     with tqdm(enumerate(temp_json_read),total=len(temp_json_read)) as pbar1:
         for pidx, document in pbar1:
 
@@ -114,7 +162,8 @@ def build_features(path, sections, mode, save_folder):
             logger.debug(sentences)
 
             # pre-process keywords - remove punctuations
-            keywords = [kw.lower().strip().translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr))) for kw in document['keywords']]
+            keywords = document['keywords']
+#             keywords = [kw for kw in document['keywords']]
             logger.debug(keywords)
 
             ## Complete text of all sections
@@ -138,41 +187,55 @@ def build_features(path, sections, mode, save_folder):
             tokens_list, labels_list = [], []
             
             for idx, sentence in enumerate(sentences):
-                sentence = sentence.lower().strip()
-                sentence = re.sub('\d+\.*\d*', '', sentence)
-
-                # remove punctuations from sentence
-                sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
-
-                # create list of words from a sentence
-                words = word_tokenize(sentence)
-                if len(words) <= 3: continue
-
-                pos, length = {}, {}
-                for i, (w, p) in enumerate(nltk.pos_tag(words)):
-                    # Computational features
-                    pos[w] = p
                 
-                # remove stop words from sentence
-                # sentence = ' '.join([word for word in sentence.split() if not word in stop_words])
-                temp_sent = []
-                temp_pos = []
-                temp_len = []
-                for word in sentence.split():
-                    if word in stop_words: continue
-                    temp_sent.append(word)
-                    temp_pos.append(pos[word])
-                    temp_len.append(len(word))
+                # Pre-process sentence to words
+                words, pos, length, sentence = sent2words(sentence)
+#                 print(words,pos,length, end='\n\n')
+                
+#                 # make sentence into lower case and strip whitespace at edges
+#                 sentence = sentence.lower().strip()
+                
+#                 # remove decimal, float numbers from strings
+#                 sentence = re.sub('\d+\.*\d*', '', sentence)
 
-                sentence = ' '.join(temp_sent)
-                pos_list.append(temp_pos)
-                length_list.append(temp_len)
+#                 # remove punctuations from sentence
+#                 sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
 
+#                 # remove stop words from sentence
+#                 sentence = ' '.join([word for word in word_tokenize(sentence) if not word in stop_words])
+                
                 # replace the original sentence with punct removed sentence
                 sentences[idx]=sentence
                 
+#                 # create list of words from a sentence
+#                 words = word_tokenize(sentence)
+#                 if len(words) <= 3: continue
+
+#                 pos, length = {}, {}
+#                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
+#                     # Computational features
+#                     pos[w] = p
+#                     length[w] = len(w)
+                    
+                pos_list.append(pos)
+                length_list.append(length)
+
+#                 temp_sent = []
+#                 temp_pos = []
+#                 temp_len = []
+#                 for word in sentence.split():
+#                     if word in stop_words: continue
+#                     temp_sent.append(word)
+#                     temp_pos.append(pos[word])
+#                     temp_len.append(len(word))
+
+#                 sentence = ' '.join(temp_sent)
+#                 pos_list.append(temp_pos)
+#                 length_list.append(temp_len)
+
+                
             ## Add BIO Labels to the sentences
-            complete_text, labels, tokens = mark_keyword(keywords, sentences)
+            complete_text, labels, tokens = mark_keyword_all_sentences(keywords, sentences)
             tokens_list.extend(tokens)
             labels_list.extend(labels)
 
@@ -195,10 +258,10 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-            # count+=1
-            # print('+'*50)
-            # if count==1:
-            #     return True, True
+#             count+=1
+#             print('+'*50)
+#             if count==3:
+#                 return True, True
 
             pbar1.set_description("%s-th document processed"%(pidx+1))  
 
@@ -212,17 +275,19 @@ def build_features(path, sections, mode, save_folder):
         for d_index, data in pbar2:
             p_id, rev_data = data[0], []
             id_keywords[p_id] = data[3] # Assignment Keywords
-            labels = data[2]
+#             labels = data[2]
             for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
                 if len(tokens) <= 3: continue
-                POS = data[4]['pos'][i]
-                LEN = data[4]['length'][i]
+                POS = []
+                LEN = np.zeros(shape=(len(tokens)))
                 WFOF = np.zeros(shape=(len(tokens)))
                 TI = np.zeros(shape=(len(tokens)))
                 TR = np.zeros(shape=(len(tokens)))
                 for j in range(len(tokens)):
                     token = tokens[j]
                     try:
+                        POS.append(data[4]['pos'][i][token])
+                        LEN[j] = data[4]['length'][i][token]
                         WFOF[j] = data[4]['wfof'][token]
                         TI[j] = tf_idf_dict[d_index][token]
                         TR[j] = textrank_dict[d_index][token]
@@ -231,8 +296,8 @@ def build_features(path, sections, mode, save_folder):
                 rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
             return_datas[p_id] = rev_data
 
-            print(return_datas)
-            return True
+#             print(return_datas)
+#             return True
 
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
@@ -442,7 +507,7 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     
     logger.info('in build data set')
     
-    train_features, train_keywords = build_datas(train_path, sections, 'train', interim_folder)
+    train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
     test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
 
     POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)

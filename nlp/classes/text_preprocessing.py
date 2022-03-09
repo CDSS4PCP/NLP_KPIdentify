@@ -1,7 +1,7 @@
 import spacy
 import unidecode
 from word2number import w2n
-from pycontractions import Contractions
+# from pycontractions import Contractions
 import gensim.downloader as api
 import json
 
@@ -15,8 +15,8 @@ class text_preprocessing:
         # model = api.load("glove-twitter-100")
         # model = api.load("word2vec-google-news-300")
 
-        self.cont = Contractions(kv_model=self.model)
-        self.cont.load_models()
+#         self.cont = Contractions(kv_model=self.model)
+#         self.cont.load_models()
 
         # exclude words from spacy stopwords list
         deselect_stop_words = ['no', 'not']
@@ -55,7 +55,8 @@ class text_preprocessing:
         if accented_chars == True: #remove accented characters
             text = self.remove_accented_chars(text)
         if contractions == True: #expand contractions
-            text = self.expand_contractions(text)
+            pass
+#             text = self.expand_contractions(text)
         if lowercase == True: #convert all characters to lowercase
             text = text.lower()
 
