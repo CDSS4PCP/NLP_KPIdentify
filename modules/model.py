@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from torch import optim, nn
 from copy import deepcopy
-from crf import CRF
+from modules.crf import CRF
 from utils import read_text
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
