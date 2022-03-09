@@ -229,6 +229,11 @@ def train(file_folder, corpus_type, texts_features=None):
     dev_path = os.path.join(file_folder, 'test.txt')
     dev_info_path = os.path.join(file_folder, 'test_info.json')
     vocab_path = os.path.join(file_folder, 'vocab')
+
+    # Create Folders for Model and Results
+    if not os.path.exists(MODEL_FOLDER): os.mkdir(MODEL_FOLDER)
+    if not os.path.exists(RESULT_FOLDER): os.mkdir(RESULT_FOLDER)
+
     # Load configuration
     config_path = os.path.join(file_folder, "config.json")
     configs = json.load(open(config_path, 'r', encoding='utf-8'))
