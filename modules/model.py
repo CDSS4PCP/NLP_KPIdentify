@@ -412,11 +412,10 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
                 y_targets.append([ix2tag[i] for i in tag.detach().cpu().tolist()[: sentence_len[ix]]])
             pbar_test.set_description("finish")
     
-    with open(predict_path,'r') as ptext:
-        text = ptext.readlines()
-        print('Actual\tPredict\tToken')
-        for i,j,k in zip(text,y_preds,y_targets):
-            print(k,'\t',j,'\t',i)
+    pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
+    print('Actual\tPredict\tToken')
+    for i,j,k in zip(pdata['text'],y_preds,y_targets):
+        print(k,'\t',j,'\t',i)
     # p, r, f1, NUM = performance_metrics(y_preds, predict_info_path)
     # print("\033[034mINFO: p: %s, r: %s, f1: %s\033[0m"%(p, r, f1))
     # save result
