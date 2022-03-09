@@ -231,7 +231,9 @@ def train(file_folder, corpus_type, texts_features=None):
     vocab_path = os.path.join(file_folder, 'vocab')
 
     # Create Folders for Model and Results
+    BIN_FODLER = os.path.join(MODEL_FOLDER,'bin')
     if not os.path.exists(MODEL_FOLDER): os.mkdir(MODEL_FOLDER)
+    if not os.path.exists(MODEL_FOLDER): os.mkdir(BIN_FODLER)
     if not os.path.exists(RESULT_FOLDER): os.mkdir(RESULT_FOLDER)
 
     # Load configuration
