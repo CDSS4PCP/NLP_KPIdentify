@@ -1,8 +1,10 @@
 import argparse
 import os
 import shutil
+import time
 from modules import createDataset as data
 from modules import preProcessData as ppd
+from modules import model as model
 import config
 import logging
 
@@ -50,7 +52,6 @@ if __name__ == "__main__":
     json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
     if not os.path.exists(json_data_folder): os.mkdir(json_data_folder)
     interim_data_folder = os.path.join(WORKING_PATH, config.INTERIM_DATA)
-    shutil.rmtree(interim_data_folder)
     if not os.path.exists(interim_data_folder): os.mkdir(interim_data_folder)
         
     # Fields contained in the dataset
@@ -78,10 +79,10 @@ if __name__ == "__main__":
         data.generate_dataset(fullData, json_data_folder)
     else:
         ## Build Data Features with JSON Data
-        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
+        # ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
         
         # start time
         s_time = time.time()
-        train(interim_data_folder, args.dataset_name, corpus_type, args.features)
+        model.train(interim_data_folder, corpus_type, args.features)
         
         print("\033[031mINFO: Total time of model training:%sS\033[0m"%round(time.time() - s_time, 3))

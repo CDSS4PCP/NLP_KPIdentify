@@ -465,9 +465,9 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     # 1. Building configuration folder
     root_vocab_path = os.path.join(interim_folder, "vocab")
     if not os.path.exists(root_vocab_path): os.mkdir(root_vocab_path)
-    else:
-        for file_name in os.listdir(root_vocab_path):
-            os.remove(os.path.join(root_vocab_path, file_name))
+    # else:
+    #     for file_name in os.listdir(root_vocab_path):
+    #         os.remove(os.path.join(root_vocab_path, file_name))
     
     # 2. Construction datas
     train_path = os.path.join(json_data_folder, 'train.json')
