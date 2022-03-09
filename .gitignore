@@ -12,6 +12,7 @@ metamap/public_mm/
 
 # Ignore interim data
 interim_data/**/*
+!interim_data/config.json
 
 # C extensions
 *.so
