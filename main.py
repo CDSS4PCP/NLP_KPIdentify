@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 from modules import createDataset as data
 from modules import preProcessData as ppd
 import config
@@ -14,7 +15,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/predict')
     parser.add_argument('--sections','-s', default=['title','abstract'], type=str, nargs='+', help='Sections in research paper to include: title/abstract/methods/results')
-    parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN'], type=str, nargs='+', help='Features to include: Char Embeddings (CEM), Document Embeddings (DEM), Phrase Embeddings (PEM), TFIDF (Term Frequency - Inverse Document Frequency), Text Rank (TextR), Topic Rank (TopR), Position Rank (PosR), Multi-partite Rank (MR), Word First Occurence in Text (WFOT), Length of word (LEN)')
+    parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN','TI','TR'], type=str, nargs='+', help='Features to include: Char Embeddings (CEM), Document Embeddings (DEM), Phrase Embeddings (PEM), TFIDF (Term Frequency - Inverse Document Frequency), Text Rank (TextR), Topic Rank (TopR), Position Rank (PosR), Multi-partite Rank (MR), Word First Occurence in Text (WFOT), Length of word (LEN)')
     parser.add_argument("--log", "-log",default="warn",
                         help=("Provide logging level. "
                               "Example --log debug', default='warning'"))
@@ -49,7 +50,11 @@ if __name__ == "__main__":
     json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
     if not os.path.exists(json_data_folder): os.mkdir(json_data_folder)
     interim_data_folder = os.path.join(WORKING_PATH, config.INTERIM_DATA)
+    shutil.rmtree(interim_data_folder)
     if not os.path.exists(interim_data_folder): os.mkdir(interim_data_folder)
+        
+    # Fields contained in the dataset
+    corpus_type = "".join([i[0] for i in args.sections]).upper()
 
     if args.mode=="predict":
         ## Inteference Mode
@@ -74,3 +79,9 @@ if __name__ == "__main__":
     else:
         ## Build Data Features with JSON Data
         ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
+        
+        # start time
+        s_time = time.time()
+        train(interim_data_folder, args.dataset_name, corpus_type, args.features)
+        
+        print("\033[031mINFO: Total time of model training:%sS\033[0m"%round(time.time() - s_time, 3))

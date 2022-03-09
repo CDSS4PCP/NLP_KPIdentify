@@ -26,7 +26,7 @@ stop_words.remove('no')
 stop_words.remove('not')
 
 english_punctuations = [',', '.', ':', ';', '``','?', '（','）','(', ')',
-                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{','=','/','>','<']
+                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{','=','/','>','<','|','+','_','~']
 
 english_punctuations_arr= ''.join(english_punctuations)
 stemmer = PorterStemmer()
@@ -476,7 +476,7 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     logger.info('in build data set')
     
     train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
-    test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)
+    test_features, test_keywords = build_features(test_path, sections, 'test', interim_folder)
 
     POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
     POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
