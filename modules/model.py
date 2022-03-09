@@ -367,3 +367,56 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     with open(save_path, 'w', encoding='utf-8') as fp:
         fp.write("%s\t%s\t%s"%(p, r, f1))
     return p, r, f1
+
+# Model predict function
+def predict(file_folder, corpus_type, data_type, texts_features=None):
+    # File path
+    predict_path = os.path.join(file_folder, '%s.txt'%data_type)
+    predict_info_path = os.path.join(file_folder, '%s_info.json'%data_type)
+    vocab_path = os.path.join(file_folder, 'vocab')
+    # Load configuration file
+    config_path = os.path.join(file_folder, "config.json")
+    configs = json.load(open(config_path, 'r', encoding='utf-8'))
+    print("\033[034mPARAMS: %s\033[0m"%configs)
+    ix2tag = {i:key for i, key in enumerate(
+            pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
+    ix2tag[len(ix2tag)] = '0'
+    ix2tag[len(ix2tag)] = '0'
+    test_dataset = TextDataSet(data_path = predict_path,
+                    texts_features=texts_features, vocab_path = vocab_path, configs = configs)
+    # Data Loader
+    test_loader = DataLoader(test_dataset, batch_size = configs['batch_size'])
+    # Create BiLSTM-CRF model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = BiLSTM_CRF(vocab_path = vocab_path, configs = configs,
+                       features=texts_features, device=device).to(device)
+    print(model)
+    # Loading the pre-trained
+    tfs_type = "".join([i[0] for i in texts_features]).upper()
+    model_path = os.path.join(MODEL_FOLDER, 'bin', "%s_%s.bin" % (corpus_type, tfs_type))
+    model_config = torch.load(open(model_path, 'rb'))
+    model.load_state_dict(model_config['model'])
+    model.eval()
+    y_preds, y_targets = [], []
+    with tqdm(test_loader) as pbar_test:
+        for words2ix, chars2ix, labels, attention_mask, features, sentence_len in pbar_test:
+            inputs = {
+                'words2ix': torch.as_tensor(words2ix, dtype=torch.long).to(device),
+                'chars2ix': torch.as_tensor(chars2ix, dtype=torch.long).to(device),
+                'attention_mask': torch.as_tensor(attention_mask).to(device),
+                'features': torch.as_tensor(features, dtype=torch.float).to(device),
+            }
+            _, outputs = model(inputs)
+            for ix, (pred, tag) in enumerate(zip(outputs, labels)):
+                y_preds.append([ix2tag[i] for i in pred.detach().cpu().tolist()[: sentence_len[ix]]])
+                y_targets.append([ix2tag[i] for i in tag.detach().cpu().tolist()[: sentence_len[ix]]])
+            pbar_test.set_description("finish")
+    print(y_preds)
+    # p, r, f1, NUM = performance_metrics(y_preds, predict_info_path)
+    # print("\033[034mINFO: p: %s, r: %s, f1: %s\033[0m"%(p, r, f1))
+    # save result
+    # tfs_type = "".join([i[0] for i in texts_features]).upper()
+    # save_path = os.path.join(RESULT_FOLDER, "%s_%s_%s.txt"%(data_type, corpus_type, tfs_type))
+    # with open(save_path, 'w', encoding='utf-8') as fp:
+    #     fp.write("%s\t%s\t%s"%(p, r, f1))
+    # return p, r, f1

@@ -63,6 +63,7 @@ if __name__ == "__main__":
         ## Pre-Process JSON with Data Features
         ## Load pre-trained model
         ## Infer/Predict
+        model.predict(interim_data_folder,corpus_type, args.mode, args.features)
         pass
     elif args.mode=='al':
         ## Activate Active Learning
