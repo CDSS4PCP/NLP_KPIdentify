@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from tqdm import tqdm
 
-names = ['text', 'label', 'POS', 'LEN', 'WFF', 'WFOF', 'TI', 'TR', 'WFR', 'IWOR', 'IWOT']
+names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
 def parse_tags(texts, preds):
     keywords = []
     for text, pred in zip(texts, preds):

@@ -18,7 +18,7 @@ from modules.crf import CRF
 from modules.utils import  performance_metrics, read_text
 
 
-names = ['text', 'label', 'POS', 'LEN', 'WFF', 'WFOF', 'TI', 'TR', 'WFR', 'IWOR', 'IWOT']
+names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
 # Text processing object
 class TextDataSet(Dataset):
 
