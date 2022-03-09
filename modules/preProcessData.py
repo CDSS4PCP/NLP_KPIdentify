@@ -20,8 +20,13 @@ from modules.tf_idf import tf_idf
 import config
 
 stop_words = nltk.corpus.stopwords.words('english')
+
+#deselect 'no' and 'not' from stop words
+stop_words.remove('no')
+stop_words.remove('not')
+
 english_punctuations = [',', '.', ':', ';', '``','?', '（','）','(', ')',
-                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{','=','']
+                '[', ']', '&', '!', '*', '@', '#', '$', '%','\\','\"','}','{','=','/','>','<']
 
 english_punctuations_arr= ''.join(english_punctuations)
 stemmer = PorterStemmer()
@@ -81,8 +86,8 @@ def mark_keyword_all_sentences(keywords, sentences):
     complete_text_len = len(complete_text)
     mapper = ['0']*complete_text_len
     kws = [sent2words(x)[0] for x in keywords]
-#     print("Processed Keywords")
-#     print(kws)
+    # print("Processed Keywords")
+    # print(kws)
 
     for kw in kws:
         kw_len=len(kw)
@@ -95,10 +100,10 @@ def mark_keyword_all_sentences(keywords, sentences):
                 mapper[i]='K_B'
             i+=1
 
-#     print(complete_text)
-#     print(mapper)
-#     for i,j in zip(complete_text,mapper):
-#         print(j,'\t',i)
+    # print(complete_text)
+    # print(mapper)
+    # for i,j in zip(complete_text,mapper):
+    #     print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []
@@ -163,7 +168,7 @@ def build_features(path, sections, mode, save_folder):
 
             # pre-process keywords - remove punctuations
             keywords = document['keywords']
-#             keywords = [kw for kw in document['keywords']]
+            # keywords = [kw for kw in document['keywords']]
             logger.debug(keywords)
 
             ## Complete text of all sections
@@ -190,49 +195,12 @@ def build_features(path, sections, mode, save_folder):
                 
                 # Pre-process sentence to words
                 words, pos, length, sentence = sent2words(sentence)
-#                 print(words,pos,length, end='\n\n')
-                
-#                 # make sentence into lower case and strip whitespace at edges
-#                 sentence = sentence.lower().strip()
-                
-#                 # remove decimal, float numbers from strings
-#                 sentence = re.sub('\d+\.*\d*', '', sentence)
-
-#                 # remove punctuations from sentence
-#                 sentence = sentence.translate(str.maketrans(english_punctuations_arr,' '*len(english_punctuations_arr)))
-
-#                 # remove stop words from sentence
-#                 sentence = ' '.join([word for word in word_tokenize(sentence) if not word in stop_words])
                 
                 # replace the original sentence with punct removed sentence
                 sentences[idx]=sentence
-                
-#                 # create list of words from a sentence
-#                 words = word_tokenize(sentence)
-#                 if len(words) <= 3: continue
-
-#                 pos, length = {}, {}
-#                 for i, (w, p) in enumerate(nltk.pos_tag(words)):
-#                     # Computational features
-#                     pos[w] = p
-#                     length[w] = len(w)
                     
                 pos_list.append(pos)
                 length_list.append(length)
-
-#                 temp_sent = []
-#                 temp_pos = []
-#                 temp_len = []
-#                 for word in sentence.split():
-#                     if word in stop_words: continue
-#                     temp_sent.append(word)
-#                     temp_pos.append(pos[word])
-#                     temp_len.append(len(word))
-
-#                 sentence = ' '.join(temp_sent)
-#                 pos_list.append(temp_pos)
-#                 length_list.append(temp_len)
-
                 
             ## Add BIO Labels to the sentences
             complete_text, labels, tokens = mark_keyword_all_sentences(keywords, sentences)
@@ -258,10 +226,10 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-#             count+=1
-#             print('+'*50)
-#             if count==3:
-#                 return True, True
+            # count+=1
+            # print('+'*50)
+            # if count==3:
+            #     return True, True
 
             pbar1.set_description("%s-th document processed"%(pidx+1))  
 
@@ -275,7 +243,7 @@ def build_features(path, sections, mode, save_folder):
         for d_index, data in pbar2:
             p_id, rev_data = data[0], []
             id_keywords[p_id] = data[3] # Assignment Keywords
-#             labels = data[2]
+            # labels = data[2]
             for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
                 if len(tokens) <= 3: continue
                 POS = []
@@ -296,8 +264,8 @@ def build_features(path, sections, mode, save_folder):
                 rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
             return_datas[p_id] = rev_data
 
-#             print(return_datas)
-#             return True
+            # print(return_datas)
+            # return True
 
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
