@@ -15,7 +15,7 @@ torch.manual_seed(2021)
 
 from config import MODEL_FOLDER, RESULT_FOLDER
 from modules.crf import CRF
-from modules.utils import  performance_metrics, read_text
+from modules.utils import  performance_metrics, read_text, parse_tags
 
 
 names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
@@ -413,9 +413,26 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
             pbar_test.set_description("finish")
     
     pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
-    print('Actual\tPredict\tToken')
-    for i,j,k in zip(pdata['text'],y_preds,y_targets):
-        print(k,'\t',j,'\t',i)
+    target_kp = []
+    for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
+        print("Actual Sentence: ", sent)
+        # sent_len = len(pred)
+
+        print(parse_tags(sent, pred))
+        # i=0
+        # pred_words = []
+        # while i<sent_len:
+        #     if pred[i]=='0':
+        #         i+=1
+        #         continue
+
+        #     if pred[i]=='K_B':
+        #         pred_words.append([pred[i]])
+        #     else:
+        #         pred_words[-1].extend(pred[i])
+            
+        #     i+=1
+            
     # p, r, f1, NUM = performance_metrics(y_preds, predict_info_path)
     # print("\033[034mINFO: p: %s, r: %s, f1: %s\033[0m"%(p, r, f1))
     # save result
