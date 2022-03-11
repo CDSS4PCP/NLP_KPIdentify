@@ -102,8 +102,8 @@ def mark_keyword_all_sentences(keywords, sentences):
 
     # print(complete_text)
     # print(mapper)
-    # for i,j in zip(complete_text,mapper):
-    #     print(j,'\t',i)
+    for i,j in zip(complete_text,mapper):
+        print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []

@@ -16,6 +16,7 @@ torch.manual_seed(2021)
 from config import MODEL_FOLDER, RESULT_FOLDER
 from modules.crf import CRF
 from modules.utils import  performance_metrics, read_text, parse_tags
+from modules.preProcessData import mark_keyword_all_sentences
 
 
 names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
@@ -414,11 +415,28 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     
     pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
     target_kp = []
-    for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
-        print("Actual Sentence: ", sent)
-        # sent_len = len(pred)
+#     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
+#         print("Actual Sentence: ", sent)
+#         # sent_len = len(pred)
+    
+    # all_sentences = '. '.join(pdata['text'][:].values)
+    sentences = pdata['text'][:].values
+    
+    pred_kws = parse_tags(sentences, y_preds)
+    pred_kws.sort(reverse=True, key=len)
+    print(pred_kws, end='\n\n')
+        
+    markings = mark_keyword_all_sentences(pred_kws,sentences)
+    complt_text = markings[0]
+    mark_kws = markings[1]
+    mark_tokens = markings[2]
+    # print(complt_text)
+    
+    for sent, mark, token in zip(sentences, mark_kws, mark_tokens):
+        print(sent,'\n',mark,'\n',token,end='\n\n')
+    
+    # print("Text:\n", all_sentences, end='\n\n')
 
-        print(parse_tags(sent, pred))
         # i=0
         # pred_words = []
         # while i<sent_len:
