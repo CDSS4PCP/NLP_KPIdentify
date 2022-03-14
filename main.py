@@ -17,7 +17,20 @@ if __name__ == "__main__":
     
     parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/predict')
     parser.add_argument('--sections','-s', default=['title','abstract'], type=str, nargs='+', help='Sections in research paper to include: title/abstract/methods/results')
-    parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN','TI','TR'], type=str, nargs='+', help='Features to include: Char Embeddings (CEM), Document Embeddings (DEM), Phrase Embeddings (PEM), TFIDF (Term Frequency - Inverse Document Frequency), Text Rank (TextR), Topic Rank (TopR), Position Rank (PosR), Multi-partite Rank (MR), Word First Occurence in Text (WFOT), Length of word (LEN)')
+    parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN','TI','TR'], type=str, nargs='+',
+                        help=("Features to include:",
+                        "CEM - Char Embeddings",
+                        "DEM - Document Embeddings",
+                        "PEM - Phrase Embeddings",
+                        "TFIDF - (Term Frequency Inverse Document Frequency)",
+                        "TextR - Text Rank",
+                        "TopR - Topic Rank",
+                        "PosR - Position Rank "
+                        "MR - Multi-partite Rank",
+                        "WFOT - Word First Occurence in Text",
+                        "LEN - Length of word",
+                        "STEM - Vocab Stemming"
+                        ))
     parser.add_argument("--log", "-log",default="warn",
                         help=("Provide logging level. "
                               "Example --log debug', default='warning'"))
@@ -83,7 +96,7 @@ if __name__ == "__main__":
         data.generate_dataset(fullData, json_data_folder)
     else:
         ## Build Data Features with JSON Data
-        # ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder)
+        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.features)
         
         # start time
         s_time = time.time()

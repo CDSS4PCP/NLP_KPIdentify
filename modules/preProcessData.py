@@ -334,13 +334,21 @@ def build_datas(path, fields, mode, save_folder):
             pos_list, length_list = [], []
             tokens_list, labels_list = [], []
             for sentence in sentences:
+                ## Expand Words
+                sentence = contractions.fix(sentence)
+                
+                ## Convert sentence to lowercase and strip whitespaces
                 sentence = sentence.lower().strip()
+
                 ## Remove Non-ASCII characters from the sentence
+                sentence = unidecode.unidecode(sentence)
                 sentence = sentence.encode("ascii", "ignore").decode()
-                ## Remove Integer/Decimal/Float numbers from the sentence
-                sentence = re.sub('\d+\.*\d*', '', sentence)
+                
                 ## Remove URL from sentence
                 sentence = re.sub('http[s]?://\S+', '', sentence)
+
+                ## Remove words like 2.0-2
+                sent = re.sub('\d+\.*\d*\-+\d+\.*\d*', ' ', sent)
                 
                 words = word_tokenize(sentence)
                 if len(words) <= 3: continue
@@ -355,8 +363,13 @@ def build_datas(path, fields, mode, save_folder):
                 pos_list.append(pos)
                 length_list.append(length)
 
+                # Stemming on Tokens
                 tokens = [stemmer.stem(token.strip()) for token in words
                           if token.strip() not in english_punctuations + stop_words]
+
+                # Remove Numericals from Tokens
+                tokens = [x for x in tokens if not all(c.isdigit() for c in x)] 
+
                 _, labels = mark_keyword(keywords, tokens)
                 labels_list.append(labels)
                 tokens_list.append(tokens)
@@ -460,7 +473,7 @@ def save_datas(datas, keywords, data_type, save_folder):
     return POS_VOCAB, WORD_VOCAB, CHAR_VOCAB
 
 # Partition data-set
-def build_data_sets(json_data_folder, sections, interim_folder):
+def build_data_sets(json_data_folder, sections, interim_folder, features):
     
     # 1. Building configuration folder
     root_vocab_path = os.path.join(interim_folder, "vocab")
@@ -475,8 +488,12 @@ def build_data_sets(json_data_folder, sections, interim_folder):
     
     logger.info('in build data set')
     
-    train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
-    test_features, test_keywords = build_features(test_path, sections, 'test', interim_folder)
+    if 'STEM' not in features:
+        train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
+        test_features, test_keywords = build_features(test_path, sections, 'test', interim_folder)
+    else:
+        train_features, train_keywords = build_datas(train_path, sections, 'train', interim_folder)
+        test_features, test_keywords = build_datas(test_path, sections, 'test', interim_folder)       
 
     POS_VOCAB1, WORD_VOCAB1, CHAR_VOCAB1 = save_datas(train_features, train_keywords, "train", interim_folder)
     POS_VOCAB2, WORD_VOCAB2, CHAR_VOCAB2 = save_datas(test_features, test_keywords, "test", interim_folder)
