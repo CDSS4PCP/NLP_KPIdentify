@@ -2,6 +2,9 @@
 import json
 import pandas as pd
 from tqdm import tqdm
+import numpy as np
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics.cluster import normalized_mutual_info_score
 
 names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
 def parse_tags(texts, preds):
@@ -43,6 +46,88 @@ def evaluate(y_preds, y_targets):
     r = round(r * 100, 2)
     f1 = round(f1 * 100, 2)
     return p, r, f1, NUM
+
+def calc_scores(TP,FN,FP,TN):
+    
+    accuracy = (TP+TN)/(TP+FN+FP+TN)
+    misclassification = (FP+FN)/(TP+TN+FP+FN)
+    precision = TP/(TP+FP)
+    sensitivity = TP/(TP+FN)
+    specificity = TN/(TN+FP)
+    f1score=(2 * precision * sensitivity) / (precision + sensitivity)
+    print("""    Accuracy:\t{}
+    Misclassification:\t{}
+    Precision:\t{}
+    Sensitivity/Recall:\t{}
+    Specificity:\t{}
+    F1 Score:\t{}""".format(accuracy,misclassification,precision, sensitivity,specificity,f1score))
+
+def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
+    
+    if mappers==False:
+        ## For confusion matrix
+        test_mappers = []
+        gs_mappers = []
+
+        ## Iterate over PMID texts and get mappingf of keywords
+        for idx,text in enumerate(text_arr):
+            text_len = len(text)
+
+            test_kws = [x.split() for x in kws_arr[idx]]
+            gs_kws = [x.split() for x in gs_arr[idx]]
+
+            result = []
+            test_mapper = [0]*text_len
+            gs_mapper = [0]*text_len
+
+            for kw in test_kws:
+                kw_len = len(kw)
+                i=0
+                while i<text_len-kw_len:
+                    if text[i:i+kw_len]==kw and test_mapper[i:i+kw_len]==[0]*kw_len:
+                        test_mapper[i:i+kw_len]=[1]*kw_len
+                    i+=1
+
+            for kw in gs_kws:
+                kw_len=len(kw)
+                i=0
+                while i<text_len-kw_len:
+                    if text[i:i+kw_len]==kw and gs_mapper[i:i+kw_len]==[0]*kw_len:
+                        gs_mapper[i:i+kw_len]=[1]*kw_len
+                    i+=1 
+            test_mappers.append(test_mapper)
+            gs_mappers.append(gs_mapper)
+    else:
+        test_mappers=kws_arr
+        gs_mappers=gs_arr
+        
+    ## Calculate Metrics from Text Mappers
+    TP, TN, FN, FP = 0, 0, 0, 0
+    N = len(text_arr)
+    i=0
+    nmi_arr=[]
+    matrix = np.zeros(9).reshape(3,3)
+    while i<N:
+        matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=['K_B','K_I','0'])
+        # TP += matrix[0][0]
+        # FN += matrix[0][1]
+        # FP += matrix[1][0]
+        # TN += matrix[1][1]
+        i+=1
+    
+    print("Confusion Matrix:\n", matrix)
+    
+    print("Metrics for K_B:")
+    TP, FN, FP, TN = matrix[0][0], matrix[0][1]+matrix[0][2], matrix[1][0]+matrix[2][0], matrix[1][1]+matrix[1][2]+matrix[2][1]+matrix[2][2]
+    calc_scores(TP, FN, FP, TN)
+    
+    print("Metrics for K_I:")
+    TP, FN, FP, TN = matrix[1][1], matrix[1][0]+matrix[1][2], matrix[0][1]+matrix[2][1], matrix[0][0]+matrix[0][2]+matrix[2][0]+matrix[2][2]
+    calc_scores(TP, FN, FP, TN)
+    
+    print("Metrics for Non-Keyphrases")
+    TP, FN, FP, TN = matrix[2][2], matrix[2][0]+matrix[2][1], matrix[0][2]+matrix[1][2], matrix[0][0]+matrix[0][1]+matrix[1][0]+matrix[1][1]
+    calc_scores(TP, FN, FP, TN)
 
 def performance_metrics(pred_tags, info_path):
     texts = pd.read_csv(info_path.replace("_info.json", ".txt"),

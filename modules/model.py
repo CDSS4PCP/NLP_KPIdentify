@@ -15,7 +15,7 @@ torch.manual_seed(2021)
 
 from config import MODEL_FOLDER, RESULT_FOLDER
 from modules.crf import CRF
-from modules.utils import  performance_metrics, read_text, parse_tags
+from modules.utils import  performance_metrics, read_text, parse_tags, get_metrics
 from modules.preProcessData import mark_keyword_all_sentences
 
 
@@ -362,6 +362,11 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
             pbar_test.set_description("finish")
     p, r, f1, NUM = performance_metrics(y_preds, test_info_path)
     print("\033[034mINFO: p: %s, r: %s, f1: %s\033[0m"%(p, r, f1))
+    
+    pdata = pd.read_csv(test_path, sep=' <sep> ', engine='python', names=names)
+    sentences = pdata['text'][:].values
+    get_metrics(sentences, y_preds, y_targets, mappers=True)
+
     # save result
     tfs_type = "".join([i[0] for i in texts_features]).upper()
     save_path = os.path.join(RESULT_FOLDER, "%s_%s_%s.txt"%(data_type, corpus_type, tfs_type))
@@ -432,8 +437,13 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     mark_tokens = markings[2]
     # print(complt_text)
     
-    for sent, mark, token in zip(sentences, mark_kws, mark_tokens):
-        print(sent,'\n',mark,'\n',token,end='\n\n')
+#     for sent, mark, token in zip(sentences, mark_kws, mark_tokens):
+#         print(sent,'\n',mark,'\n',token,end='\n\n')
+    
+    get_metrics(sentences, y_preds, y_targets, mappers=True)
+    
+#     for i,j in zip(y_preds,y_targets):
+#         print(i,j,sep='\n',end='\n\n')
     
     # print("Text:\n", all_sentences, end='\n\n')
 
