@@ -29,11 +29,11 @@ if __name__ == "__main__":
                         "MR - Multi-partite Rank",
                         "WFOT - Word First Occurence in Text",
                         "LEN - Length of word",
-                        "STEM - Vocab Stemming"
                         ))
     parser.add_argument("--log", "-log",default="warn",
                         help=("Provide logging level. "
                               "Example --log debug', default='warning'"))
+    parser.add_argument("--stem", "-stem",default="no",help="Vocabulary Stemming - yes/no")
     
     args = parser.parse_args()
     
@@ -58,6 +58,7 @@ if __name__ == "__main__":
     print("Mode: {}".format(args.mode))
     print("Sections Included: {}".format(args.sections))
     print("Features: {}".format(args.features))
+    print("Vocab Stemming: {}".format(args.stem))
     print("Logging Level: {}".format(args.log))
     print("="*100)
     
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         data.generate_dataset(fullData, json_data_folder)
     else:
         ## Build Data Features with JSON Data
-        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.features)
+        ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.stem)
         
         # start time
         s_time = time.time()

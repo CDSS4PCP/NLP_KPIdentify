@@ -102,8 +102,8 @@ def mark_keyword_all_sentences(keywords, sentences):
 
     # print(complete_text)
     # print(mapper)
-    for i,j in zip(complete_text,mapper):
-        print(j,'\t',i)
+    # for i,j in zip(complete_text,mapper):
+    #     print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []
@@ -297,7 +297,7 @@ def build_datas(path, fields, mode, save_folder):
             for keyphase in text['keywords']:
                 keyphase = keyphase.lower().strip()
                 tokens = [stemmer.stem(token.strip())
-                          for token in word_tokenize(keyphase)
+                          for token in sent2words(keyphase)[0]
                           if token.strip() not in english_punctuations]
                 keywords.append(" ".join(tokens))
             # ============================================================
@@ -316,7 +316,7 @@ def build_datas(path, fields, mode, save_folder):
                 # feature 2: Full text word frequency count
                 wff_dict = Counter([stemmer.stem(token.strip())
                                     for sentence in sent_tokenize(plain_text)
-                                    for token in word_tokenize(sentence.lower().strip())
+                                    for token in sent2words(sentence)[0]
                                     if token.strip() not in english_punctuations + stop_words])
                 wff_dict_list.append(wff_dict)
                 # feature 3: Does it appear in the title
@@ -335,22 +335,32 @@ def build_datas(path, fields, mode, save_folder):
             tokens_list, labels_list = [], []
             for sentence in sentences:
                 ## Expand Words
-                sentence = contractions.fix(sentence)
+                # sentence = contractions.fix(sentence)
                 
                 ## Convert sentence to lowercase and strip whitespaces
-                sentence = sentence.lower().strip()
+                # sentence = sentence.lower().strip()
 
                 ## Remove Non-ASCII characters from the sentence
-                sentence = unidecode.unidecode(sentence)
-                sentence = sentence.encode("ascii", "ignore").decode()
+                # sentence = unidecode.unidecode(sentence)
+                # sentence = sentence.encode("ascii", "ignore").decode()
                 
                 ## Remove URL from sentence
-                sentence = re.sub('http[s]?://\S+', '', sentence)
+                # sentence = re.sub('http[s]?://\S+', '', sentence)
 
                 ## Remove words like 2.0-2
-                sent = re.sub('\d+\.*\d*\-+\d+\.*\d*', ' ', sent)
+                # sentence = re.sub('\d+\.*\d*\-+\d+\.*\d*', ' ', sentence)
+
+                # words = word_tokenize(sentence)
                 
-                words = word_tokenize(sentence)
+                ## Remove punctuation only strings from sentence
+                # words = [word for word in words if not all(c in string.punctuation for c in word) and len(word)>1]
+                
+                ## Remove Numericals from sentence
+                # words = [x for x in words if not all(c.isdigit() for c in x)] 
+                
+                words = sent2words(sentence)[0]
+                # print(words)
+                
                 if len(words) <= 3: continue
 
                 pos, length = {}, {}
@@ -367,19 +377,23 @@ def build_datas(path, fields, mode, save_folder):
                 tokens = [stemmer.stem(token.strip()) for token in words
                           if token.strip() not in english_punctuations + stop_words]
 
-                # Remove Numericals from Tokens
-                tokens = [x for x in tokens if not all(c.isdigit() for c in x)] 
-
                 _, labels = mark_keyword(keywords, tokens)
                 labels_list.append(labels)
                 tokens_list.append(tokens)
+            # features = {
+            #     'wff': wff_dict,
+            #     'wfof': wfof_dict,
+            #     'iwot': iwot_dict,
+            #     'pos': pos_list,
+            #     'length': length_list
+            # }
+            
             features = {
-                'wff': wff_dict,
                 'wfof': wfof_dict,
-                'iwot': iwot_dict,
                 'pos': pos_list,
                 'length': length_list
             }
+            
             id_datas.append([text['id']+str(p_id), tokens_list, labels_list, keywords, features])
             # Document ID suffix
             p_id += 1
@@ -409,9 +423,9 @@ def build_datas(path, fields, mode, save_folder):
             for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
                 if len(tokens) <= 3: continue
                 POS = []
-                WFF = np.zeros(shape=(len(tokens)))
+                # WFF = np.zeros(shape=(len(tokens)))
                 WFOF = np.zeros(shape=(len(tokens)))
-                IWOT = np.zeros(shape=(len(tokens)))
+                # IWOT = np.zeros(shape=(len(tokens)))
                 LEN = np.zeros(shape=(len(tokens)))
                 TI = np.zeros(shape=(len(tokens)))
                 TR = np.zeros(shape=(len(tokens)))
@@ -420,7 +434,7 @@ def build_datas(path, fields, mode, save_folder):
                     try:
                         POS.append(data[4]['pos'][i][token])
                         LEN[j] = data[4]['length'][i][token]
-                        WFF[j] = data[4]['wff'][token]
+                        # WFF[j] = data[4]['wff'][token]
                         WFOF[j] = data[4]['wfof'][token]
                         TI[j] = tf_idf_dict[d_index][token]
                         TR[j] = textrank_dict[d_index][token]
@@ -428,7 +442,7 @@ def build_datas(path, fields, mode, save_folder):
                     except:
                         pass
                 assert len(tokens) == len(POS)
-                rev_data.append([" ".join(tokens), labels, POS, LEN, WFF, WFOF, TI, TR, IWOT])
+                rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
             return_datas[p_id] = rev_data
             id_keywords[p_id] = keywords
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
@@ -473,7 +487,7 @@ def save_datas(datas, keywords, data_type, save_folder):
     return POS_VOCAB, WORD_VOCAB, CHAR_VOCAB
 
 # Partition data-set
-def build_data_sets(json_data_folder, sections, interim_folder, features):
+def build_data_sets(json_data_folder, sections, interim_folder, stemming):
     
     # 1. Building configuration folder
     root_vocab_path = os.path.join(interim_folder, "vocab")
@@ -488,7 +502,7 @@ def build_data_sets(json_data_folder, sections, interim_folder, features):
     
     logger.info('in build data set')
     
-    if 'STEM' not in features:
+    if stemming=="no":
         train_features, train_keywords = build_features(train_path, sections, 'train', interim_folder)
         test_features, test_keywords = build_features(test_path, sections, 'test', interim_folder)
     else:
