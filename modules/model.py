@@ -424,21 +424,24 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
 #         print("Actual Sentence: ", sent)
 #         # sent_len = len(pred)
     
-    # all_sentences = '. '.join(pdata['text'][:].values)
+    complete_text = '. '.join(pdata['text'][:].values)
     sentences = pdata['text'][:].values
     
-    pred_kws = parse_tags(sentences, y_preds)
-    pred_kws.sort(reverse=True, key=len)
-    print(pred_kws, end='\n\n')
+#     pred_kws = parse_tags(sentences, y_preds)
+#     pred_kws.sort(reverse=True, key=len)
         
-    markings = mark_keyword_all_sentences(pred_kws,sentences)
-    complt_text = markings[0]
-    mark_kws = markings[1]
-    mark_tokens = markings[2]
-    # print(complt_text)
+#     markings = mark_keyword_all_sentences(pred_kws,sentences)
+#     complt_text = markings[0]
+#     mark_kws = markings[1]
+#     mark_tokens = markings[2]
+#     # print(complt_text)
     
-#     for sent, mark, token in zip(sentences, mark_kws, mark_tokens):
-#         print(sent,'\n',mark,'\n',token,end='\n\n')
+#     for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
+#         if mark!=pred:
+#             print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
+    
+#     print("Complete Text:\n",complete_text,end='\n\n')
+#     print(pred_kws, end='\n\n')
     
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     

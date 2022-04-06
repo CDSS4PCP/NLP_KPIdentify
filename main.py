@@ -62,7 +62,7 @@ if __name__ == "__main__":
     print("Logging Level: {}".format(args.log))
     print("="*100)
     
-    pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
+    
     json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
     if not os.path.exists(json_data_folder): os.mkdir(json_data_folder)
     interim_data_folder = os.path.join(WORKING_PATH, config.INTERIM_DATA)
@@ -73,11 +73,18 @@ if __name__ == "__main__":
 
     if args.mode=="predict":
         ## Inteference Mode
-        ## Take JSON document as input
+        ## Take JSON document as input - 44 Abstracts
+        pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA_GS)
+        test44Abstracts = data.load_pubmed_data(pubmed_data_folder)
+        data.gen_gs_dataset(test44Abstracts, json_data_folder)
+        
         ## Pre-Process JSON with Data Features
+        ppd.build_predict_dataset(json_data_folder, args.sections, interim_data_folder, args.stem)
+        
         ## Load pre-trained model
         ## Infer/Predict
         model.predict(interim_data_folder,corpus_type, args.mode, args.features)
+        
         pass
     elif args.mode=='al':
         ## Activate Active Learning
@@ -92,9 +99,10 @@ if __name__ == "__main__":
         pass
     elif args.mode == "createData":
         ## Read PubMed XML processed Data
+        pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
         fullData = data.load_pubmed_data(pubmed_data_folder)
         ## Generate JSON Files from XML
-        data.generate_dataset(fullData, json_data_folder)
+        data.generate_synthetic_dataset(fullData, json_data_folder)
     else:
         ## Build Data Features with JSON Data
         ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.stem)

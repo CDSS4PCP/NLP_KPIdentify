@@ -487,7 +487,7 @@ def save_datas(datas, keywords, data_type, save_folder):
     return POS_VOCAB, WORD_VOCAB, CHAR_VOCAB
 
 # Partition data-set
-def build_data_sets(json_data_folder, sections, interim_folder, stemming):
+def build_data_sets(json_data_folder, sections, interim_folder, stemming='no'):
     
     # 1. Building configuration folder
     root_vocab_path = os.path.join(interim_folder, "vocab")
@@ -527,3 +527,13 @@ def build_data_sets(json_data_folder, sections, interim_folder, stemming):
     with open(os.path.join(root_vocab_path, 'pos_vocab.txt'), "w", encoding="utf-8") as fp:
         fp.write("\n".join(POS_VOCAB))
     print("\033[34mINFO: Dataset partition completed\033[0m")
+    
+def build_predict_dataset(json_data_folder, sections, interim_folder, stemming='no'):      
+    predict_path = os.path.join(json_data_folder, 'predict.json')
+    
+    if stemming=="no":
+        predict_features, predict_keywords = build_features(predict_path, sections, 'predict', interim_folder)
+    else:
+        predict_features, predict_keywords = build_datas(predict_path, sections, 'predict', interim_folder)      
+
+    save_datas(predict_features, predict_keywords, "predict", interim_folder)

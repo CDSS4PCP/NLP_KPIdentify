@@ -26,7 +26,7 @@ def parse_tags(texts, preds):
                     elif pred[i] == 'K_B' or pred[i] == '0':
                         break
                 keywords.append(" ".join(temp))
-    return list(set(keywords))
+    return list(set(keywords))    
 
 # Calculate the P, R and F1 values of the extraction datas
 def evaluate(y_preds, y_targets):
@@ -55,12 +55,12 @@ def calc_scores(TP,FN,FP,TN):
     sensitivity = TP/(TP+FN)
     specificity = TN/(TN+FP)
     f1score=(2 * precision * sensitivity) / (precision + sensitivity)
-    print("""    Accuracy:\t{}
-    Misclassification:\t{}
-    Precision:\t{}
-    Sensitivity/Recall:\t{}
-    Specificity:\t{}
-    F1 Score:\t{}""".format(accuracy,misclassification,precision, sensitivity,specificity,f1score))
+    print("""    Accuracy:\t{:.4f}
+    Misclassification:\t{:.4f}
+    Precision:\t{:.4f}
+    Sensitivity/Recall:\t{:.4f}
+    Specificity:\t{:.4f}
+    F1 Score:\t{:.4f}""".format(accuracy,misclassification,precision, sensitivity,specificity,f1score))
 
 def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     
