@@ -11,19 +11,22 @@ def parse_tags(texts, preds):
     keywords = []
     for text, pred in zip(texts, preds):
         text = text.split(' ')
-        K_B_index = [i for i, tag in enumerate(pred) if tag == 'K_B']
+        K_B_index = [i for i, tag in enumerate(pred) if (tag == 'B-KP' or tag == 'U-KP')]
         for index in K_B_index:
             if index == len(pred) - 1:
                 keywords.append(text[index])
             else:
                 temp = [text[index]]
                 for i in range(index + 1, len(pred)):
-                    if pred[i] == 'K_I':
+                    if pred[i] == 'I-KP':
                         if i + 1 == len(pred):
                             temp.append(text[i])
-                        elif pred[i+1] != '0' and pred[i-1] != '0':
+                        elif pred[i+1] != 'O' and pred[i-1] != 'O':
                             temp.append(text[i])
-                    elif pred[i] == 'K_B' or pred[i] == '0':
+#                     elif pred[i] == 'L-KP':
+#                         temp.append(text[i])
+#                         break
+                    elif pred[i] == 'B-KP' or pred[i] == 'O' or pred[i] == 'U-KP':
                         break
                 keywords.append(" ".join(temp))
     return list(set(keywords))    
@@ -55,12 +58,13 @@ def calc_scores(TP,FN,FP,TN):
     sensitivity = TP/(TP+FN)
     specificity = TN/(TN+FP)
     f1score=(2 * precision * sensitivity) / (precision + sensitivity)
-    print("""    Accuracy:\t{:.4f}
-    Misclassification:\t{:.4f}
-    Precision:\t{:.4f}
-    Sensitivity/Recall:\t{:.4f}
-    Specificity:\t{:.4f}
-    F1 Score:\t{:.4f}""".format(accuracy,misclassification,precision, sensitivity,specificity,f1score))
+    print("""    Accuracy:\t{:5f}
+    Misclassification:\t{:5f}
+    Precision:\t{:5f}
+    Sensitivity/Recall:\t{:5f}
+    Specificity:\t{:5f}
+    F1 Score:\t{:5f}""".format(accuracy,misclassification,precision, sensitivity,specificity,f1score))
+    return (accuracy,misclassification,precision, sensitivity,specificity,f1score)
 
 def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     
@@ -105,10 +109,10 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     TP, TN, FN, FP = 0, 0, 0, 0
     N = len(text_arr)
     i=0
-    nmi_arr=[]
     matrix = np.zeros(9).reshape(3,3)
+    labels=['B-KP','I-KP','O']
     while i<N:
-        matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=['K_B','K_I','0'])
+        matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=labels)
         # TP += matrix[0][0]
         # FN += matrix[0][1]
         # FP += matrix[1][0]
@@ -117,17 +121,43 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     
     print("Confusion Matrix:\n", matrix)
     
-    print("Metrics for K_B:")
-    TP, FN, FP, TN = matrix[0][0], matrix[0][1]+matrix[0][2], matrix[1][0]+matrix[2][0], matrix[1][1]+matrix[1][2]+matrix[2][1]+matrix[2][2]
-    calc_scores(TP, FN, FP, TN)
+    precision_arr = []
+    f1score_arr = []
+    specificity_arr = []
+    sensitivity_arr = []
+    accuracy_arr = []
+    Total = np.sum(matrix[:,:])
+    for i in range(3):
+        TP = matrix[i,i]
+        FN = np.sum(matrix[i,:]) - TP
+        FP = np.sum(matrix[:,i]) - TP
+        TN = Total - (FN + FP + TP)
+        print("{}\nLabel: {}\nTP:{} FN:{} FP:{} TN:{}\n{}".format('-'*50,labels[i],TP,FN,FP,TN,'-'*50))
+        result = calc_scores(TP, FN, FP, TN)   
+        accuracy_arr.append(result[0])
+        precision_arr.append(result[2])
+        sensitivity_arr.append(result[3])
+        specificity_arr.append(result[4])
+        f1score_arr.append(result[5])
     
-    print("Metrics for K_I:")
-    TP, FN, FP, TN = matrix[1][1], matrix[1][0]+matrix[1][2], matrix[0][1]+matrix[2][1], matrix[0][0]+matrix[0][2]+matrix[2][0]+matrix[2][2]
-    calc_scores(TP, FN, FP, TN)
+    print("=-"*50)
+    print("Avg. Accuracy: {:.5f}\nAvg. Precision: {:5f}\nAvg. F1-Score: {:5f}\nAvg. Sensitivity: {:5f}\nAvg. Specificity: {:5f}".format(np.mean(accuracy_arr),np.mean(precision_arr),np.mean(f1score_arr),np.mean(sensitivity_arr),np.mean(specificity_arr)))
+    print("=-"*50)
+        
+    # for i in range(5):
+    # 	print(arr[i,i], np.sum(arr[i,:])-arr[i,i], np.sum(arr[:,i])-arr[i,i], np.sum(arr[:,:])-np.sum(arr[:,i])-np.sum(arr[i,:])+arr[i,i])
+
+#     print("Metrics for K_B:")
+#     TP, FN, FP, TN = matrix[0][0], matrix[0][1]+matrix[0][2], matrix[1][0]+matrix[2][0], matrix[1][1]+matrix[1][2]+matrix[2][1]+matrix[2][2]
+#     calc_scores(TP, FN, FP, TN)
     
-    print("Metrics for Non-Keyphrases")
-    TP, FN, FP, TN = matrix[2][2], matrix[2][0]+matrix[2][1], matrix[0][2]+matrix[1][2], matrix[0][0]+matrix[0][1]+matrix[1][0]+matrix[1][1]
-    calc_scores(TP, FN, FP, TN)
+#     print("Metrics for K_I:")
+#     TP, FN, FP, TN = matrix[1][1], matrix[1][0]+matrix[1][2], matrix[0][1]+matrix[2][1], matrix[0][0]+matrix[0][2]+matrix[2][0]+matrix[2][2]
+#     calc_scores(TP, FN, FP, TN)
+    
+#     print("Metrics for Non-Keyphrases")
+#     TP, FN, FP, TN = matrix[2][2], matrix[2][0]+matrix[2][1], matrix[0][2]+matrix[1][2], matrix[0][0]+matrix[0][1]+matrix[1][0]+matrix[1][1]
+#     calc_scores(TP, FN, FP, TN)
 
 def performance_metrics(pred_tags, info_path):
     texts = pd.read_csv(info_path.replace("_info.json", ".txt"),

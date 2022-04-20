@@ -15,7 +15,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Keyphrase extraction using BiLSTM-CRF and AL")
     
-    parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/predict')
+    parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/predict/createData')
     parser.add_argument('--sections','-s', default=['title','abstract'], type=str, nargs='+', help='Sections in research paper to include: title/abstract/methods/results')
     parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN','TI','TR'], type=str, nargs='+',
                         help=("Features to include:",
@@ -72,6 +72,7 @@ if __name__ == "__main__":
     corpus_type = "".join([i[0] for i in args.sections]).upper()
 
     if args.mode=="predict":
+        s_time = time.time()
         ## Inteference Mode
         ## Take JSON document as input - 44 Abstracts
         pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA_GS)
@@ -79,12 +80,12 @@ if __name__ == "__main__":
         data.gen_gs_dataset(test44Abstracts, json_data_folder)
         
         ## Pre-Process JSON with Data Features
-        ppd.build_predict_dataset(json_data_folder, args.sections, interim_data_folder, args.stem)
+        ppd.build_predict_data_set(json_data_folder, args.sections, interim_data_folder, args.stem)
         
         ## Load pre-trained model
         ## Infer/Predict
         model.predict(interim_data_folder,corpus_type, args.mode, args.features)
-        
+        print("\033[031mINFO: Total time of model training:%sS\033[0m"%round(time.time() - s_time, 3))
         pass
     elif args.mode=='al':
         ## Activate Active Learning
@@ -102,8 +103,8 @@ if __name__ == "__main__":
         pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
         fullData = data.load_pubmed_data(pubmed_data_folder)
         ## Generate JSON Files from XML
-        data.generate_synthetic_dataset(fullData, json_data_folder)
-    else:
+        data.generate_dataset(fullData, json_data_folder)
+    elif args.mode == "train":
         ## Build Data Features with JSON Data
         ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.stem)
         
@@ -112,3 +113,5 @@ if __name__ == "__main__":
         model.train(interim_data_folder, corpus_type, args.features)
         
         print("\033[031mINFO: Total time of model training:%sS\033[0m"%round(time.time() - s_time, 3))
+    else:
+        print("Invalid option selected!!!\n Mode of opertion: train/test/predict/createData")

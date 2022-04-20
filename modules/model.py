@@ -18,6 +18,10 @@ from modules.crf import CRF
 from modules.utils import  performance_metrics, read_text, parse_tags, get_metrics
 from modules.preProcessData import mark_keyword_all_sentences
 
+from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
+from seqeval.scheme import IOB2
+
+from sklearn_crfsuite import metrics as crfmetrics
 
 names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
 # Text processing object
@@ -243,8 +247,8 @@ def train(file_folder, corpus_type, texts_features=None):
     print("\033[034mPARAMS: %s\033[0m"%configs)
     ix2tag = {i:key for i, key in enumerate(
             pd.read_csv(configs['tags_path'], header=None, lineterminator='\n').values.flatten().tolist())}
-    ix2tag[len(ix2tag)] = '0'
-    ix2tag[len(ix2tag)] = '0'
+    ix2tag[len(ix2tag)] = 'O'
+    ix2tag[len(ix2tag)] = 'O'
     # Dataset processing
     train_dataset = TextDataSet(data_path = train_path,
                     vocab_path = vocab_path, texts_features=texts_features, configs = configs)
@@ -329,8 +333,8 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     print("\033[034mPARAMS: %s\033[0m"%configs)
     ix2tag = {i:key for i, key in enumerate(
             pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
-    ix2tag[len(ix2tag)] = '0'
-    ix2tag[len(ix2tag)] = '0'
+    ix2tag[len(ix2tag)] = 'O'
+    ix2tag[len(ix2tag)] = 'O'
     test_dataset = TextDataSet(data_path = test_path,
                     texts_features=texts_features, vocab_path = vocab_path, configs = configs)
     # Data Loader
@@ -365,7 +369,25 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     
     pdata = pd.read_csv(test_path, sep=' <sep> ', engine='python', names=names)
     sentences = pdata['text'][:].values
+#     for pred, target in zip(y_preds,y_targets):
+#         x=len
+#         for val in pred:
+#             if val not in ['B-KP','I-KP','O']:
+#                 print(pred)
+#         for val in target:
+#             if val not in ['B-KP','I-KP','O']:
+#                 print(target)
+#     print(sentences[0])
+#     print(y_preds[0])
+#     print(y_targets[0])
     get_metrics(sentences, y_preds, y_targets, mappers=True)
+    
+    print('SeqEval Metrics:')
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
 
     # save result
     tfs_type = "".join([i[0] for i in texts_features]).upper()
@@ -386,8 +408,8 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     print("\033[034mPARAMS: %s\033[0m"%configs)
     ix2tag = {i:key for i, key in enumerate(
             pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
-    ix2tag[len(ix2tag)] = '0'
-    ix2tag[len(ix2tag)] = '0'
+    ix2tag[len(ix2tag)] = 'O'
+    ix2tag[len(ix2tag)] = 'O'
     test_dataset = TextDataSet(data_path = predict_path,
                     texts_features=texts_features, vocab_path = vocab_path, configs = configs)
     # Data Loader
@@ -427,8 +449,9 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     complete_text = '. '.join(pdata['text'][:].values)
     sentences = pdata['text'][:].values
     
-#     pred_kws = parse_tags(sentences, y_preds)
-#     pred_kws.sort(reverse=True, key=len)
+    pred_kws = parse_tags(sentences, y_preds)
+    pred_kws.sort(reverse=True, key=len)
+#     print(pred_kws, end='\n\n')
         
 #     markings = mark_keyword_all_sentences(pred_kws,sentences)
 #     complt_text = markings[0]
@@ -445,6 +468,19 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     
+    print('SeqEval Metrics:')
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+    
+#     print('CRF Suite Classification Report:')
+#     labels=['B-KP','I-KP','O']
+#     labels.remove('O')
+#     sorted_labels = sorted(labels,key=lambda name: (name[1:], name[0]))
+#     print(crfmetrics.flat_classification_report(y_targets, y_preds, sorted_labels))
+    
 #     for i,j in zip(y_preds,y_targets):
 #         print(i,j,sep='\n',end='\n\n')
     
@@ -453,7 +489,7 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
         # i=0
         # pred_words = []
         # while i<sent_len:
-        #     if pred[i]=='0':
+        #     if pred[i]=='O':
         #         i+=1
         #         continue
 

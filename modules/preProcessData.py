@@ -84,7 +84,7 @@ def mark_keyword_all_sentences(keywords, sentences):
     logger.debug("Complete Text: %s"%complete_text)
 
     complete_text_len = len(complete_text)
-    mapper = ['0']*complete_text_len
+    mapper = ['O']*complete_text_len
     kws = [sent2words(x)[0] for x in keywords]
     # print("Processed Keywords")
     # print(kws)
@@ -95,15 +95,21 @@ def mark_keyword_all_sentences(keywords, sentences):
             continue
         i=0
         while i<complete_text_len-kw_len:
-            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['0']*kw_len:
-                mapper[i:i+kw_len]=['K_I']*kw_len
-                mapper[i]='K_B'
+            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
+                mapper[i:i+kw_len]=['I-KP']*kw_len
+                mapper[i]='B-KP'
+
+#                 if kw_len>=2:
+#                     mapper[i+kw_len-1]="I-KP"
+#                 if kw_len==1:
+#                     mapper[i]="B-KP"
+
             i+=1
 
-    # print(complete_text)
-    # print(mapper)
-    # for i,j in zip(complete_text,mapper):
-    #     print(j,'\t',i)
+#     print(complete_text)
+#     print(mapper)
+#     for i,j in zip(complete_text,mapper):
+#         print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []
@@ -114,8 +120,8 @@ def mark_keyword_all_sentences(keywords, sentences):
         final_tokens.append(complete_text[start:start+slen])
         start+=slen
 
-    # for i,j in zip(sentences,final_mapper):
-    #     print(i,j)
+#     for i,j in zip(sentences,final_mapper):
+#         print(i,j)
     
     return complete_text, final_mapper, final_tokens
 
@@ -123,7 +129,7 @@ def mark_keyword_all_sentences(keywords, sentences):
 def mark_keyword(keywords, words):
     # Initial marker variable
     text = " ".join(words)
-    position, text_len  = ['0'] * len(words), len(text)
+    position, text_len  = ['O'] * len(words), len(text)
     for keyword in keywords:
         keyword_length, kw_num = len(keyword), len(keyword.split(" "))
         index_list = [(i.start(), i.end()) for i in re.finditer(keyword.replace("+", "\+"), text)]
@@ -134,11 +140,12 @@ def mark_keyword(keywords, words):
                    or (text[start - 1] == ' ' and text[end] == ' '):
                 p_index = len(text[:start].split(" ")) - 1
                 if kw_num == 1:
-                    position[p_index] = 'K_B'
+                    position[p_index] = 'B-KP'
                 else:
-                    position[p_index] = 'K_B'
-                    for i in range(1, kw_num):
-                        position[p_index + i] = 'K_I'
+                    position[p_index] = 'B-KP'
+                    for i in range(1, kw_num - 1):
+                        position[p_index + i] = 'I-KP'
+#                     position[p_index + kw_num - 1] = 'L-KP'
     return " ".join(words), position
 
 # Construct features of data
@@ -226,10 +233,10 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-            # count+=1
-            # print('+'*50)
-            # if count==3:
-            #     return True, True
+#             count+=1
+#             print('+'*50)
+#             if count==10:
+#                 return True, True
 
             pbar1.set_description("%s-th document processed"%(pidx+1))  
 
@@ -438,7 +445,7 @@ def build_datas(path, fields, mode, save_folder):
                         WFOF[j] = data[4]['wfof'][token]
                         TI[j] = tf_idf_dict[d_index][token]
                         TR[j] = textrank_dict[d_index][token]
-                        IWOT[j] = data[4]['iwot'][token]
+                        # IWOT[j] = data[4]['iwot'][token]
                     except:
                         pass
                 assert len(tokens) == len(POS)
@@ -528,7 +535,7 @@ def build_data_sets(json_data_folder, sections, interim_folder, stemming='no'):
         fp.write("\n".join(POS_VOCAB))
     print("\033[34mINFO: Dataset partition completed\033[0m")
     
-def build_predict_dataset(json_data_folder, sections, interim_folder, stemming='no'):      
+def build_predict_data_set(json_data_folder, sections, interim_folder, stemming='no'):      
     predict_path = os.path.join(json_data_folder, 'predict.json')
     
     if stemming=="no":
