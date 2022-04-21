@@ -90,7 +90,7 @@ if __name__ == "__main__":
         pass
     elif args.mode == "predict":
         
-        total_data = utils.load_json(os.path.join(WORKING_PATH,"dummy.json"))
+        total_data = utils.read_json_array(os.path.join(WORKING_PATH,"dummy.json"))
         for article in total_data:
             ppd.build_infer_data_set(article, args.sections, interim_data_folder, args.stem)
             #model.predict_kws(interim_data_folder, corpus_type, args.mode, args.features)
