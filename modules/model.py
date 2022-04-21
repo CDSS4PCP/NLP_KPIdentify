@@ -396,10 +396,10 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
         fp.write("%s\t%s\t%s"%(p, r, f1))
     return p, r, f1
 
-# Model predict function
-def predict(file_folder, corpus_type, data_type, texts_features=None):
+# Model testgs predict function
+def testgs(file_folder, corpus_type, data_type, texts_features=None):
     # File path
-    predict_path = os.path.join(file_folder, '%s.txt'%data_type)
+    testgs_path = os.path.join(file_folder, '%s.txt'%data_type)
     predict_info_path = os.path.join(file_folder, '%s_info.json'%data_type)
     vocab_path = os.path.join(file_folder, 'vocab')
     # Load configuration file
@@ -410,7 +410,7 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
             pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
     ix2tag[len(ix2tag)] = 'O'
     ix2tag[len(ix2tag)] = 'O'
-    test_dataset = TextDataSet(data_path = predict_path,
+    test_dataset = TextDataSet(data_path = testgs_path,
                     texts_features=texts_features, vocab_path = vocab_path, configs = configs)
     # Data Loader
     test_loader = DataLoader(test_dataset, batch_size = configs['batch_size'])
@@ -440,7 +440,7 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
                 y_targets.append([ix2tag[i] for i in tag.detach().cpu().tolist()[: sentence_len[ix]]])
             pbar_test.set_description("finish")
     
-    pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
+    pdata = pd.read_csv(testgs_path, sep=' <sep> ', engine='python', names=names)
     target_kp = []
 #     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
 #         print("Actual Sentence: ", sent)
@@ -508,3 +508,83 @@ def predict(file_folder, corpus_type, data_type, texts_features=None):
     # with open(save_path, 'w', encoding='utf-8') as fp:
     #     fp.write("%s\t%s\t%s"%(p, r, f1))
     # return p, r, f1
+
+# Model Infer KWs abstract by abstract
+def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
+    # File path
+    testgs_path = os.path.join(file_folder, '%s.txt'%data_type)
+    predict_info_path = os.path.join(file_folder, '%s_info.json'%data_type)
+    vocab_path = os.path.join(file_folder, 'vocab')
+    # Load configuration file
+    config_path = os.path.join(file_folder, "config.json")
+    configs = json.load(open(config_path, 'r', encoding='utf-8'))
+    print("\033[034mPARAMS: %s\033[0m"%configs)
+    ix2tag = {i:key for i, key in enumerate(
+            pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
+    ix2tag[len(ix2tag)] = 'O'
+    ix2tag[len(ix2tag)] = 'O'
+    test_dataset = TextDataSet(data_path = testgs_path,
+                    texts_features=texts_features, vocab_path = vocab_path, configs = configs)
+    # Data Loader
+    test_loader = DataLoader(test_dataset, batch_size = configs['batch_size'])
+    # Create BiLSTM-CRF model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = BiLSTM_CRF(vocab_path = vocab_path, configs = configs,
+                       features=texts_features, device=device).to(device)
+    print(model)
+    # Loading the pre-trained
+    tfs_type = "".join([i[0] for i in texts_features]).upper()
+    model_path = os.path.join(MODEL_FOLDER, 'bin', "%s_%s.bin" % (corpus_type, tfs_type))
+    model_config = torch.load(open(model_path, 'rb'))
+    model.load_state_dict(model_config['model'])
+    model.eval()
+    y_preds, y_targets = [], []
+    with tqdm(test_loader) as pbar_test:
+        for words2ix, chars2ix, labels, attention_mask, features, sentence_len in pbar_test:
+            inputs = {
+                'words2ix': torch.as_tensor(words2ix, dtype=torch.long).to(device),
+                'chars2ix': torch.as_tensor(chars2ix, dtype=torch.long).to(device),
+                'attention_mask': torch.as_tensor(attention_mask).to(device),
+                'features': torch.as_tensor(features, dtype=torch.float).to(device),
+            }
+            _, outputs = model(inputs)
+            for ix, (pred, tag) in enumerate(zip(outputs, labels)):
+                y_preds.append([ix2tag[i] for i in pred.detach().cpu().tolist()[: sentence_len[ix]]])
+                y_targets.append([ix2tag[i] for i in tag.detach().cpu().tolist()[: sentence_len[ix]]])
+            pbar_test.set_description("finish")
+    
+    pdata = pd.read_csv(testgs_path, sep=' <sep> ', engine='python', names=names)
+    target_kp = []
+#     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
+#         print("Actual Sentence: ", sent)
+#         # sent_len = len(pred)
+    
+    complete_text = '. '.join(pdata['text'][:].values)
+    sentences = pdata['text'][:].values
+    
+    pred_kws = parse_tags(sentences, y_preds)
+    pred_kws.sort(reverse=True, key=len)
+#     print(pred_kws, end='\n\n')
+        
+#     markings = mark_keyword_all_sentences(pred_kws,sentences)
+#     complt_text = markings[0]
+#     mark_kws = markings[1]
+#     mark_tokens = markings[2]
+#     # print(complt_text)
+    
+#     for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
+#         if mark!=pred:
+#             print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
+    
+#     print("Complete Text:\n",complete_text,end='\n\n')
+#     print(pred_kws, end='\n\n')
+    
+    get_metrics(sentences, y_preds, y_targets, mappers=True)
+    
+    print('SeqEval Metrics:')
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+ 

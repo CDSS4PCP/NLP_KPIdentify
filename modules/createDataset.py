@@ -46,7 +46,7 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False):
             pbar1.set_description("JSON pre-processing is completed for %s-th document!"%(p_id))
 
     if predictData==True:
-        with open(os.path.join(json_data_path, "predict.json"), "w") as outfile:
+        with open(os.path.join(json_data_path, "testgs.json"), "w") as outfile:
             json.dump(dataset, outfile)
         return True
             
@@ -109,7 +109,7 @@ def gen_gs_dataset(gsData, json_data_path):
             p_id += 1
             pbar1.set_description("JSON pre-processing is completed for %s-th document!"%(p_id))
 
-    with open(os.path.join(json_data_path, "predict.json"), "w") as outfile:
+    with open(os.path.join(json_data_path, "testgs.json"), "w") as outfile:
         json.dump(dataset, outfile)
         
 

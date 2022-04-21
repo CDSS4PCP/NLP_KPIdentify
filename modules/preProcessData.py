@@ -149,6 +149,113 @@ def mark_keyword(keywords, words):
     return " ".join(words), position
 
 # Construct features of data
+def build_features_infer(document, sections, mode, save_folder):
+    feature_data=[]
+    wfof_dict_total, complete_text_total, tokens_list_total, labels_list_total  = [], [], [], []
+
+    # sentence segmentation
+    sentences = []
+    for section in sections:
+        text = document[section]
+        if type(text)==str:
+            sentences.extend(sent_tokenize(text))
+        elif type(text)==list:
+            for item in text:
+                sentences.extend(sent_tokenize(item))
+    logger.debug(sentences)
+
+    # Empty Keywords array
+    keywords = document['keywords']
+
+    ## Complete text of all sections
+    plain_text = ' '.join(sentences).lower().strip()
+
+
+    ## feature word first occurence in complete text - WFOF
+    wfof_dict = {}
+    for word in word_tokenize(plain_text):
+        # Skip the word if it is puncutation or a stop word
+        if word in english_punctuations+stop_words: continue
+
+        # Search word in the complete text
+        item = re.search(string_escape(word),plain_text)
+        if item!=None:
+            wfof_dict[word] = item.start()/len(plain_text)
+
+    # features POS tag and length (LEN)
+    pos_list, length_list = [], []
+    tokens_list, labels_list = [], []
+        
+    for idx, sentence in enumerate(sentences):
+        
+        # Pre-process sentence to words
+        words, pos, length, sentence = sent2words(sentence)
+        
+        # replace the original sentence with punct removed sentence
+        sentences[idx]=sentence
+            
+        pos_list.append(pos)
+        length_list.append(length)
+            
+    ## Add BIO Labels to the sentences
+    complete_text, labels, tokens = mark_keyword_all_sentences(keywords, sentences)
+    tokens_list.extend(tokens)
+    labels_list.extend(labels)
+
+    logger.debug(wfof_dict)
+    logger.debug(pos_list)
+    logger.debug(length_list)
+    logger.debug(labels_list)
+    logger.debug(tokens_list)
+
+    # wfof_dict_total.append(wfof_dict)
+    # tokens_list_total.append(tokens_list)
+    # labels_list_total.append(labels_list)
+    complete_text_total.append(complete_text)
+
+    features = {
+        'wfof': wfof_dict,
+        'pos': pos_list,
+        'length': length_list
+    }
+
+    feature_data.append([document['id'], tokens_list, labels_list, keywords, features])
+
+    ## features TF-IDF and Text Rank
+    tf_idf_dict = tf_idf(complete_text_total)
+    textrank_dict = textrank(complete_text_total)
+
+    ## Merge Informations
+    return_datas, id_keywords = {}, {}
+    with tqdm(enumerate(feature_data)) as pbar2:
+        for d_index, data in pbar2:
+            p_id, rev_data = data[0], []
+            id_keywords[p_id] = data[3] # Assignment Keywords
+            # labels = data[2]
+            for i, (tokens, labels) in enumerate(zip(data[1], data[2])):
+                if len(tokens) <= 3: continue
+                POS = []
+                LEN = np.zeros(shape=(len(tokens)))
+                WFOF = np.zeros(shape=(len(tokens)))
+                TI = np.zeros(shape=(len(tokens)))
+                TR = np.zeros(shape=(len(tokens)))
+                for j in range(len(tokens)):
+                    token = tokens[j]
+                    try:
+                        POS.append(data[4]['pos'][i][token])
+                        LEN[j] = data[4]['length'][i][token]
+                        WFOF[j] = data[4]['wfof'][token]
+                        TI[j] = tf_idf_dict[d_index][token]
+                        TR[j] = textrank_dict[d_index][token]
+                    except:
+                        pass
+                rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
+            return_datas[p_id] = rev_data
+
+            pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
+    return return_datas, id_keywords
+
+# Construct features of data
 def build_features(path, sections, mode, save_folder):
     # global js
     # cache_path = os.path.join(save_folder, "cache_%s"%mode)
@@ -535,12 +642,25 @@ def build_data_sets(json_data_folder, sections, interim_folder, stemming='no'):
         fp.write("\n".join(POS_VOCAB))
     print("\033[34mINFO: Dataset partition completed\033[0m")
     
-def build_predict_data_set(json_data_folder, sections, interim_folder, stemming='no'):      
-    predict_path = os.path.join(json_data_folder, 'predict.json')
+def build_testgs_data_set(json_data_folder, sections, interim_folder, stemming='no'):      
+    testgs_path = os.path.join(json_data_folder, 'testgs.json')
     
     if stemming=="no":
-        predict_features, predict_keywords = build_features(predict_path, sections, 'predict', interim_folder)
+        predict_features, predict_keywords = build_features(testgs_path, sections, 'testgs', interim_folder)
     else:
-        predict_features, predict_keywords = build_datas(predict_path, sections, 'predict', interim_folder)      
+        predict_features, predict_keywords = build_datas(testgs_path, sections, 'testgs', interim_folder)      
+
+    save_datas(predict_features, predict_keywords, "testgs", interim_folder)
+
+def build_infer_data_set(data, sections, interim_folder, stemming='no'):
+    
+    predict_features, predict_keywords = build_features_infer(data, sections, 'infer', interim_folder)
+
+    # if stemming=="no":
+    #     pass
+    #     #predict_features, predict_keywords = build_features(json_file, sections, 'predict', interim_folder)
+    # else:
+    #     pass
+    #     #predict_features, predict_keywords = build_datas(json_file, sections, 'predict', interim_folder)      
 
     save_datas(predict_features, predict_keywords, "predict", interim_folder)
