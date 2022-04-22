@@ -93,7 +93,11 @@ if __name__ == "__main__":
         total_data = utils.read_json_array(os.path.join(WORKING_PATH,"dummy.json"))
         for article in total_data:
             ppd.build_infer_data_set(article, args.sections, interim_data_folder, args.stem)
-            model.predict_kws(interim_data_folder, corpus_type, args.mode, args.features)
+            kps = model.predict_kws(interim_data_folder, corpus_type, args.mode, args.features)
+            act_kps = article['actual_keywords']
+            act_kps.sort(reverse=True, key=len)
+            
+            print("GoldStandard Keywords:\n{}\nPredicted Keywords:\n{}\n\n".format(act_kps,kps))
 
     elif args.mode=='al':
         ## Activate Active Learning

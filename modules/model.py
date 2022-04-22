@@ -531,7 +531,6 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = BiLSTM_CRF(vocab_path = vocab_path, configs = configs,
                        features=texts_features, device=device).to(device)
-    print(model)
     # Loading the pre-trained
     tfs_type = "".join([i[0] for i in texts_features]).upper()
     model_path = os.path.join(MODEL_FOLDER, 'bin', "%s_%s.bin" % (corpus_type, tfs_type))
@@ -564,7 +563,8 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     
     pred_kws = parse_tags(sentences, y_preds)
     pred_kws.sort(reverse=True, key=len)
-    print(pred_kws, end='\n\n')
+    return pred_kws
+#     print(pred_kws, end='\n\n')
         
 #     markings = mark_keyword_all_sentences(pred_kws,sentences)
 #     complt_text = markings[0]
