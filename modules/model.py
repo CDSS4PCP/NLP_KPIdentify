@@ -512,18 +512,18 @@ def testgs(file_folder, corpus_type, data_type, texts_features=None):
 # Model Infer KWs abstract by abstract
 def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     # File path
-    testgs_path = os.path.join(file_folder, '%s.txt'%data_type)
+    predict_path = os.path.join(file_folder, '%s.txt'%data_type)
     predict_info_path = os.path.join(file_folder, '%s_info.json'%data_type)
     vocab_path = os.path.join(file_folder, 'vocab')
     # Load configuration file
     config_path = os.path.join(file_folder, "config.json")
     configs = json.load(open(config_path, 'r', encoding='utf-8'))
-    print("\033[034mPARAMS: %s\033[0m"%configs)
+
     ix2tag = {i:key for i, key in enumerate(
             pd.read_csv(configs['tags_path'], header=None, sep='\n').values.flatten().tolist())}
     ix2tag[len(ix2tag)] = 'O'
     ix2tag[len(ix2tag)] = 'O'
-    test_dataset = TextDataSet(data_path = testgs_path,
+    test_dataset = TextDataSet(data_path = predict_path,
                     texts_features=texts_features, vocab_path = vocab_path, configs = configs)
     # Data Loader
     test_loader = DataLoader(test_dataset, batch_size = configs['batch_size'])
@@ -553,7 +553,7 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
                 y_targets.append([ix2tag[i] for i in tag.detach().cpu().tolist()[: sentence_len[ix]]])
             pbar_test.set_description("finish")
     
-    pdata = pd.read_csv(testgs_path, sep=' <sep> ', engine='python', names=names)
+    pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
     target_kp = []
 #     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
 #         print("Actual Sentence: ", sent)
@@ -564,7 +564,7 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     
     pred_kws = parse_tags(sentences, y_preds)
     pred_kws.sort(reverse=True, key=len)
-#     print(pred_kws, end='\n\n')
+    print(pred_kws, end='\n\n')
         
 #     markings = mark_keyword_all_sentences(pred_kws,sentences)
 #     complt_text = markings[0]
@@ -575,16 +575,5 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
 #     for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
 #         if mark!=pred:
 #             print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
-    
-#     print("Complete Text:\n",complete_text,end='\n\n')
-#     print(pred_kws, end='\n\n')
-    
-    get_metrics(sentences, y_preds, y_targets, mappers=True)
-    
-    print('SeqEval Metrics:')
-    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
-    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
-    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
-    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
-    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+
  
