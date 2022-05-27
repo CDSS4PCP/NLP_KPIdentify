@@ -104,6 +104,9 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
     dataset[j:]=[]
 
     dataset_length = len(dataset)
+    # with open('CDSS_PMIDs_SentTrim.txt','w') as f:
+    #     for data in dataset:
+    #         f.write(data["id"]+"\n")
     print("Total Dataset Length: ",dataset_length)
     print("Train Dataset Length: ",dataset_length//3)
     print("Test  Dataset Length: ",dataset_length-dataset_length//3)
