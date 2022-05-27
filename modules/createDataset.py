@@ -6,6 +6,15 @@ from scispacy.linking import EntityLinker
 import pubmed_parser as pp
 from tqdm import tqdm
 
+outlier_kws=[
+    'http','www','university','department','antibiotic','antimicrobial','institute','ministry', 'pubmed',
+    '.gov','.org','.com','.edu','.net',
+    'city','disease','injury','trauma','syndrome','country','national','regimen','swelling',
+    'surgery', 'medication','infection','stroke','diabetes','bleeding','comorbid','java','python',
+    "united states",'united kingdom','india','china','germany','france','ghana','australia','italy','england','japan',
+    'english','spanish','french','british','spain'
+    ]
+
 def load_pubmed_data(path):
     '''
     Load PubMed XML parsed Data with PMIDS
@@ -18,12 +27,16 @@ def load_pubmed_data(path):
 
     return data
 
-def generate_synthetic_dataset(fullData, json_data_path, predictData=False):
+def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_sentences=3, filter_kp = False):
     '''
     Create Train & Test Datasets as JSON with Synthetic Keywords
     '''
     nlp = spacy.load("en_core_sci_lg")
     nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+
+    if filter_kp:
+        nlp2 = spacy.load('en_ner_bc5cdr_md')
+        nlp2.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
 
     comb_arr=[]
     pmid_arr =[]
@@ -51,19 +64,49 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False):
         return True
             
     idx=0
+    remove_sent_no_outliers = []
     with tqdm(nlp.pipe(comb_arr),total=total_len) as pbar1:
         # for doc in nlp.pipe(comb_arr):
         for doc in pbar1:
             # text = [token.orth_ for token in doc if not token.is_punct | token.is_space] 
+            sents = [str(x) for x in doc.sents]
+
+            ## List all the sentences with are minimum threshold
+            if len(sents)<min_sentences:
+                remove_sent_no_outliers.append(idx)
 
             kws = [str(x) for x in doc.ents]
+
+            ## Filter KWS for DISEASES/GPE/Institutes
+            if filter_kp:
+                rule_out_ents = [str(_) for _ in nlp2(comb_arr[idx]).ents]
+                rule_out_ents = [_ for _ in rule_out_ents if not _.isupper()]
+                if rule_out_ents!=[]:
+                    kws = [_ for _ in kws if _ not in rule_out_ents]
+                kws = [_ for _ in kws if all([True if n_ not in _.lower() else False for n_ in outlier_kws])]
+
             kws.sort(reverse=True, key=len)
             
             dataset[idx]["keywords"]=kws
             idx+=1
             pbar1.set_description("Synthetic Keywrods generated for %s-th document!"%idx)
 
+    ## Filter Docs with less than minimum senetences
+    i=0
+    j=0
+    print("Total Articles removed: ",len(remove_sent_no_outliers))
+    print([pmid_arr[x] for x in remove_sent_no_outliers])
+    while i<idx:
+        if i not in remove_sent_no_outliers:
+            dataset[j]=dataset[i]
+            j+=1
+        i+=1
+    dataset[j:]=[]
+
     dataset_length = len(dataset)
+    print("Total Dataset Length: ",dataset_length)
+    print("Train Dataset Length: ",dataset_length//3)
+    print("Test  Dataset Length: ",dataset_length-dataset_length//3)
     with open(os.path.join(json_data_path, "train.json"), "w") as outfile:
         json.dump(dataset[:dataset_length//3], outfile)
 

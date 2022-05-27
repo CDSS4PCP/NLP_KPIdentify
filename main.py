@@ -35,6 +35,8 @@ if __name__ == "__main__":
                         help=("Provide logging level. "
                               "Example --log debug', default='warning'"))
     parser.add_argument("--stem", "-stem",default="no",help="Vocabulary Stemming - yes/no")
+    parser.add_argument("--minSentences", "-minSentences", default=3, help="Minimum Sentences in Each Text")
+    parser.add_argument("--filterKP","-filterKP", default=False, help="Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
     
     args = parser.parse_args()
     
@@ -111,11 +113,32 @@ if __name__ == "__main__":
         print("\033[031mINFO: Total time of model test:%sS\033[0m"%round(time.time() - s_time, 3))
         pass
     elif args.mode == "createData":
-        ## Read PubMed XML processed Data
+        ## Read PubMed XML processed Data - For all CDSS
         pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
         fullData = data.load_pubmed_data(pubmed_data_folder)
+        ## Read PubMed XML processed Data - For 44 Gold Standard DS
+        pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA_GS)
+        testGSAbstracts = data.load_pubmed_data(pubmed_data_folder)
+
+        ## Remove GS Data from Fulltext
+        pmids_GS = set([paper['pmid'] for paper in testGSAbstracts])
+        # pmids_fulltext = set([paper['pmid'] for paper in fullData])
+        # # print(len(pmids_fulltext))
+        # removeGS_pmids_fulltext = pmids_fulltext - pmids_GS
+        # # print(len(removeGS_pmids_fulltext))
+        N=len(fullData)
+        i=0
+        j=0
+        while i<N:
+            if fullData[i]['pmid'] not in pmids_GS:
+                fullData[j]=fullData[i]
+                j+=1
+            i+=1
+        fullData[j:]=[]
+        
         ## Generate JSON Files from XML
-        data.generate_dataset(fullData, json_data_folder)
+        data.generate_synthetic_dataset(fullData, json_data_folder, min_sentences=args.minSentences, filter_kp=args.filterKP)
+
     elif args.mode == "train":
         ## Build Data Features with JSON Data
         ppd.build_data_sets(json_data_folder, args.sections, interim_data_folder, args.stem)
