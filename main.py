@@ -23,8 +23,8 @@ if __name__ == "__main__":
                         "CEM - Char Embeddings",
                         "DEM - Document Embeddings",
                         "PEM - Phrase Embeddings",
-                        "TFIDF - (Term Frequency Inverse Document Frequency)",
-                        "TextR - Text Rank",
+                        "TI - TFIDF(Term Frequency Inverse Document Frequency)",
+                        "TR - Text Rank",
                         "TopR - Topic Rank",
                         "PosR - Position Rank "
                         "MR - Multi-partite Rank",
