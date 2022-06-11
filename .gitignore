@@ -10,6 +10,9 @@ data/
 metamap/*.tar.bz2
 metamap/public_mm/
 
+# embeddings
+*.embedding
+
 # Ignore interim data
 interim_data/**/*
 !interim_data/config.json
