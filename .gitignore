@@ -10,8 +10,12 @@ data/
 metamap/*.tar.bz2
 metamap/public_mm/
 
-# embeddings
-*.embedding
+# Test Files
+keywordExtraction/GNA_Files/*.json
+keywordExtraction/GNA_Files/*.embedding
+keywordExtraction/GNA_Files/*.log
+keywordExtraction/GNA_Files/*.h5
+keywordExtraction/GNA_Files/*.model
 
 # Ignore interim data
 interim_data/**/*
