@@ -116,21 +116,26 @@ if __name__ == "__main__":
         ## Read PubMed XML processed Data - For all CDSS
         pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA)
         fullData = data.load_pubmed_data(pubmed_data_folder)
+        
         ## Read PubMed XML processed Data - For 44 Gold Standard DS
-        pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA_GS)
-        testGSAbstracts = data.load_pubmed_data(pubmed_data_folder)
+        # pubmed_data_folder = os.path.join(WORKING_PATH, config.PUBMED_PROCESSED_DATA_GS)
+        # testGSAbstracts = data.load_pubmed_data(pubmed_data_folder)
 
+        ## Remove HoldOut Data from Fulltext
+        pmids_HO = utils.read_text(config.HOLDOUT_DATA)
+        
         ## Remove GS Data from Fulltext
-        pmids_GS = set([paper['pmid'] for paper in testGSAbstracts])
+        # pmids_HO =  set([paper['pmid'] for paper in testGSAbstracts])
         # pmids_fulltext = set([paper['pmid'] for paper in fullData])
         # # print(len(pmids_fulltext))
-        # removeGS_pmids_fulltext = pmids_fulltext - pmids_GS
+        # removeGS_pmids_fulltext = pmids_fulltext - pmids_HO
         # # print(len(removeGS_pmids_fulltext))
+        
         N=len(fullData)
         i=0
         j=0
         while i<N:
-            if fullData[i]['pmid'] not in pmids_GS:
+            if fullData[i]['pmid'] not in pmids_HO:
                 fullData[j]=fullData[i]
                 j+=1
             i+=1
