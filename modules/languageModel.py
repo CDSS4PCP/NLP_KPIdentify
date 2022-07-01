@@ -269,7 +269,7 @@ class Trainer:
             # initialize hidden state
             h = net.init_hidden(batch_size)
             
-            for x, y in self.get_batches(x_int, y_int, batch_size):
+            for x, y in self.get_batches(x_int_train, y_int_train, batch_size):
                 
                 # convert numpy arrays to PyTorch arrays
                 inputs, targets = torch.from_numpy(x), torch.from_numpy(y)
@@ -302,6 +302,23 @@ class Trainer:
                 opt.step()            
                 
             print("Epoch: {}/{}...".format(e+1, epochs),"mean_loss : %0.2f, Perplexity : %0.2f"%(np.mean(losses), np.exp(np.mean(losses))))
+
+        net.eval()
+        losses = []
+        h = net.init_hidden(batch_size)
+        for x, y in self.get_batches(x_int_test, y_int_test, batch_size):
+            inputs, targets = torch.from_numpy(x), torch.from_numpy(y)
+            targets = targets.type(torch.LongTensor)
+
+            inputs, targets = inputs.cuda(), targets.cuda()
+            h = tuple([each.data for each in h])
+            net.zero_grad()
+            output, h = net(inputs, h)
+            loss = criterion(output, targets.view(-1))
+
+            losses.append(loss.detach().item())
+
+        print("Test Perplexity: %0.2f"%(np.exp(np.mean(losses))))
 
     # predict next token
     def predict(self, net, tkn, h=None, token2int={}):
@@ -517,15 +534,16 @@ class WordLSTM(nn.Module):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Language Model Experiments")
 
-    parser.add_argument('-bD','--bidirection', help="Uni/Bi-Directional Context. Options: [True/False]", default=False, type=bool)
-    parser.add_argument('-wET','--wordEmbdType', type=str, help="Word Embedding Type. Options: [basic, fastText, word2vec]", default="basic")
-    parser.add_argument("-minSent","--minSentences", default=3, help="Minimum Sentences in Each Text")
-    parser.add_argument("-fKP","--filterKP", default=False, help="Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
-    parser.add_argument("-seqLen","--seqLength", type=int, default = 5, help="To create Train Dataset with sequence length sliding window over sentence")
+    parser.add_argument('-bD','--bidirection', help="Uni/Bi-Directional Context. Options: [True/False]. Default(False)", default=False, type=bool)
+    parser.add_argument('-wET','--wordEmbdType', type=str, help="Word Embedding Type. Options: [basic, fastText, word2vec]. Default(basic)", default="basic")
+    parser.add_argument("-minSent","--minSentences", default=3, help="Minimum Sentences in Each Text. Deafult(3)", type=int)
+    parser.add_argument("-fKP","--filterKP", default=False, help="Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION. Deafult(False)", type=bool)
+    parser.add_argument("-seqLen","--seqLength", type=int, default = 5, help="To create Train Dataset with sequence length sliding window over sentence. Deafult(5)")
     parser.add_argument("-bS","--batchSize", type=int, default= 64, help="BiLM Training Batch Size. Default(32)")
     parser.add_argument("-epochs","--epochs", type=int, default=20, help="BiLM Training Epochs. Default(20)")
-    parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, help="Pre-load the Created")
+    parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, help="Pre-load the Created", type=bool)
     parser.add_argument('-ttSplit', "--traintestSplit", type=int, default=3, help="Train Test Split Parts. Deafult(3) = 1100 Train | 2200 Test")
+    parser.add_argument('-nLayers','--noLayers', type=int, default=4, help="No.of LSTM Layers. default(4)")
 
     args = parser.parse_args()
 
@@ -599,16 +617,24 @@ if __name__ == "__main__":
     #print('Sample: ', train_corpus_sentences[0])
 
     train_seqs = [lm.create_seq(i, seq_len=args.seqLength) for i in train_corpus_sentences]
+    test_seqs = [lm.create_seq(i, seq_len=args.seqLength) for i in test_corpus_sentences]
     # merge list-of-lists into a single list
     train_seqs = sum(train_seqs, [])
+    test_seqs = sum(test_seqs, [])
 
     # create inputs and targets (x and y)
-    x = []
-    y = []
+    x_train = []
+    y_train = []
+    x_test = []
+    y_test = []
 
     for s in train_seqs:
-        x.append(" ".join(s.split()[:-1]))
-        y.append(" ".join(s.split()[1:]))
+        x_train.append(" ".join(s.split()[:-1]))
+        y_train.append(" ".join(s.split()[1:]))
+
+    for s in test_seqs:
+        x_test.append(" ".join(s.split()[:-1]))
+        y_test.append(" ".join(s.split()[1:]))
 
     if args.wordEmbdType == "basic":
         # create integer-to-token mapping
@@ -668,18 +694,24 @@ if __name__ == "__main__":
     # lm.token2int = token2int
 
     # convert text sequences to integer sequences
-    x_int = [lm.get_integer_seq(i, token2int) for i in x]
-    y_int = [lm.get_integer_seq(i, token2int) for i in y]
+    x_int_train = [lm.get_integer_seq(i, token2int) for i in x_train]
+    y_int_train = [lm.get_integer_seq(i, token2int) for i in y_train]
+    x_int_test = [lm.get_integer_seq(i, token2int) for i in x_test]
+    y_int_test = [lm.get_integer_seq(i, token2int) for i in y_test]
 
-    x_int = [i for i in x_int if len(i)==args.seqLength]
-    y_int = [i for i in y_int if len(i)==args.seqLength]
+    x_int_train = [i for i in x_int_train if len(i)==args.seqLength]
+    y_int_train = [i for i in y_int_train if len(i)==args.seqLength]
+    x_int_test = [i for i in x_int_test if len(i)==args.seqLength]
+    y_int_test = [i for i in y_int_test if len(i)==args.seqLength]
 
     # convert lists to numpy arrays
-    x_int = np.array(x_int, dtype="int32")
-    y_int = np.array(y_int, dtype="int32")
+    x_int_train = np.array(x_int_train, dtype="int32")
+    y_int_train = np.array(y_int_train, dtype="int32")
+    x_int_test = np.array(x_int_train, dtype="int32")
+    y_int_test = np.array(y_int_train, dtype="int32")
 
     # instantiate the model
-    net = WordLSTM(n_layers=4, bidirection=args.bidirection, pretrainedWE=word_embedding_file, vocab=token2int)
+    net = WordLSTM(n_layers=args.noLayers, bidirection=args.bidirection, pretrainedWE=word_embedding_file, vocab=token2int)
 
     # push the model to GPU (avoid it if you are not using the GPU)
     net.cuda()
