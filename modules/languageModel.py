@@ -690,6 +690,10 @@ if __name__ == "__main__":
         vocab_size = len(int2token)
         print("Vocabulary Size: {}".format(vocab_size))
 
+    with open("token2int.json","w") as f:
+        json.dump(token2int, f)
+    with open("int2token.json","w") as f:
+        json.dump(int2token, f)
 
     # lm.token2int = token2int
 
@@ -721,6 +725,13 @@ if __name__ == "__main__":
     trainer = Trainer()
     trainer.train(net, batch_size = args.batchSize, epochs=args.epochs)
     print("\n"*2)
+
+    # Print model's state_dict
+    print("Model's state_dict:")
+    for param_tensor in net.state_dict():
+        print(param_tensor, "\t", net.state_dict()[param_tensor].size())
+
+    torch.save(net.state_dict(),"BiLM.pt")
 
     ## Pre-trained CDSS Word2Vec
     print(trainer.sample(net, 45, token2int, prime = "clinical decision support systems"),"\n")
