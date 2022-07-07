@@ -453,9 +453,10 @@ class WordLSTM(nn.Module):
 
         self.drop_prob = drop_prob
         self.n_layers = n_layers
-        self.n_hidden = n_hidden
         self.lr = lr
-        self.bidirection = bidirection # True if bidirection==1 else False
+        self.bidirection = bidirection 
+        self.num_directional = 2 if bidirection else 1
+        self.n_hidden = n_hidden
         self.vocab_size = len(vocab)
 
         #print(bidirection, self.bidirection, type(self.bidirection))
@@ -464,21 +465,18 @@ class WordLSTM(nn.Module):
             self.emb_layer = nn.Embedding(self.vocab_size, 200)
 
             ## define the LSTM
-            self.lstm = nn.LSTM(200, n_hidden, n_layers, 
+            self.lstm = nn.LSTM(200, self.n_hidden, n_layers, 
                                 dropout=drop_prob, batch_first=True, bidirectional=self.bidirection)
         else:
             self.emb_layer, self.emb_dim = EmbeddingsReader.from_binary(pretrainedWE, vocab)
-            self.lstm = nn.LSTM(self.emb_dim, n_hidden, n_layers, 
+            self.lstm = nn.LSTM(self.emb_dim, self.n_hidden, n_layers, 
                             dropout=drop_prob, batch_first=True, bidirectional=self.bidirection)
         
         ## define a dropout layer
         self.dropout = nn.Dropout(drop_prob)
         
         ## define the fully-connected layer
-        if self.bidirection:
-            self.fc = nn.Linear(n_hidden*2, self.vocab_size)
-        else:
-            self.fc = nn.Linear(n_hidden, self.vocab_size)      
+        self.fc = nn.Linear(n_hidden*self.num_directional, self.vocab_size)      
     
     def forward(self, x, hidden):
         ''' Forward pass through the network. 
@@ -493,10 +491,7 @@ class WordLSTM(nn.Module):
         out = self.dropout(lstm_output)
         
         #out = out.contiguous().view(-1, self.n_hidden) 
-        if self.bidirection:
-            out = out.reshape(-1, self.n_hidden*2)
-        else:
-            out = out.reshape(-1, self.n_hidden) 
+        out = out.reshape(-1, self.n_hidden*self.num_directional)
 
         ## put "out" through the fully-connected layer
         out = self.fc(out)
@@ -511,23 +506,15 @@ class WordLSTM(nn.Module):
         # initialized to zero, for hidden state and cell state of LSTM
         weight = next(self.parameters()).data
 
-        if self.bidirection:
-            if (torch.cuda.is_available()):
-                hidden = (weight.new(self.n_layers*2, batch_size, self.n_hidden).zero_().cuda(),
-                        weight.new(self.n_layers*2, batch_size, self.n_hidden).zero_().cuda())
-            else:
-                hidden = (weight.new(self.n_layers*2, batch_size, self.n_hidden).zero_(),
-                        weight.new(self.n_layers*2, batch_size, self.n_hidden).zero_())
+        # if GPU is available
+        if (torch.cuda.is_available()):
+            hidden = (weight.new(self.n_layers*self.num_directional, batch_size, self.n_hidden).zero_().cuda(),
+                    weight.new(self.n_layers*self.num_directional, batch_size, self.n_hidden).zero_().cuda())
+        
+        # if GPU is not available
         else:
-            # if GPU is available
-            if (torch.cuda.is_available()):
-                hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().cuda(),
-                        weight.new(self.n_layers, batch_size, self.n_hidden).zero_().cuda())
-            
-            # if GPU is not available
-            else:
-                hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_(),
-                        weight.new(self.n_layers, batch_size, self.n_hidden).zero_())
+            hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_(),
+                    weight.new(self.n_layers, batch_size, self.n_hidden).zero_())
         
         return hidden
 
@@ -720,16 +707,15 @@ if __name__ == "__main__":
     # push the model to GPU (avoid it if you are not using the GPU)
     net.cuda()
     print(net)
+    # Print model's state_dict
+    print("Model's state_dict:")
+    for param_tensor in net.state_dict():
+        print(param_tensor, "\t", net.state_dict()[param_tensor].size())
 
     # Train the model
     trainer = Trainer()
     trainer.train(net, batch_size = args.batchSize, epochs=args.epochs)
     print("\n"*2)
-
-    # Print model's state_dict
-    print("Model's state_dict:")
-    for param_tensor in net.state_dict():
-        print(param_tensor, "\t", net.state_dict()[param_tensor].size())
 
     torch.save(net.state_dict(),"BiLM.pt")
 
