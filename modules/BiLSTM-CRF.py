@@ -49,7 +49,7 @@ HIDDEN_DIM = 256
 EPOCHS = 10
 BATCH_SIZE = 64
 # Max Sentence Length for padding
-MAX_SENT_LEN = 128
+MAX_SENT_LEN = 50
 IMPOSSIBLE = -1e4
 
 def argmax(vec):
@@ -528,7 +528,7 @@ print('END >>> Test')
 
 predict_data = []
 sent_lens = []
-for article in test_data[:]:
+for article in test_data:
     _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
     for x,y in zip(sentences, labels):
         if len(x)>3:
@@ -642,12 +642,17 @@ with torch.no_grad():
         # print(targets, tags, sep='\n')
         for idx, (pred,label) in enumerate(zip(tags, targets)):
             x_sents.append(predict_data[idx][0])
-            y_preds.append([ix_to_tag[i] for i in pred[:sent_lens[idx]]])
+            temp_preds = [ix_to_tag[i] for i in pred[:sent_lens[idx]]]
+            temp_preds = temp_preds + ['O'] * (sent_lens[idx] - len(temp_preds))
+            y_preds.append(temp_preds)
             y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:sent_lens[idx]]])
 
 # for x,y,z in zip(x_sents, y_preds, y_targets):
-#     print(x,y,z,sep='\n')
-#     print('-'*20)
+#     #print(x,y,z,sep='\n')
+#     if len(y)!=len(z):
+#         print(x,y,z,sep='\n')
+#         print('--TROJAN--'*10)
+#         print('-'*20)
 
 get_metrics(x_sents, y_preds, y_targets, mappers=True)
 
