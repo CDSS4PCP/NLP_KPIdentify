@@ -49,14 +49,13 @@ HIDDEN_DIM = 256
 EPOCHS = 10
 BATCH_SIZE = 64
 # Max Sentence Length for padding
-MAX_SENT_LEN = 50
+MAX_SENT_LEN = 128
 IMPOSSIBLE = -1e4
 
 def argmax(vec):
     # return the argmax as a python int
     _, idx = torch.max(vec, 1)
     return idx.item()
-
 
 def prepare_sequence(seq, to_ix):
     idxs = [to_ix[w] for w in seq]

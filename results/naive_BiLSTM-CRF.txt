@@ -1,0 +1,73 @@
+(pytorch) [rgoli@node1462 MetaMap-src]$ python modules/BiLSTM-CRF.py 
+START >>> Read Data
+END >>> Read Data
+START >>> Train
+Epoch: 1/10 Loss: 14.560
+Epoch: 2/10 Loss: 10.156
+Epoch: 3/10 Loss: 8.736
+Epoch: 4/10 Loss: 7.846
+Epoch: 5/10 Loss: 7.269
+Epoch: 6/10 Loss: 6.865
+Epoch: 7/10 Loss: 6.568
+Epoch: 8/10 Loss: 6.334
+Epoch: 9/10 Loss: 6.146
+Epoch: 10/10 Loss: 5.992
+END >>> Train
+START >>> Test
+Test Loss: 6.324
+END >>> Test
+Confusion Matrix:
+ [[ 85398.   8543.   9926.]
+ [  8566.  26279.   2755.]
+ [  8050.   3184. 276495.]]
+--------------------------------------------------
+Label: B
+TP:85398.0 FN:18469.0 FP:16616.0 TN:308713.0
+--------------------------------------------------
+    Accuracy:   0.918254
+    Misclassification:  0.081746
+    Precision:  0.837120
+    Sensitivity/Recall: 0.822186
+    Specificity:        0.948926
+    F1 Score:   0.829586
+--------------------------------------------------
+Label: I
+TP:26279.0 FN:11321.0 FP:11727.0 TN:379869.0
+--------------------------------------------------
+    Accuracy:   0.946300
+    Misclassification:  0.053700
+    Precision:  0.691443
+    Sensitivity/Recall: 0.698910
+    Specificity:        0.970053
+    F1 Score:   0.695156
+--------------------------------------------------
+Label: O
+TP:276495.0 FN:11234.0 FP:12681.0 TN:128786.0
+--------------------------------------------------
+    Accuracy:   0.944280
+    Misclassification:  0.055720
+    Precision:  0.956148
+    Sensitivity/Recall: 0.960956
+    Specificity:        0.910361
+    F1 Score:   0.958546
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Avg. Accuracy: 0.93628
+Avg. Precision: 0.828237
+Avg. F1-Score: 0.827763
+Avg. Sensitivity: 0.827351
+Avg. Specificity: 0.943113
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+           _       0.69      0.68      0.69    103867
+
+   micro avg       0.69      0.68      0.69    103867
+   macro avg       0.69      0.68      0.69    103867
+weighted avg       0.69      0.68      0.69    103867
+
+Precision given by SeqEval: 69.34%
+Recall given by SeqEval: 68.11%
+F1-Score given by SeqEval: 68.72%
+Accuracy given by SeqEval: 90.44%
+(pytorch) [rgoli@node1462 MetaMap-src]$ 
