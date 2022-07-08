@@ -27,6 +27,19 @@ from sklearn.metrics import confusion_matrix
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
 from seqeval.scheme import IOB2
 
+from languageModel import EmbeddingsReader
+
+import createDataset as cData
+
+import gensim
+from gensim.models import KeyedVectors
+
+import spacy
+import scispacy
+from scispacy.linking import EntityLinker
+
+from tqdm import tqdm
+
 logger = logging.getLogger(__name__)
 stop_words = nltk.corpus.stopwords.words('english')
 
@@ -41,16 +54,23 @@ english_punctuations_arr= ''.join(english_punctuations)
 torch.manual_seed(1)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+WORKING_PATH = os.getcwd()
+
+PUBMED_PROCESSED_DATA_GS = 'data/pubmed_data/processed_data/processed_44_abstracts_test.xml'
 INTERIM_DATA = 'interim_data/'
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 300
 HIDDEN_DIM = 256
-EPOCHS = 10
+EPOCHS = 20
 BATCH_SIZE = 64
 # Max Sentence Length for padding
 MAX_SENT_LEN = 128
 IMPOSSIBLE = -1e4
+## Use pre-trained word embeddings
+wordEmbdType = "word2vec" # basic/word2vec
+WORD_EMBED_FILE = 'lM_word2vec.bin'
+print("Word Embedding Type: ", wordEmbdType)
 
 def argmax(vec):
     # return the argmax as a python int
@@ -137,8 +157,8 @@ def mark_keyword_all_sentences(keywords, sentences):
         i=0
         while i<complete_text_len-kw_len:
             if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
-                mapper[i:i+kw_len]=['I']*kw_len
-                mapper[i]='B'
+                mapper[i:i+kw_len]=['I-KP']*kw_len
+                mapper[i]='B-KP'
             i+=1
 
     final_mapper = []
@@ -152,10 +172,62 @@ def mark_keyword_all_sentences(keywords, sentences):
     
     return complete_text, final_mapper, final_tokens
 
+def gen_gs_dataset_v2(gsData):
+    '''
+    Create Gold Standard dataset as JSON with Keywords
+    '''
+    
+    nlp = spacy.load("en_core_sci_lg")
+    nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+
+    files = os.listdir("/home/rgoli/MetaMap-src/data/gold_standard/AnnotationResults_Abstracts/done")
+    pmid_manual_kw={}
+    for file in files:
+        if file=='.ipynb_checkpoints': continue
+        with open("/home/rgoli/MetaMap-src/data/gold_standard/AnnotationResults_Abstracts/done/"+file,'r') as fp:
+            temp = fp.read().splitlines()
+            pmid_manual_kw[temp[0].strip()]=temp[1:]
+
+    comb_arr=[]
+    pmid_arr =[]
+    dataset = []
+    p_id=0
+    total_len = len(gsData)
+    with tqdm(enumerate(gsData),total=total_len) as pbar1:
+        for index, paper in pbar1:
+            comb_arr.append(paper['title']+' '+paper['abstract'])
+            pmid_arr.append(paper['pmid'])
+            data = {}
+            data["id"] = paper['pmid']
+            data["title"] = paper['title']
+            data["abstract"] = paper['abstract']
+            data["methods"] = ""
+            data["results"] = ""
+            if paper['pmid'] in pmid_manual_kw:
+                data["keywords"]=pmid_manual_kw[paper['pmid']]
+            else:
+                continue
+            dataset.append(data)
+            p_id += 1
+            pbar1.set_description("JSON pre-processing is completed for %s-th document!"%(p_id))
+            
+    idx=0
+    with tqdm(nlp.pipe(comb_arr),total=total_len) as pbar1:
+        for doc in pbar1:
+            sents = [" ".join([token.orth_.lower() for token in sent if not token.is_punct | token.is_space]) for sent in doc.sents]
+            sents = [sent2words(sent)[0] for sent in sents]
+            text = [token.orth_ for token in doc if not token.is_punct | token.is_space] 
+            
+            dataset[idx]['fullText'] = text
+            dataset[idx]['sentences'] = sents
+            idx+=1
+            pbar1.set_description("GS Data for %s-th document!"%idx)
+
+    return dataset
 
 class BiLSTM_CRF(nn.Module):
 
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim, use_pretrained_embd=None):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
@@ -163,7 +235,13 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        if use_pretrained_embd == None:
+            self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        else:
+            print("Using pretrained word embeddings")
+            self.word_embeds, self.embedding_dim = use_pretrained_embd
+            self.word_embeds.requires_grad = False
+
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
                             num_layers=1, bidirectional=True)
 
@@ -395,40 +473,127 @@ class BiLSTM_CRF(nn.Module):
         score, tag_seq = self._viterbi_decode(lstm_feats, masks)
         return score, tag_seq
 
-print('START >>> Read Data')
+print('<'*30,'START Read Data','>'*30)
 ## Make up some training data
 train_data = utils.read_json_array(os.path.join(INTERIM_DATA, "train.json"))
 test_data = utils.read_json_array(os.path.join(INTERIM_DATA, "test.json"))
 
+pubmed_data_folder = os.path.join(WORKING_PATH, PUBMED_PROCESSED_DATA_GS)
+test44Abstracts = cData.load_pubmed_data(pubmed_data_folder)
+testgs_data = gen_gs_dataset_v2(test44Abstracts)
+
 training_data = []
-for article in train_data:
-    _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
-    for x,y in zip(sentences, labels):
-        if len(x)>3:
-            training_data.append((x,y))
+p_id=0
+print("Train Keyword Marking:")
+with tqdm(enumerate(train_data),total=len(train_data)) as pbar1:
+    for idx, article in pbar1:
+        _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        for x,y in zip(sentences, labels):
+            if len(x)>3:
+                training_data.append((x,y))
+    p_id += 1
+    pbar1.set_description("Train Keyword Marking is completed for %s-th document!"%(p_id))    
 
 testing_data = []
-for article in test_data:
-    _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
-    for x,y in zip(sentences, labels):
-        if len(x)>3:
-            testing_data.append((x,y))
+p_id=0
+print("Test Keyword Marking:")
+with tqdm(enumerate(test_data),total=len(test_data)) as pbar1:
+    for idx, article in pbar1:
+        _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        for x,y in zip(sentences, labels):
+            if len(x)>3:
+                testing_data.append((x,y))
+    p_id += 1
+    pbar1.set_description("Test Keyword Makring is completed for %s-th document!"%(p_id))   
 
-## Load Vocab
-word_to_ix = utils.read_json_array("token2int.json")
+gs_data = []
+p_id=0
+print("GS Keyword Marking:")
+with tqdm(enumerate(testgs_data),total=len(testgs_data)) as pbar1:
+    for idx, article in pbar1:
+        _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        for x,y in zip(sentences, labels):
+            if len(x)>3:
+                gs_data.append((x,y))
+    p_id += 1
+    pbar1.set_description("Gold Standard Keyword Makring is completed for %s-th document!"%(p_id))         
 
-tag_to_ix = {"O": 0, "B": 1, "I": 2, START_TAG: 3, STOP_TAG: 4}
-ix_to_tag = {0:"O", 1: "B", 2: "I", 3: START_TAG, 4: STOP_TAG}
-print('END >>> Read Data')
+## For Word Embeddings
+train_corpus_sentences = []
+for x in train_data:
+    train_corpus_sentences.extend(x['sentences'])
+print("Total Sentences in Train Corpus: ", len(train_corpus_sentences))
 
-model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
+test_corpus_sentences = []
+for x in test_data:
+    test_corpus_sentences.extend(x['sentences'])
+print("Total Sentences in Test Corpus: ", len(test_corpus_sentences))
+
+if wordEmbdType == "basic":
+    # create integer-to-token mapping
+    ix_to_word = {0:'UNKNOWN'}
+    cnt = 1
+
+    ## List of Vocabulary/words from all sentences in courpus
+    data = []
+    for sent in train_corpus_sentences+test_corpus_sentences:
+        data.extend(sent)
+
+    ## Create integer-to-word mapping
+    for w in set(data):
+        ix_to_word[cnt] = w
+        cnt+= 1
+
+    # VOCAB >>> create token-to-integer mapping
+    word_to_ix = {t: i for i, t in ix_to_word.items()}
+
+    # set vocabulary size
+    vocab_size = len(ix_to_word)
+    print("Vocabulary Size: {}".format(vocab_size))
+
+    word_embeddings = None
+
+elif wordEmbdType == "word2vec":
+    ## List of Sentences
+    data = train_corpus_sentences+test_corpus_sentences
+    print("Creating Word2Vec Embedding!!!")
+    modelW2V = gensim.models.Word2Vec(
+        sentences=data,
+        size=300,window=5,min_count=0,workers=10,
+        sg=1,seed=42,compute_loss=True
+        )
+
+    word_embedding_file = 'lM_word2vec.bin'
+    modelW2V.wv.save_word2vec_format(word_embedding_file, binary=True)
+    modelW2V = KeyedVectors.load_word2vec_format(word_embedding_file, binary=True)
+
+    # create integer-to-token mapping
+    ix_to_word = {0:'UNKNOWN'}
+    cnt = 1
+
+    for word in modelW2V.vocab.keys():
+        ix_to_word[cnt] = word
+        cnt+=1
+
+    # VOCAB >>> create token-to-integer mapping
+    word_to_ix = {t: i for i, t in ix_to_word.items()}
+
+    # set vocabulary size
+    vocab_size = len(ix_to_word)
+    print("Vocabulary Size: {}".format(vocab_size))
+
+    word_embeddings = EmbeddingsReader.from_binary(WORD_EMBED_FILE, word_to_ix)
+
+# ## Load Vocab
+# word_to_ix = utils.read_json_array("token2int.json")
+
+tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+# ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
+print('<'*30,'END Read Data','>'*30)
+
+model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM, use_pretrained_embd=word_embeddings)
 optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
-
-# # Check predictions before training
-# with torch.no_grad():
-#     precheck_sent = prepare_sequence(testing_data[0][0], word_to_ix)
-#     precheck_tags = torch.tensor([tag_to_ix[t] for t in testing_data[0][1]], dtype=torch.long)
-#     print(model(precheck_sent))
 
 def get_batches(data, batch_size):    
     # iterate through the arrays
@@ -441,6 +606,9 @@ def get_batches(data, batch_size):
         data_y = []
         for x,y in data[n:n+batch_size]:
         #for x,y in data[prv:n]:
+            for idx, w in enumerate(x[:MAX_SENT_LEN]):
+                if w not in word_to_ix:
+                    x[idx] = 'UNKNOWN'
             idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
             data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
             data_x.append(torch.tensor(idxs, dtype=torch.long))
@@ -471,7 +639,7 @@ def get_batches(data, batch_size):
         
         yield data_x, data_y, data_masks
         
-print('START >>> Train')
+print('<'*30,'START Train','>'*30)
 model.train()
 model.to(DEVICE)
 # counter=0
@@ -509,9 +677,9 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
     print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,np.mean(losses)))
-print('END >>> Train')
+print('<'*30,'END Train','>'*30)
 
-print('START >>> Test')
+print('<'*30,'START Test','>'*30)
 # Check predictions after training
 model.eval()
 losses= []
@@ -521,25 +689,9 @@ with torch.no_grad():
         loss = model.neg_log_likelihood(inputs, targets, masks)
         losses.append(loss.detach().item())
 print('Test Loss: {:.3f}'.format(np.mean(losses)))
-print('END >>> Test')
+print('<'*30,'END Test','>'*30)
 
 # torch.save(model.state_dict(),"BiLSTM-CRF.pt")
-
-predict_data = []
-sent_lens = []
-for article in test_data:
-    _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
-    for x,y in zip(sentences, labels):
-        if len(x)>3:
-            predict_data.append((x,y))
-            sent_lens.append(len(x))
-
-# for x,y in predict_data:
-#     print(x,y,sep='\n')
-#     print('-'*10)
-# print('-'*20)
-# print(len(predict_data))
-# print(sent_lens)
 
 def calc_scores(TP,FN,FP,TN):
     
@@ -602,7 +754,7 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     N = len(text_arr)
     i=0
     matrix = np.zeros(9).reshape(3,3)
-    labels=['B','I','O']
+    labels=['B-KP','I-KP','O']
     while i<N:
         matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=labels)
         i+=1
@@ -628,36 +780,62 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
         specificity_arr.append(result[4])
         f1score_arr.append(result[5])
     
-    print("=-"*50)
+    print("=-"*25)
     print("Avg. Accuracy: {:.5f}\nAvg. Precision: {:5f}\nAvg. F1-Score: {:5f}\nAvg. Sensitivity: {:5f}\nAvg. Specificity: {:5f}".format(np.mean(accuracy_arr),np.mean(precision_arr),np.mean(f1score_arr),np.mean(sensitivity_arr),np.mean(specificity_arr)))
-    print("=-"*50) 
+    print("=-"*25) 
 
 x_sents = []
 y_preds, y_targets = [], []
 with torch.no_grad():
-    for inputs, targets, masks in get_batches(predict_data, BATCH_SIZE):
+    for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
         inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
         _, tags = model(inputs,masks)
         # print(targets, tags, sep='\n')
         for idx, (pred,label) in enumerate(zip(tags, targets)):
-            x_sents.append(predict_data[idx][0])
-            temp_preds = [ix_to_tag[i] for i in pred[:sent_lens[idx]]]
-            temp_preds = temp_preds + ['O'] * (sent_lens[idx] - len(temp_preds))
+            x_sents.append(testing_data[idx][0])
+            length = len(x_sents[-1])
+            temp_preds = [ix_to_tag[i] for i in pred[:length]]
+            temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
             y_preds.append(temp_preds)
-            y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:sent_lens[idx]]])
+            y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
 
-# for x,y,z in zip(x_sents, y_preds, y_targets):
-#     #print(x,y,z,sep='\n')
-#     if len(y)!=len(z):
-#         print(x,y,z,sep='\n')
-#         print('--TROJAN--'*10)
-#         print('-'*20)
-
+print('<'*30,'TEST Data','>'*30)
 get_metrics(x_sents, y_preds, y_targets, mappers=True)
-
 print('SeqEval Metrics:')
 print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
 print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
 print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
 print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
 print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+
+x_sents = []
+y_preds, y_targets = [], []
+with torch.no_grad():
+    for inputs, targets, masks in get_batches(gs_data, BATCH_SIZE):
+        inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+        _, tags = model(inputs,masks)
+        # print(targets, tags, sep='\n')
+        for idx, (pred,label) in enumerate(zip(tags, targets)):
+            x_sents.append(gs_data[idx][0])
+            length = len(x_sents[-1])
+            temp_preds = [ix_to_tag[i] for i in pred[:length]]
+            temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+            y_preds.append(temp_preds)
+            y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+
+print('<'*30,'GS Data','>'*30)
+get_metrics(x_sents, y_preds, y_targets, mappers=True)
+print('SeqEval Metrics:')
+print(classification_report(y_targets, y_preds))
+print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+
+c=0
+for x,y,z in zip(x_sents,y_preds, y_targets):
+    for pred in y:
+        if pred not in ['O','B-KP','I-KP']:
+            print(x,y,z,sep='\n')
+            print('-'*20)  
+    c+=1        

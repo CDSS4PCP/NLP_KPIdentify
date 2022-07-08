@@ -507,7 +507,7 @@ class WordLSTM(nn.Module):
         weight = next(self.parameters()).data
 
         # if GPU is available
-        c
+        if torch.cuda.is_available():
             hidden = (weight.new(self.n_layers*self.num_directional, batch_size, self.n_hidden).zero_().cuda(),
                     weight.new(self.n_layers*self.num_directional, batch_size, self.n_hidden).zero_().cuda())
         

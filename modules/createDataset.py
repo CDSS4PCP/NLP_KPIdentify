@@ -120,7 +120,7 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
 
 def gen_gs_dataset(gsData, json_data_path):
     '''
-    Create Gold Standard dataset as JSON with Synthetic Keywords
+    Create Gold Standard dataset as JSON with Keywords
     '''
     
     files = os.listdir("/home/rgoli/MetaMap-src/data/gold_standard/AnnotationResults_Abstracts/done")
@@ -138,7 +138,6 @@ def gen_gs_dataset(gsData, json_data_path):
     total_len = len(gsData)
     with tqdm(enumerate(gsData),total=total_len) as pbar1:
         for index, paper in pbar1:
-    # for paper in fullData:
             comb_arr.append(paper['title']+' '+paper['abstract'])
             pmid_arr.append(paper['pmid'])
             data = {}
