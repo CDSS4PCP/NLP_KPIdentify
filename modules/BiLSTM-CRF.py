@@ -483,38 +483,50 @@ test44Abstracts = cData.load_pubmed_data(pubmed_data_folder)
 testgs_data = gen_gs_dataset_v2(test44Abstracts)
 
 training_data = []
+training_data_doc_sents = [] 
 p_id=0
 print("Train Keyword Marking:")
 with tqdm(enumerate(train_data),total=len(train_data)) as pbar1:
     for idx, article in pbar1:
         _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        sent_count = 0
         for x,y in zip(sentences, labels):
             if len(x)>3:
                 training_data.append((x,y))
+                sent_count +=1
+        training_data_doc_sents.append(sent_count)
     p_id += 1
     pbar1.set_description("Train Keyword Marking is completed for %s-th document!"%(p_id))    
 
 testing_data = []
+testing_data_doc_sents = []
 p_id=0
 print("Test Keyword Marking:")
 with tqdm(enumerate(test_data),total=len(test_data)) as pbar1:
     for idx, article in pbar1:
         _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        sent_count = 0
         for x,y in zip(sentences, labels):
             if len(x)>3:
                 testing_data.append((x,y))
+                sent_count +=1
+        testing_data_doc_sents.append(sent_count)
     p_id += 1
     pbar1.set_description("Test Keyword Makring is completed for %s-th document!"%(p_id))   
 
 gs_data = []
+gs_data_doc_sents = []
 p_id=0
 print("GS Keyword Marking:")
 with tqdm(enumerate(testgs_data),total=len(testgs_data)) as pbar1:
     for idx, article in pbar1:
         _, labels, sentences = mark_keyword_all_sentences(article['keywords'], article['sentences'])
+        sent_count = 0
         for x,y in zip(sentences, labels):
             if len(x)>3:
                 gs_data.append((x,y))
+                sent_count +=1
+        gs_data_doc_sents.append(sent_count)
     p_id += 1
     pbar1.set_description("Gold Standard Keyword Makring is completed for %s-th document!"%(p_id))         
 
@@ -588,8 +600,8 @@ elif wordEmbdType == "word2vec":
 # word_to_ix = utils.read_json_array("token2int.json")
 
 tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-# ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
-ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
+ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+# ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
 print('<'*30,'END Read Data','>'*30)
 
 model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM, use_pretrained_embd=word_embeddings)
@@ -638,26 +650,80 @@ def get_batches(data, batch_size):
         # print("Batch: ", prv)
         
         yield data_x, data_y, data_masks
+
+def get_batches_by_doc(data, doc_sents):    
+    # iterate through the arrays
+    prv = 0
+    for n in doc_sents:
+        data_x = []
+        data_masks = []
+        data_y = []
+        for x,y in data[prv:prv+n]:
+        #for x,y in data[prv:n]:
+            for idx, w in enumerate(x[:MAX_SENT_LEN]):
+                if w not in word_to_ix:
+                    x[idx] = 'UNKNOWN'
+            idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
+            data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+            data_x.append(torch.tensor(idxs, dtype=torch.long))
+            data_y.append(torch.tensor([tag_to_ix[t] for t in y[:MAX_SENT_LEN]], dtype=torch.long))
+
+        # pad first seq to desired length
+        try:
+            data_x[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_x[0].shape[0]), 0)(data_x[0])
+            data_y[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_y[0].shape[0]), 0)(data_y[0])
+            data_masks[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_masks[0].shape[0]), 0)(data_masks[0])
+        except Exception as e:
+            print("Prev={}, N={}".format(prv,n))
+            print("Total Len:", len(data), "Access:", prv+n)
+            print(data[prv:prv+n])
+            print(e)
+            print(data_x, data_y)
+            # print(len(data_x), len(data_y), print(len(data_masks)))
         
+        # pad all seqs to desired length
+        data_x_pad = pad_sequence(data_x, batch_first= True)
+        data_y_pad = pad_sequence(data_y, batch_first= True)
+        data_masks_pad = pad_sequence(data_masks, batch_first= True)
+        
+        # Convert list of tensors to tuple
+        data_x_tuple = tuple(data_x_pad)
+        data_y_tuple = tuple(data_y_pad)
+        data_masks_tuple = tuple(data_masks_pad)
+        
+        # Convert tuple of tensors to Stack of Tensors
+        data_x = torch.stack(data_x_tuple)
+        data_y = torch.stack(data_y_tuple)
+        data_masks = torch.stack(data_masks_tuple)
+        
+        prv += n
+        # print("Batch: ", prv)
+        
+        yield data_x, data_y, data_masks
+ 
+
 print('<'*30,'START Train','>'*30)
 model.train()
 model.to(DEVICE)
+
 # counter=0
 # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
+# for inputs, targets, masks in get_batches_by_doc(training_data, training_data_doc_sents):
 #     print(inputs.shape, targets.shape, masks.shape)
 #     # print(inputs[0], targets[0], masks[0])
-#     print(inputs[0])
-#     counter+=1
-#     if counter>10:
-#         break
-# print(len(training_data))
-# print(len(training_data)/BATCH_SIZE)
+#     # print(inputs[0])
+#     # counter+=1
+#     # if counter>10:
+#     #     break
+# # print(len(training_data))
+# # print(len(training_data)/BATCH_SIZE)
 # sys.exit(0)
 
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
 for epoch in range(EPOCHS):
     losses= []
-    for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
+    # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
+    for inputs, targets, masks, in get_batches_by_doc(training_data, training_data_doc_sents):
         #print(inputs.shape, targets.shape, masks.shape)
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
@@ -684,7 +750,8 @@ print('<'*30,'START Test','>'*30)
 model.eval()
 losses= []
 with torch.no_grad():
-    for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+    # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+    for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
         inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
         loss = model.neg_log_likelihood(inputs, targets, masks)
         losses.append(loss.detach().item())
@@ -787,7 +854,8 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
 x_sents = []
 y_preds, y_targets = [], []
 with torch.no_grad():
-    for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+    # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+    for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
         inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
         _, tags = model(inputs,masks)
         # print(targets, tags, sep='\n')
@@ -811,7 +879,8 @@ print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_pr
 x_sents = []
 y_preds, y_targets = [], []
 with torch.no_grad():
-    for inputs, targets, masks in get_batches(gs_data, BATCH_SIZE):
+    # for inputs, targets, masks in get_batches(gs_data, BATCH_SIZE):
+    for inputs, targets, masks in get_batches_by_doc(gs_data, gs_data_doc_sents):
         inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
         _, tags = model(inputs,masks)
         # print(targets, tags, sep='\n')
