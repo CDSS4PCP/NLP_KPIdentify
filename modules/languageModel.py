@@ -1,3 +1,10 @@
+## References:
+## https://github.com/DSKSD/DeepNLP-models-Pytorch/blob/master/notebooks/06.RNN-Language-Model.ipynb
+## https://colab.research.google.com/github/dpressel/dlss-tutorial/blob/master/1_pretrained_vectors.ipynb#scrollTo=FaQ2BraAR-qI
+## https://nlp.gluon.ai/examples/sentiment_analysis/sentiment_analysis.html
+## https://madewithml.com/courses/foundations/embeddings/
+## https://pytorch.org/tutorials/beginner/saving_loading_models.html
+
 import argparse
 import json 
 import os
