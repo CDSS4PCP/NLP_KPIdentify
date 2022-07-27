@@ -39,6 +39,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+torch.manual_seed(1)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Get the absolute path under the current working directory
 WORKING_PATH = os.getcwd()
 
@@ -525,6 +528,68 @@ class WordLSTM(nn.Module):
         
         return hidden
 
+class WordLSTM_v2(nn.Module):
+    '''
+    Re-train LSTM for export to global neural attention
+    '''
+    
+    def __init__(self, n_hidden=256, n_layers=4, drop_prob=0.3, lr=0.001, bidirection=False, pretrainedWE = None, vocab={}):
+        super().__init__()
+
+        self.drop_prob = drop_prob
+        self.n_layers = n_layers
+        self.lr = lr
+        self.bidirection = True 
+        self.num_directional = 2 if bidirection else 1
+        self.n_hidden = n_hidden
+        self.vocab_size = len(vocab)
+
+        #print(bidirection, self.bidirection, type(self.bidirection))
+        
+        if pretrainedWE==None:
+            self.emb_layer = nn.Embedding(self.vocab_size, 200)
+
+            ## define the LSTM
+            self.lstm = nn.LSTM(200, self.n_hidden//2, n_layers, 
+                                dropout=drop_prob, batch_first=True, bidirectional=self.bidirection)
+        else:
+            self.emb_layer, self.emb_dim = EmbeddingsReader.from_binary(pretrainedWE, vocab)
+            self.lstm = nn.LSTM(self.emb_dim, self.n_hidden//2, n_layers, 
+                            dropout=drop_prob, batch_first=True, bidirectional=self.bidirection)
+        
+        ## define a dropout layer
+        self.dropout = nn.Dropout(drop_prob)
+        
+        ## define the fully-connected layer
+        self.fc = nn.Linear(n_hidden, self.vocab_size)      
+    
+    def forward(self, x, hidden):
+        ''' Forward pass through the network. 
+            These inputs are x, and the hidden/cell state `hidden`. '''
+        ## pass input through embedding layer
+        embedded = self.emb_layer(x)     
+        
+        ## Get the outputs and the new hidden state from the lstm
+        lstm_output, hidden = self.lstm(embedded, hidden)
+        
+        ## pass through a dropout layer
+        out = self.dropout(lstm_output)
+        
+        #out = out.contiguous().view(-1, self.n_hidden) 
+        out = out.reshape(-1, self.n_hidden)
+
+        ## put "out" through the fully-connected layer
+        out = self.fc(out)
+
+        # return the final output and the hidden state
+        return out, hidden
+    
+    def init_hidden(self, batch_size):
+        ## NLayers, Batch Size, HiddenSize
+        return (torch.randn(2, batch_size, self.n_hidden // 2).to(DEVICE),
+                torch.randn(2, batch_size, self.n_hidden // 2).to(DEVICE))  
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Language Model Experiments")
 
@@ -709,7 +774,7 @@ if __name__ == "__main__":
     y_int_test = np.array(y_int_train, dtype="int32")
 
     # instantiate the model
-    net = WordLSTM(n_layers=args.noLayers, bidirection=args.bidirection, pretrainedWE=word_embedding_file, vocab=token2int)
+    net = WordLSTM_v2(n_layers=args.noLayers, bidirection=args.bidirection, pretrainedWE=word_embedding_file, vocab=token2int)
 
     # push the model to GPU (avoid it if you are not using the GPU)
     net.cuda()

@@ -245,6 +245,9 @@ class BiLSTM_CRF(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
                             num_layers=1, bidirectional=True)
 
+        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim // 2,
+                            num_layers=1, bidirectional=True)
+
         # Maps the output of the LSTM into tag space.
         self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)
 
@@ -324,13 +327,29 @@ class BiLSTM_CRF(nn.Module):
     def _get_lstm_features(self, sentences):
         # print('_get_lstm_features : ',sentences.shape)
         B, L = sentences.shape
+
         self.hidden = self.init_hidden(B)
-        embeds = self.word_embeds(sentences).view(L, B, -1)
-        # print('embeds: ',embeds.shape)
-        lstm_out, self.hidden = self.lstm(embeds, self.hidden)
+        self.hidden2 = self.init_hidden(B)
+
+        # MAX_SENT_LEN=128 * No. of Sents(Batch Size) * EMBEDDING_DIM=300
+        embeds = self.word_embeds(sentences).view(L, B, -1) 
+        #print('embeds: ',embeds.shape)
+
+        # MAX_SENT_LEN=128 * BS * HIDDEN_DIM=256
+        lstm_out1, self.hidden = self.lstm(embeds, self.hidden)
+        #print('lstm1: ',lstm_out1.shape)
+
+        ## Stack LSTMs
+        # MAX_SENT_LEN=128 * BS * HIDDEN_DIM=256
+        lstm_out2, self.hidden2 = self.lstm2(lstm_out1, self.hidden2)
+        #print('lstm2: ',lstm_out2.shape)
         # print("lstm_out:",lstm_out.shape, ' Hidden0: ',self.hidden[0].shape,' Hidden1: ', self.hidden[1].shape)
-        lstm_out = lstm_out.view(B, L, self.hidden_dim)
-        # print(lstm_out.shape)
+
+        # BS * MAX_SENT_LEN=128 * HIDDEN_DIM=256
+        lstm_out = lstm_out2.view(B, L, self.hidden_dim)
+        #print("LSTM Reshape: ", lstm_out.shape)
+
+        # HIDDEN_DIM=256 * TAGSET_SIZE=5
         lstm_feats = self.hidden2tag(lstm_out)
         # print('lstm_feats', lstm_feats.shape)
         return lstm_feats
