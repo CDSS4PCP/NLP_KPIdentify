@@ -1,3 +1,18 @@
+# Implementing "Improving Clinical Named Entity Recognition with Global Neural Attention"
+# https://www.researchgate.net/profile/Chengyu-Wang-4/publication/326501010_Improving_Clinical_Named_Entity_Recognition_with_Global_Neural_Attention_Second_International_Joint_Conference_APWeb-WAIM_2018_Macau_China_July_23-25_2018_Proceedings_Part_II/links/5b9655f0299bf147393991cb/Improving-Clinical-Named-Entity-Recognition-with-Global-Neural-Attention-Second-International-Joint-Conference-APWeb-WAIM-2018-Macau-China-July-23-25-2018-Proceedings-Part-II.pdf
+
+# CODE ADOPT:: https://github.com/littleflow3r/attention-bilstm-for-relation-classification/blob/master/model.py
+# NEXT STEPS for Adoption: 
+## 1. https://github.com/u784799i/biLSTM_attn/blob/master/model.py
+## 2. https://github.com/anonymousDualFraud/DualFraud/blob/10ce4cf669e3dfb2baa3cca847f38e90c49778ed/model/DualFraud.ipynb
+
+# Attention - Pytorch & Keras - https://www.kaggle.com/code/mlwhiz/attention-pytorch-and-keras/notebook
+# PyTorch - Bi-LSTM + Attention - https://www.kaggle.com/code/robertke94/pytorch-bi-lstm-attention/notebook
+
+## Pytorch Tutorials:
+## https://pytorch.org/tutorials/beginner/deploy_seq2seq_hybrid_frontend_tutorial.html
+## https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html 
+
 ## References:
 ## https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
 ## https://blog.floydhub.com/attention-mechanism/
@@ -6,7 +21,9 @@
 
 ## Read
 ## https://arxiv.org/pdf/1703.07713.pdf Hierarchical RNN with Static Sentence-Level Attention for Text-Based Speaker Change Detection
+## https://arxiv.org/pdf/1508.04025.pdf - Effective Approaches to Attention-based Neural Machine Translation
 ## Code: https://sites.google.com/site/textscd/
+## Seq2seq and attention - Pytorch Implementation - EN https://wikidocs.net/166653
 
 ## https://medium.com/@ashishkankal/generating-sentences-using-lstm-and-attention-neural-network-5aea4d45c751
 
@@ -23,7 +40,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
-# import torch.nn.functional as F
+import torch.nn.functional as F
 
 import os
 import sys
@@ -78,7 +95,7 @@ START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 300
 HIDDEN_DIM = 256
-EPOCHS = 20
+EPOCHS = 75
 BATCH_SIZE = 64
 # Max Sentence Length for padding
 MAX_SENT_LEN = 128
@@ -234,12 +251,54 @@ def gen_gs_dataset_v2(gsData):
 
     return dataset
 
+class Attention(nn.Module):
+    def __init__(self, feature_dim, step_dim, bias=True, **kwargs):
+        super(Attention, self).__init__(**kwargs)
+        
+        self.supports_masking = True
+
+        self.bias = bias
+        self.feature_dim = feature_dim
+        self.step_dim = step_dim
+        self.features_dim = 0
+        
+        weight = torch.zeros(feature_dim, 1).to(DEVICE)
+        nn.init.kaiming_uniform_(weight)
+        self.weight = nn.Parameter(weight)
+        
+        if bias:
+            self.b = nn.Parameter(torch.zeros(step_dim).to(DEVICE))
+        
+    def forward(self, x, mask=None):
+        feature_dim = self.feature_dim 
+        step_dim = self.step_dim
+
+        eij = torch.mm(
+            x.contiguous().view(-1, feature_dim), 
+            self.weight
+        ).view(-1, step_dim)
+        
+        print(eij.shape)
+
+        if self.bias:
+            eij = eij + self.b
+            
+        eij = torch.tanh(eij)
+        a = torch.exp(eij)
+        
+        if mask is not None:
+            a = a * mask
+
+        a = a / (torch.sum(a, 1, keepdim=True) + 1e-10)
+
+        weighted_input = x * torch.unsqueeze(a, -1)
+        return torch.sum(weighted_input, 1)
+
 class BiLSTM_CRF(nn.Module):
 
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim, use_pretrained_embd=None):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, use_pretrained_embd=None):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim
-        self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
@@ -251,14 +310,14 @@ class BiLSTM_CRF(nn.Module):
             self.word_embeds, self.embedding_dim = use_pretrained_embd
             self.word_embeds.requires_grad = False
 
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
+        self.lstm = nn.LSTM(embedding_dim, HIDDEN_DIM // 2,
                             num_layers=1, bidirectional=True)
 
-        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim // 2,
+        self.lstm2 = nn.LSTM(HIDDEN_DIM*2, HIDDEN_DIM // 2,
                             num_layers=1, bidirectional=True)
 
         # Maps the output of the LSTM into tag space.
-        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)
+        self.hidden2tag = nn.Linear(HIDDEN_DIM, self.tagset_size)
 
         # Matrix of transition parameters.  Entry i,j is the score of
         # transitioning *to* i *from* j.
@@ -272,10 +331,10 @@ class BiLSTM_CRF(nn.Module):
 
         self.hidden = self.init_hidden()
 
-    def init_hidden(self, batch_size=BATCH_SIZE):
+    def init_hidden(self, batch_size=BATCH_SIZE, hidden_dim = HIDDEN_DIM // 2):
         ## NLayers, Batch Size, HiddenSize
-        return (torch.randn(2, batch_size, self.hidden_dim // 2).to(DEVICE),
-                torch.randn(2, batch_size, self.hidden_dim // 2).to(DEVICE))
+        return (torch.randn(2, batch_size, hidden_dim).to(DEVICE),
+                torch.randn(2, batch_size, hidden_dim).to(DEVICE))
 
     def _forward_alg(self, features, masks):
         """calculate the partition function with forward algorithm.
@@ -302,28 +361,81 @@ class BiLSTM_CRF(nn.Module):
         # print("_forward_alg: ", scores,scores.shape)
         return scores
 
-    def _get_lstm_features(self, sentences):
+    def attnetwork(self, encoder_out, final_hidden):
+        #print("attnnetwork1: ",encoder_out.shape,final_hidden.shape)
+
+        hidden = final_hidden.squeeze(0)
+        #print("attnnetwork2: ", hidden.shape)
+
+        attn_weights = torch.bmm(encoder_out, hidden).squeeze(2)
+        #print("attnnetwork3: ", attn_weights.shape)
+
+        soft_attn_weights = F.softmax(attn_weights, 1)
+        #print("attnnetwork4: ", soft_attn_weights.shape)
+
+        soft_attn_weights = soft_attn_weights.permute(0,2,1)
+        #print("attnnetwork4-1: ", soft_attn_weights.shape)
+        attn_applied = torch.bmm(final_hidden,soft_attn_weights)
+
+        # print(encoder_out.transpose(1,2).shape)
+        # attn_applied = torch.bmm(encoder_out.transpose(1,2), soft_attn_weights).squeeze(2)
+        #print("attnnetwork5: ", attn_applied.shape)
+
+        return attn_applied.permute(0,2,1)
+
+    def _get_lstm_features(self, sentences, masks=None):
         # print('_get_lstm_features : ',sentences.shape)
         B, L = sentences.shape
 
         self.hidden = self.init_hidden(B)
         self.hidden2 = self.init_hidden(B)
 
+        self.attention_layer = Attention(L, B)
+
         # MAX_SENT_LEN=128 * No. of Sents(Batch Size) * EMBEDDING_DIM=300
+        ## 128 * 5 * 300
         embeds = self.word_embeds(sentences).view(L, B, -1) 
 
-        # MAX_SENT_LEN=128 * BS * HIDDEN_DIM=256
+        # LSTM_OUT1 = MAX_SENT_LEN=128 * BS * HIDDEN_DIM=256 ; FINAL HIDDEN STATE = 2 * BS * 128 ; FINAL CELL STATE = 2 * BS * 128
         lstm_out1, self.hidden = self.lstm(embeds, self.hidden)
+        # 128 * 5 * 256
+        # print(lstm_out1.shape) #torch.Size([128, 5, 256])
+        # 2 * 5 * 128, 2 * 5 * 128
+        # print(self.hidden[0].shape, self.hidden[1].shape)
+        # # print(self.hidden[0][-2,:,:].unsqueeze(0).shape, self.hidden[0][-1,:,:].unsqueeze(0).shape) #torch.Size([2, 5, 128]) torch.Size([2, 5, 128])
+
+        # # fbout = lstm_out1[:, :, :HIDDEN_DIM//2]+ lstm_out1[:, :, HIDDEN_DIM//2:] #sum bidir outputs F+B
+        # # # print(fbout.shape) # torch.Size([128, 5, 128])
+        # # fbout = fbout.permute(1,0,2)
+        # # fbhn = (self.hidden[0][-2,:,:]+self.hidden[0][-1,:,:]).unsqueeze(0)
+        # # fbcs = (self.hidden[0][-2,:,:]+self.hidden[0][-1,:,:]).unsqueeze(0)
+
+        fbout = lstm_out1.detach().clone()
+        fbout = fbout.permute(1,0,2)
+        fbhn = torch.cat((self.hidden[0][-2,:,:].unsqueeze(0),self.hidden[0][-1,:,:].unsqueeze(0)),2).repeat(B,1,1).permute(1,2,0)
+        fbcs = torch.cat((self.hidden[1][-2,:,:].unsqueeze(0),self.hidden[1][-1,:,:].unsqueeze(0)),2).repeat(B,1,1).permute(1,2,0)
+        #print('fbout, fbhn, fbcs') 
+        #print(fbout.shape, fbhn.shape, fbcs.shape) # torch.Size([5, 128, 128]) torch.Size([1, 5, 128]) torch.Size([1, 5, 128])
+
+        global_attn = self.attnetwork(fbout, fbcs)
+        #print(global_attn.shape) #torch.Size([5, 256])
+
+        # h_lstm_atten = self.attention_layer(fbout, masks)
+        # print(h_lstm_atten.shape)
+
+        global_info = torch.cat((fbout, global_attn), 2).permute(1,0,2)
+        #print(global_info.shape)
 
         ## Stack LSTMs
         # MAX_SENT_LEN=128 * BS * HIDDEN_DIM=256
-        lstm_out2, self.hidden2 = self.lstm2(lstm_out1, self.hidden2)
+        lstm_out2, self.hidden2 = self.lstm2(global_info, self.hidden2)
 
         # BS * MAX_SENT_LEN=128 * HIDDEN_DIM=256
-        lstm_out = lstm_out2.view(B, L, self.hidden_dim)
+        lstm_out = lstm_out2.view(B, L, HIDDEN_DIM)
 
         # BS * HIDDEN_DIM=256 * TAGSET_SIZE=5
         lstm_feats = self.hidden2tag(lstm_out)
+        #sys.exit(0)
         return lstm_feats
 
     def _score_sentence(self, features, tags, masks):
@@ -541,7 +653,7 @@ ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 # ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
 print('<'*30,'END Read Data','>'*30)
 
-model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM, use_pretrained_embd=word_embeddings)
+model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, use_pretrained_embd=word_embeddings)
 optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
 
 def get_batches(data, batch_size):    
@@ -644,15 +756,15 @@ model.train()
 model.to(DEVICE)
 
 model_stateDict = model.state_dict()
-print('<'*30,'Bi-LSTM-CRF Model state_dict','>'*30)
-for param_tensor in model_stateDict:
-    print(param_tensor, "\t", model_stateDict[param_tensor].size())
+# print('<'*30,'Bi-LSTM-CRF Model state_dict','>'*30)
+# for param_tensor in model_stateDict:
+#     print(param_tensor, "\t", model_stateDict[param_tensor].size())
 
 pretrainedLM = torch.load("BiLM.pt")
 pretrainedLM_stateDict = pretrainedLM
-print('<'*30,'Pretrained LM state_dict','>'*30)
-for param_tensor in pretrainedLM_stateDict:
-    print(param_tensor, "\t", pretrainedLM_stateDict[param_tensor].size())
+# print('<'*30,'Pretrained LM state_dict','>'*30)
+# for param_tensor in pretrainedLM_stateDict:
+#     print(param_tensor, "\t", pretrainedLM_stateDict[param_tensor].size())
 
 # 1. filter out unnecessary keys
 pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
@@ -662,11 +774,11 @@ model_stateDict.update(pretrained_dict)
 model.load_state_dict(model_stateDict)
 
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
+loss = 1e+4
 for epoch in range(EPOCHS):
     losses= []
     # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
     for inputs, targets, masks, in get_batches_by_doc(training_data, training_data_doc_sents):
-        #print(inputs.shape, targets.shape, masks.shape)
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
         model.zero_grad()
@@ -684,8 +796,16 @@ for epoch in range(EPOCHS):
         # calling optimizer.step()
         loss.backward()
         optimizer.step()
-    print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,np.mean(losses)))
+    
+    curr_model_loss = np.mean(losses)
+    print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
+    if epoch>15 and curr_model_loss<loss:
+        loss = curr_model_loss
+        print("Saving best model!!!")
+        torch.save(model.state_dict(), 'globNeuAttn-best-parameters.pt')
 print('<'*30,'END Train','>'*30)
+
+model.load_state_dict(torch.load('globNeuAttn-best-parameters.pt'))
 
 print('<'*30,'START Test','>'*30)
 # Check predictions after training
