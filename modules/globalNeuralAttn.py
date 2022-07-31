@@ -95,7 +95,7 @@ START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 300
 HIDDEN_DIM = 256
-EPOCHS = 75
+EPOCHS = 100
 BATCH_SIZE = 64
 # Max Sentence Length for padding
 MAX_SENT_LEN = 128
@@ -749,11 +749,6 @@ def get_batches_by_doc(data, doc_sents):
         # print("Batch: ", prv)
         
         yield data_x, data_y, data_masks
- 
-
-print('<'*30,'START Train','>'*30)
-model.train()
-model.to(DEVICE)
 
 model_stateDict = model.state_dict()
 # print('<'*30,'Bi-LSTM-CRF Model state_dict','>'*30)
@@ -773,8 +768,12 @@ model_stateDict.update(pretrained_dict)
 # 3. load the new state dict
 model.load_state_dict(model_stateDict)
 
+print('<'*30,'START Train','>'*30)
+model.train()
+model.to(DEVICE)
+
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
-loss = 1e+4
+minloss = 10000
 for epoch in range(EPOCHS):
     losses= []
     # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
@@ -797,14 +796,15 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
     
-    curr_model_loss = np.mean(losses)
-    print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
-    if epoch>15 and curr_model_loss<loss:
-        loss = curr_model_loss
-        print("Saving best model!!!")
-        torch.save(model.state_dict(), 'globNeuAttn-best-parameters.pt')
+    curr_model_loss = np.mean(losses).item()
+    if (epoch+1)%4==0:
+        print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
+    if curr_model_loss<minloss:
+        minloss = curr_model_loss
+        best_model = model
 print('<'*30,'END Train','>'*30)
 
+torch.save(best_model.state_dict(), 'globNeuAttn-best-parameters.pt')
 model.load_state_dict(torch.load('globNeuAttn-best-parameters.pt'))
 
 print('<'*30,'START Test','>'*30)
