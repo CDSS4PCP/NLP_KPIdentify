@@ -1,0 +1,834 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE PubmedArticleSet>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation Status="MEDLINE" Owner="NLM">
+      <PMID Version="1">33705435</PMID>
+      <DateCompleted>
+        <Year>2021</Year>
+        <Month>03</Month>
+        <Day>25</Day>
+      </DateCompleted>
+      <DateRevised>
+        <Year>2021</Year>
+        <Month>03</Month>
+        <Day>25</Day>
+      </DateRevised>
+      <Article PubModel="Electronic-eCollection">
+        <Journal>
+          <ISSN IssnType="Electronic">1932-6203</ISSN>
+          <JournalIssue CitedMedium="Internet">
+            <Volume>16</Volume>
+            <Issue>3</Issue>
+            <PubDate>
+              <Year>2021</Year>
+            </PubDate>
+          </JournalIssue>
+          <Title>PloS one</Title>
+          <ISOAbbreviation>PLoS One</ISOAbbreviation>
+        </Journal>
+        <ArticleTitle>Clinical decision support tool for diagnosis of COVID-19 in hospitals.</ArticleTitle>
+        <Pagination>
+          <MedlinePgn>e0247773</MedlinePgn>
+        </Pagination>
+        <ELocationID EIdType="doi" ValidYN="Y">10.1371/journal.pone.0247773</ELocationID>
+        <Abstract>
+          <AbstractText Label="BACKGROUND">The coronavirus infectious disease 19 (COVID-19) pandemic has resulted in significant morbidities, severe acute respiratory failures and subsequently emergency departments' (EDs) overcrowding in a context of insufficient laboratory testing capacities. The development of decision support tools for real-time clinical diagnosis of COVID-19 is of prime importance to assist patients' triage and allocate resources for patients at risk.</AbstractText>
+          <AbstractText Label="METHODS AND PRINCIPAL FINDINGS">From March 2 to June 15, 2020, clinical patterns of COVID-19 suspected patients at admission to the EDs of Liège University Hospital, consisting in the recording of eleven symptoms (i.e. dyspnoea, chest pain, rhinorrhoea, sore throat, dry cough, wet cough, diarrhoea, headache, myalgia, fever and anosmia) plus age and gender, were investigated during the first COVID-19 pandemic wave. Indeed, 573 SARS-CoV-2 cases confirmed by qRT-PCR before mid-June 2020, and 1579 suspected cases that were subsequently determined to be qRT-PCR negative for the detection of SARS-CoV-2 were enrolled in this study. Using multivariate binary logistic regression, two most relevant symptoms of COVID-19 were identified in addition of the age of the patient, i.e. fever (odds ratio [OR] = 3.66; 95% CI: 2.97-4.50), dry cough (OR = 1.71; 95% CI: 1.39-2.12), and patients older than 56.5 y (OR = 2.07; 95% CI: 1.67-2.58). Two additional symptoms (chest pain and sore throat) appeared significantly less associated to the confirmed COVID-19 cases with the same OR = 0.73 (95% CI: 0.56-0.94). An overall pondered (by OR) score (OPS) was calculated using all significant predictors. A receiver operating characteristic (ROC) curve was generated and the area under the ROC curve was 0.71 (95% CI: 0.68-0.73) rendering the use of the OPS to discriminate COVID-19 confirmed and unconfirmed patients. The main predictors were confirmed using both sensitivity analysis and classification tree analysis. Interestingly, a significant negative correlation was observed between the OPS and the cycle threshold (Ct values) of the qRT-PCR.</AbstractText>
+          <AbstractText Label="CONCLUSION AND MAIN SIGNIFICANCE">The proposed approach allows for the use of an interactive and adaptive clinical decision support tool. Using the clinical algorithm developed, a web-based user-interface was created to help nurses and clinicians from EDs with the triage of patients during the second COVID-19 wave.</AbstractText>
+        </Abstract>
+        <AuthorList CompleteYN="Y">
+          <Author ValidYN="Y">
+            <LastName>Saegerman</LastName>
+            <ForeName>Claude</ForeName>
+            <Initials>C</Initials>
+            <Identifier Source="ORCID">0000-0001-9087-7436</Identifier>
+            <AffiliationInfo>
+              <Affiliation>Fundamental and Applied Research for Animal and Health (FARAH) Center, University of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Gilbert</LastName>
+            <ForeName>Allison</ForeName>
+            <Initials>A</Initials>
+            <AffiliationInfo>
+              <Affiliation>Emergency Department, University Hospital Center of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Donneau</LastName>
+            <ForeName>Anne-Françoise</ForeName>
+            <Initials>AF</Initials>
+            <AffiliationInfo>
+              <Affiliation>Biostatistics Unit, University of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+            <AffiliationInfo>
+              <Affiliation>Public Health Department, University of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Gangolf</LastName>
+            <ForeName>Marjorie</ForeName>
+            <Initials>M</Initials>
+            <AffiliationInfo>
+              <Affiliation>Department of Medico-Economic Information, University Hospital Center of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Diep</LastName>
+            <ForeName>Anh Nguvet</ForeName>
+            <Initials>AN</Initials>
+            <Identifier Source="ORCID">0000-0001-5134-3220</Identifier>
+            <AffiliationInfo>
+              <Affiliation>Biostatistics Unit, University of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+            <AffiliationInfo>
+              <Affiliation>Public Health Department, University of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Meex</LastName>
+            <ForeName>Cécile</ForeName>
+            <Initials>C</Initials>
+            <AffiliationInfo>
+              <Affiliation>Laboratory of Clinical Microbiology, Center for Interdisciplinary Research on Medicines (CIRM), University Hospital of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Bontems</LastName>
+            <ForeName>Sébastien</ForeName>
+            <Initials>S</Initials>
+            <AffiliationInfo>
+              <Affiliation>Laboratory of Clinical Microbiology, Center for Interdisciplinary Research on Medicines (CIRM), University Hospital of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Hayette</LastName>
+            <ForeName>Marie-Pierre</ForeName>
+            <Initials>MP</Initials>
+            <AffiliationInfo>
+              <Affiliation>Laboratory of Clinical Microbiology, Center for Interdisciplinary Research on Medicines (CIRM), University Hospital of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>D'Orio</LastName>
+            <ForeName>Vincent</ForeName>
+            <Initials>V</Initials>
+            <AffiliationInfo>
+              <Affiliation>Emergency Department, University Hospital Center of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Ghuysen</LastName>
+            <ForeName>Alexandre</ForeName>
+            <Initials>A</Initials>
+            <AffiliationInfo>
+              <Affiliation>Emergency Department, University Hospital Center of Liège, Liège, Belgium.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+        </AuthorList>
+        <Language>eng</Language>
+        <PublicationTypeList>
+          <PublicationType UI="D016428">Journal Article</PublicationType>
+          <PublicationType UI="D013485">Research Support, Non-U.S. Gov't</PublicationType>
+        </PublicationTypeList>
+        <ArticleDate DateType="Electronic">
+          <Year>2021</Year>
+          <Month>03</Month>
+          <Day>11</Day>
+        </ArticleDate>
+      </Article>
+      <MedlineJournalInfo>
+        <Country>United States</Country>
+        <MedlineTA>PLoS One</MedlineTA>
+        <NlmUniqueID>101285081</NlmUniqueID>
+        <ISSNLinking>1932-6203</ISSNLinking>
+      </MedlineJournalInfo>
+      <CitationSubset>IM</CitationSubset>
+      <MeshHeadingList>
+        <MeshHeading>
+          <DescriptorName UI="D000328" MajorTopicYN="N">Adult</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D000368" MajorTopicYN="N">Aged</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D000086382" MajorTopicYN="N">COVID-19</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="Y">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D000086742" MajorTopicYN="Y">COVID-19 Testing</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D003371" MajorTopicYN="N">Cough</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="N">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D020000" MajorTopicYN="Y">Decision Support Systems, Clinical</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D004417" MajorTopicYN="N">Dyspnea</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="N">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D005260" MajorTopicYN="N">Female</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D005334" MajorTopicYN="N">Fever</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="N">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006261" MajorTopicYN="N">Headache</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="N">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006761" MajorTopicYN="N">Hospitals</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006801" MajorTopicYN="N">Humans</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D008297" MajorTopicYN="N">Male</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D008875" MajorTopicYN="N">Middle Aged</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D010612" MajorTopicYN="N">Pharyngitis</DescriptorName>
+          <QualifierName UI="Q000175" MajorTopicYN="N">diagnosis</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D000086402" MajorTopicYN="N">SARS-CoV-2</DescriptorName>
+          <QualifierName UI="Q000302" MajorTopicYN="N">isolation &amp; purification</QualifierName>
+        </MeshHeading>
+      </MeshHeadingList>
+      <CoiStatement>The authors have declared that no competing interests exist.</CoiStatement>
+    </MedlineCitation>
+    <PubmedData>
+      <History>
+        <PubMedPubDate PubStatus="received">
+          <Year>2020</Year>
+          <Month>11</Month>
+          <Day>15</Day>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="accepted">
+          <Year>2021</Year>
+          <Month>02</Month>
+          <Day>15</Day>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="entrez">
+          <Year>2021</Year>
+          <Month>3</Month>
+          <Day>11</Day>
+          <Hour>17</Hour>
+          <Minute>23</Minute>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="pubmed">
+          <Year>2021</Year>
+          <Month>3</Month>
+          <Day>12</Day>
+          <Hour>6</Hour>
+          <Minute>0</Minute>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="medline">
+          <Year>2021</Year>
+          <Month>3</Month>
+          <Day>26</Day>
+          <Hour>6</Hour>
+          <Minute>0</Minute>
+        </PubMedPubDate>
+      </History>
+      <PublicationStatus>epublish</PublicationStatus>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">33705435</ArticleId>
+        <ArticleId IdType="doi">10.1371/journal.pone.0247773</ArticleId>
+        <ArticleId IdType="pii">PONE-D-20-35915</ArticleId>
+        <ArticleId IdType="pmc">PMC7951867</ArticleId>
+      </ArticleIdList>
+      <ReferenceList>
+        <Reference>
+          <Citation>Lancet Gastroenterol Hepatol. 2020 May;5(5):434-435</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32199469</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>N Engl J Med. 2020 Apr 30;382(18):1708-1720</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32109013</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMC Bioinformatics. 2019 Dec 24;20(Suppl 15):644</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">31874610</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>MMWR Morb Mortal Wkly Rep. 2020 Mar 06;69(9):245-246</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32134909</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Nat Med. 2020 Jul;26(7):1037-1040</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32393804</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>JAMA. 2020 May 12;323(18):1843-1844</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32159775</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>JAMA. 2020 Apr 7;323(13):1239-1242</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32091533</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Rev Mal Respir. 2005 Feb;22(1 Pt 1):159-62</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">15968772</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Clin Microbiol. 2004 Jan;42(1):172-8</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">14715749</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Transbound Emerg Dis. 2020 Jul 11;:</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32654387</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Euro Surveill. 2020 Jan;25(3):</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">31992387</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Am J Trop Med Hyg. 2020 Dec;103(6):2376-2381</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">33124545</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Lancet Infect Dis. 2020 Aug;20(8):911-919</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32353347</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Transbound Emerg Dis. 2011 Jun;58(3):197-205</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">21208395</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Clin Infect Dis. 2020 Jul 28;71(15):786-792</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32211755</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Proc Natl Acad Sci U S A. 2020 Jun 30;117(26):14857-14863</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32527856</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Vet Clin North Am Food Anim Pract. 2012 Mar;28(1):121-31, x</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">22374122</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Med Internet Res. 2020 Aug 24;22(8):e22033</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32750010</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Gen Intern Med. 2018 Dec;33(12):2046-2047</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">30105481</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Transbound Emerg Dis. 2015 Feb;62(1):46-54</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">23480126</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>PLoS One. 2020 Oct 6;15(10):e0237297</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">33022004</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Transbound Emerg Dis. 2013 Jun;60(3):231-7</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">22571462</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 2020 Apr 7;369:m1328</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32265220</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>JAMA. 2020 Aug 11;324(6):603-605</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32644129</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Rev Sci Tech. 2011 Aug;30(2):555-69</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">21961226</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Cochrane Database Syst Rev. 2020 Jul 7;7:CD013665</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32633856</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Ann Emerg Med. 2007 Mar;49(3):275-81</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">17141139</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Crit Care Explor. 2020 Jun 19;2(6):e0148</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32696011</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Clin Microbiol. 2020 Sep 22;58(10):</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32690547</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Nat Microbiol. 2020 Apr;5(4):536-544</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32123347</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Anal Bioanal Chem. 2021 Jan;413(1):35-48</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32944809</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Acta Clin Belg. 2020 Jun 12;:1-7</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32531181</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>N Engl J Med. 2020 Apr 16;382(16):1564-1567</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32182409</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Intern Med. 2020 Sep;288(3):335-344</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32352202</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Science. 1988 Jun 3;240(4857):1285-93</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">3287615</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 2020 May 22;369:m1985</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">32444460</ArticleId>
+          </ArticleIdList>
+        </Reference>
+      </ReferenceList>
+    </PubmedData>
+  </PubmedArticle>
+  <PubmedArticle>
+    <MedlineCitation Status="MEDLINE" Owner="NLM">
+      <PMID Version="1">32796054</PMID>
+      <DateCompleted>
+        <Year>2021</Year>
+        <Month>03</Month>
+        <Day>03</Day>
+      </DateCompleted>
+      <DateRevised>
+        <Year>2021</Year>
+        <Month>03</Month>
+        <Day>12</Day>
+      </DateRevised>
+      <Article PubModel="Print-Electronic">
+        <Journal>
+          <ISSN IssnType="Electronic">1468-2052</ISSN>
+          <JournalIssue CitedMedium="Internet">
+            <Volume>106</Volume>
+            <Issue>2</Issue>
+            <PubDate>
+              <Year>2021</Year>
+              <Month>Mar</Month>
+            </PubDate>
+          </JournalIssue>
+          <Title>Archives of disease in childhood. Fetal and neonatal edition</Title>
+          <ISOAbbreviation>Arch Dis Child Fetal Neonatal Ed</ISOAbbreviation>
+        </Journal>
+        <ArticleTitle>Economic evaluation of computerised interpretation of fetal heart rate during labour: a cost-consequence analysis alongside the INFANT study.</ArticleTitle>
+        <Pagination>
+          <MedlinePgn>143-148</MedlinePgn>
+        </Pagination>
+        <ELocationID EIdType="doi" ValidYN="Y">10.1136/archdischild-2020-318806</ELocationID>
+        <Abstract>
+          <AbstractText Label="OBJECTIVE" NlmCategory="OBJECTIVE">Economic evaluation of computerised decision-support software intended to assist in the interpretation of a cardiotocography (CTG) during birth.</AbstractText>
+          <AbstractText Label="DESIGN" NlmCategory="METHODS">Individual patient level data from the INFANT study (an unmasked randomised controlled trial).</AbstractText>
+          <AbstractText Label="SETTING" NlmCategory="METHODS">Maternity units in the UK and Ireland.</AbstractText>
+          <AbstractText Label="POPULATION" NlmCategory="METHODS">Singleton or twin pregnancy women of 35 weeks' gestation or more and receiving continuous electronic fetal monitoring during labour.</AbstractText>
+          <AbstractText Label="INTERVENTION" NlmCategory="METHODS">Computerised decision-support software.</AbstractText>
+          <AbstractText Label="METHODS" NlmCategory="METHODS">Cost-consequence analysis presenting costs and outcomes with a time horizon of 2 years from a government healthcare perspective. Unit cost data collected from a combination of primary and secondary sources.</AbstractText>
+          <AbstractText Label="MAIN OUTCOME MEASURES" NlmCategory="METHODS">Primary clinical outcomes were (i) composite 'poor neonatal outcome' and (ii) developmental assessment at age 2 years in a subset of surviving children. Mean cost per mother and infant dyad from birth to hospital discharge, and from hospital discharge to 24 months follow-up. Maternal health-related quality of life was assessed at 12 and 24 months follow-up using the EuroQol three-level health-related quality of life instrument (EQ-5D-3L).</AbstractText>
+          <AbstractText Label="RESULTS" NlmCategory="RESULTS">Data were analysed for 46 042 women and 46 614 infants. No statistically significant differences were detected between trial arms in any of the primary clinical outcomes or maternal quality of life. No statistically significant differences in costs were detected in maternal or infant costs from trial entry to hospital discharge or overall from hospital discharge to 2-year follow-up.</AbstractText>
+          <AbstractText Label="CONCLUSIONS" NlmCategory="CONCLUSIONS">Decision-support software during labour is not associated with additional maternal or infant benefits and over a 2-year period the software did not lead to additional costs or savings to the National Health Service.</AbstractText>
+          <AbstractText Label="TRIAL REGISTRATION NUMBER" NlmCategory="BACKGROUND">ISRCTN98680152.</AbstractText>
+          <CopyrightInformation>© Author(s) (or their employer(s)) 2021. Re-use permitted under CC BY-NC. No commercial re-use. See rights and permissions. Published by BMJ.</CopyrightInformation>
+        </Abstract>
+        <AuthorList CompleteYN="Y">
+          <Author ValidYN="Y">
+            <LastName>Schroeder</LastName>
+            <ForeName>Elizabeth</ForeName>
+            <Initials>E</Initials>
+            <AffiliationInfo>
+              <Affiliation>Centre for the Health Economy, Macquarie University, Sydney, New South Wales, Australia.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Yang</LastName>
+            <ForeName>Miaoqing</ForeName>
+            <Initials>M</Initials>
+            <AffiliationInfo>
+              <Affiliation>National Perinatal Epidemiology Unit (NPEU), Nuffield Department of Population Health, University of Oxford, Oxford, UK.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Brocklehurst</LastName>
+            <ForeName>Peter</ForeName>
+            <Initials>P</Initials>
+            <AffiliationInfo>
+              <Affiliation>Birmingham Clinical Trials Unit, Institute of Applied Health Research, College of Medical and Dental Sciences, University of Birmingham, Birmingham, UK.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Linsell</LastName>
+            <ForeName>Louise</ForeName>
+            <Initials>L</Initials>
+            <AffiliationInfo>
+              <Affiliation>National Perinatal Epidemiology Unit (NPEU), Nuffield Department of Population Health, University of Oxford, Oxford, UK.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+          <Author ValidYN="Y">
+            <LastName>Rivero-Arias</LastName>
+            <ForeName>Oliver</ForeName>
+            <Initials>O</Initials>
+            <Identifier Source="ORCID">http://orcid.org/0000-0003-2233-6544</Identifier>
+            <AffiliationInfo>
+              <Affiliation>National Perinatal Epidemiology Unit (NPEU), Nuffield Department of Population Health, University of Oxford, Oxford, UK oliver.rivero@npeu.ox.ac.uk.</Affiliation>
+            </AffiliationInfo>
+          </Author>
+        </AuthorList>
+        <Language>eng</Language>
+        <PublicationTypeList>
+          <PublicationType UI="D016428">Journal Article</PublicationType>
+          <PublicationType UI="D016449">Randomized Controlled Trial</PublicationType>
+        </PublicationTypeList>
+        <ArticleDate DateType="Electronic">
+          <Year>2020</Year>
+          <Month>08</Month>
+          <Day>12</Day>
+        </ArticleDate>
+      </Article>
+      <MedlineJournalInfo>
+        <Country>England</Country>
+        <MedlineTA>Arch Dis Child Fetal Neonatal Ed</MedlineTA>
+        <NlmUniqueID>9501297</NlmUniqueID>
+        <ISSNLinking>1359-2998</ISSNLinking>
+      </MedlineJournalInfo>
+      <CitationSubset>AIM</CitationSubset>
+      <CitationSubset>IM</CitationSubset>
+      <MeshHeadingList>
+        <MeshHeading>
+          <DescriptorName UI="D015148" MajorTopicYN="N">Cardiotocography</DescriptorName>
+          <QualifierName UI="Q000191" MajorTopicYN="Y">economics</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D002675" MajorTopicYN="N">Child, Preschool</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D003362" MajorTopicYN="N">Cost-Benefit Analysis</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D020000" MajorTopicYN="N">Decision Support Systems, Clinical</DescriptorName>
+          <QualifierName UI="Q000191" MajorTopicYN="Y">economics</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D005260" MajorTopicYN="N">Female</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D005102" MajorTopicYN="N">Health Expenditures</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006295" MajorTopicYN="N">Health Resources</DescriptorName>
+          <QualifierName UI="Q000191" MajorTopicYN="N">economics</QualifierName>
+          <QualifierName UI="Q000706" MajorTopicYN="N">statistics &amp; numerical data</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006304" MajorTopicYN="N">Health Status</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006340" MajorTopicYN="N">Heart Rate, Fetal</DescriptorName>
+          <QualifierName UI="Q000502" MajorTopicYN="Y">physiology</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006801" MajorTopicYN="N">Humans</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D007223" MajorTopicYN="N">Infant</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D007231" MajorTopicYN="N">Infant, Newborn</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D007494" MajorTopicYN="N" Type="Geographic">Ireland</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D011247" MajorTopicYN="N">Pregnancy</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D011256" MajorTopicYN="N">Pregnancy Outcome</DescriptorName>
+          <QualifierName UI="Q000453" MajorTopicYN="Y">epidemiology</QualifierName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D011788" MajorTopicYN="N">Quality of Life</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D013222" MajorTopicYN="N">State Medicine</DescriptorName>
+        </MeshHeading>
+        <MeshHeading>
+          <DescriptorName UI="D006113" MajorTopicYN="N" Type="Geographic">United Kingdom</DescriptorName>
+        </MeshHeading>
+      </MeshHeadingList>
+      <KeywordList Owner="NOTNLM">
+        <Keyword MajorTopicYN="N">costing</Keyword>
+        <Keyword MajorTopicYN="N">fetal medicine</Keyword>
+        <Keyword MajorTopicYN="N">health economics</Keyword>
+        <Keyword MajorTopicYN="N">health services research</Keyword>
+        <Keyword MajorTopicYN="N">monitoring</Keyword>
+      </KeywordList>
+      <CoiStatement>Competing interests: None declared.</CoiStatement>
+    </MedlineCitation>
+    <PubmedData>
+      <History>
+        <PubMedPubDate PubStatus="received">
+          <Year>2020</Year>
+          <Month>01</Month>
+          <Day>08</Day>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="revised">
+          <Year>2020</Year>
+          <Month>06</Month>
+          <Day>30</Day>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="accepted">
+          <Year>2020</Year>
+          <Month>07</Month>
+          <Day>07</Day>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="pubmed">
+          <Year>2020</Year>
+          <Month>8</Month>
+          <Day>17</Day>
+          <Hour>6</Hour>
+          <Minute>0</Minute>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="medline">
+          <Year>2021</Year>
+          <Month>3</Month>
+          <Day>4</Day>
+          <Hour>6</Hour>
+          <Minute>0</Minute>
+        </PubMedPubDate>
+        <PubMedPubDate PubStatus="entrez">
+          <Year>2020</Year>
+          <Month>8</Month>
+          <Day>16</Day>
+          <Hour>6</Hour>
+          <Minute>0</Minute>
+        </PubMedPubDate>
+      </History>
+      <PublicationStatus>ppublish</PublicationStatus>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">32796054</ArticleId>
+        <ArticleId IdType="pii">archdischild-2020-318806</ArticleId>
+        <ArticleId IdType="doi">10.1136/archdischild-2020-318806</ArticleId>
+        <ArticleId IdType="pmc">PMC7907561</ArticleId>
+      </ArticleIdList>
+      <ReferenceList>
+        <Reference>
+          <Citation>Cochrane Database Syst Rev. 2017 Feb 03;2:CD006066</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">28157275</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Med Care Res Rev. 2006 Apr;63(2):217-35</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">16595412</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Dev Med Child Neurol. 2008 Jan;50(1):58-62</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">18173632</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 2004 Nov 20;329(7476):1233-6</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">15550430</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Pharmacoeconomics. 1998 Mar;13(3):277-88</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">10178653</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 1990 May 26;300(6736):1365-7</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">2372581</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Health Technol Assess. 2017 Nov;21(65):1-176</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">29110753</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Health Technol Assess. 2018 Feb;22(9):1-186</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">29437032</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Pharmacoeconomics. 2020 Apr;38(4):325-340</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">31903522</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Med Care. 1997 Nov;35(11):1095-108</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">9366889</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Br J Obstet Gynaecol. 1990 Jun;97(6):470-9</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">2378826</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Lancet. 2017 Apr 29;389(10080):1719-1729</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">28341515</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Stat Med. 2011 Feb 20;30(4):377-99</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">21225900</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Pharmacoeconomics. 2011 Dec;29(12):1015-23</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">22077576</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Value Health. 2010 Sep-Oct;13(6):695-702</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">20561343</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>J Health Econ. 2008 Sep;27(5):1275-84</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">18667254</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 2012 Apr 18;344:e2292</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">22517916</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Pharmacoeconomics. 2014 Dec;32(12):1157-70</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">25069632</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BJOG. 2009 Aug;116(9):1196-203</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">19485990</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BMJ. 2016 Jul 04;354:i3426</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">27378786</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Health Policy. 1990 Dec;16(3):199-208</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">10109801</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>BJOG. 2018 Jan;125(2):108-117</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">29034559</ArticleId>
+          </ArticleIdList>
+        </Reference>
+        <Reference>
+          <Citation>Health Econ. 2010 Mar;19(3):316-33</Citation>
+          <ArticleIdList>
+            <ArticleId IdType="pubmed">19378353</ArticleId>
+          </ArticleIdList>
+        </Reference>
+      </ReferenceList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>

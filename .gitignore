@@ -2,6 +2,31 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.bin
+*.kv
+*.npy
+*.pth
+*.pt
+*.json
+
+# Ignore DataSet
+data/
+
+# Ignore Metamap Software
+metamap/*.tar.bz2
+metamap/public_mm/
+
+# Test Files
+keywordExtraction/GNA_Files/*.json
+keywordExtraction/GNA_Files/*.embedding
+keywordExtraction/GNA_Files/*.log
+keywordExtraction/GNA_Files/*.h5
+keywordExtraction/GNA_Files/*.model
+
+# Ignore interim data
+interim_data/**/*
+!interim_data/config.json
+!tags
 
 # C extensions
 *.so

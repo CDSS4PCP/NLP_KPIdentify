@@ -1,0 +1,41 @@
+Model
+
+Synthetic Train Data -> Base Model -> Predict on same distribution data Synthetic Test DS 
+Precision given by SeqEval: 70.52%
+Recall given by SeqEval: 71.60%
+F1-Score given by SeqEval: 71.05%
+Accuracy given by SeqEval: 91.61%
+
+Synthetic Train Data -> Base Model -> Predict on GS Data
+Precision given by SeqEval: 24.62%
+Recall given by SeqEval: 52.15%
+F1-Score given by SeqEval: 33.45%
+Accuracy given by SeqEval: 73.09%
+
+Synthetic Train Data -> Attn Model -> Predict on GS Data
+Precision given by SeqEval: 24.27%
+Recall given by SeqEval: 45.19%
+F1-Score given by SeqEval: 31.58%
+Accuracy given by SeqEval: 72.70%
+
+GS Article -> 10 GS Terms
+Model -> 20 Terms -> 8 Match with GS
+Model -> 20 Terms -> 1/2 Matches
+
+Model + Active Learning
+
+BERT <<< BioMedical Data on 25K Articles
+Synthetic Train Data -> Prune Labels(URLs/Insitutute Names/Drug/Medicine) 
++ More Labels + Add Human Lables -> Intelligence
+
+BioMedical Data on 25K Articles >>> sciSpacy BERT >>> Train 42 GS Articles Labeled Data in CDSS Domain 
+>>> Fine-Tune CDSS BERT
+
+1/42 CDSS Articles >>> Fine-Tune CDSS BERT >>> Prediction 100%
+1/80 CDSS Articles >>> Fine-Tune CDSS BERT >>> Performance UP!!
+
+80 Remaining GS Articles
+
+>>> 0.2-0.5% in F1-Score
+
+CDSS Articles + Synthetic Labels ~ contain <2% drugs/medicines names
