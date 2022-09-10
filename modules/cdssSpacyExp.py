@@ -161,7 +161,7 @@ def printMetrics(y_targets, y_preds,custom='',experiment=0):
     f1score = f1_score(y_targets, y_preds)*100
     accuracy = accuracy_score(y_targets, y_preds)*100
     with open('cdssSpacyExp_results.csv', 'a', newline='') as csvfile:
-        logwriter = csv.writer(csvfile, delimiter=' ',
+        logwriter = csv.writer(csvfile, delimiter=';',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
         logwriter.writerow([experiment, precision, recall, f1score, accuracy])
         
@@ -277,7 +277,7 @@ os.system('''
 # with open('cdssSpacyExp_results.log','w') as f:
 #     f.write("{}\t{}\t{}\t{}\t{}\n".format('No.','Precision','Recall','F1Score','Accuracy'))
 with open('cdssSpacyExp_results.csv', 'w', newline='') as csvfile:
-    logwriter = csv.writer(csvfile, delimiter=' ',
+    logwriter = csv.writer(csvfile, delimiter=';',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
     logwriter.writerow(['No.','Precision','Recall','F1Score','Accuracy'])
 
@@ -296,14 +296,15 @@ for seed in range(repeat):
 
     os.system('''
     source activate pytorch
-    #cd ../data
-    #python -m spacy convert gs66Spacy_T.tsv ./ -t json -n 1 -c iob
-    #python -m spacy convert gs66Spacy_V.tsv ./ -t json -n 1 -c iob
-    #python -m spacy convert gs66Spacy_T.json ./ -t spacy
-    #python -m spacy convert gs66Spacy_V.json ./ -t spacy
-    #python -m spacy train -g 0 config.cfg --output ../cdssSciSpacyGS66 --paths.train ../data/gs66Spacy_T.spacy --paths.dev ../data/gs66Spacy_V.spacy''')
+    cd ../data
+    python -m spacy convert gs66Spacy_T.tsv ./ -t json -n 1 -c iob
+    python -m spacy convert gs66Spacy_V.tsv ./ -t json -n 1 -c iob
+    python -m spacy convert gs66Spacy_T.json ./ -t spacy
+    python -m spacy convert gs66Spacy_V.json ./ -t spacy
+    cd ../modules
+    python -m spacy train -g 0 config.cfg --output ../cdssSciSpacyGS66 --paths.train ../data/gs66Spacy_T.spacy --paths.dev ../data/gs66Spacy_V.spacy''')
 
-    nlp = spacy.load('../cdssSciSpacy/model-best')
+    nlp = spacy.load('../cdssSciSpacyGS66/model-best')
 
     y_preds, y_targets = getTargetPreds(gsTest)
     printMetrics(y_preds, y_targets, '+ Synthetic 1866 Train / 622 Val + 66GS 52 Train + 14 Validation + 67GS Test',seed+1)
