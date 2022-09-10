@@ -1,4 +1,5 @@
 import json
+import csv
 import os
 import sys
 import unidecode
@@ -152,38 +153,23 @@ def getTargetPreds(data):
     
     return y_preds, y_targets
 
-def printMetrics(y_targets, y_preds,custom=''):
+def printMetrics(y_targets, y_preds,custom='',experiment=0):
     print("\nSeqEval Metrics on sciSpacy {}:\n".format(custom))
     print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
-    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
-    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
-    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
-    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+    precision = precision_score(y_targets, y_preds)*100
+    recall = recall_score(y_targets, y_preds)*100
+    f1score = f1_score(y_targets, y_preds)*100
+    accuracy = accuracy_score(y_targets, y_preds)*100
+    with open('cdssSpacyExp_results.csv', 'a', newline='') as csvfile:
+        logwriter = csv.writer(csvfile, delimiter=' ',
+                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        logwriter.writerow([experiment, precision, recall, f1score, accuracy])
+        
+    print("Precision given by SeqEval: {:.2f}%".format(precision))
+    print("Recall given by SeqEval: {:.2f}%".format(recall))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1score))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy))
     print("-"*60)
-
-gs42Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs42.json")
-gs91Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs91.json")
-gsCombData = gs42Data+gs91Data
-
-## Number of times to Repeat Experiment
-repeat = 3
-for seed in range(repeat):
-    X_train, X_test = train_test_split(gsCombData test_size=0.50, random_state=seed)
-    print(X_train, X_test, sep='\n')
-    print(len(X_train),len(X_test),sep='\t')
-
-sys.exit()
-gs_datalen = len(gs42Data)
-print("GS42 Data: {}, GS42 Train: {} GS42 Val: {}".format(gs_datalen, gs_datalen*0.8, gs_datalen*0.2))
-createBERTtSV(gs42Data[:int(0.8*gs_datalen)],'../data/gs42Spacy_T.tsv')
-createBERTtSV(gs42Data[int(0.8*gs_datalen):],'../data/gs42Spacy_V.tsv')
-
-os.system("cd ../data && {sys.executable} -m spacy convert gs42Spacy_T.tsv ./ -t json -n 1 -c iob") 
-os.system("cd ../data && {sys.executable} -m spacy convert gs42Spacy_V.tsv ./ -t json -n 1 -c iob")  
-
-os.system("cd ../data && {sys.executable} -m spacy convert gs91Spacy_T.json ./ -t spacy")
-os.system("cd ../data && {sys.executable} -m spacy convert gs91Spacy_V.json ./ -t spacy")
-
 
 BASE_SCISPACY_66GS_CONFIG = '''
 # This is an auto-generated partial config. To use it with 'spacy train'
@@ -278,18 +264,46 @@ vocab: "../cdssSciSpacy/model-best"
 '''
 with open('tempSpacy66GS.cfg','w') as f:
     f.write(BASE_SCISPACY_66GS_CONFIG)
+        
+gs42Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs42.json")
+gs91Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs91.json")
+gsCombData = gs42Data+gs91Data
+print("Total DS: {}, Train: {} Val: {} Test: {}".format(133, 52, 14,67))
 
-os.system("{sys.executable} -m spacy init fill-config tempSpacy66GS.cfg config.cfg")
+os.system('''
+    source activate pytorch
+    python -m spacy init fill-config tempSpacy66GS.cfg config.cfg''')
 
-os.system("{sys.executable} -m spacy train -g 0 config.cfg --output ../cdssSciSpacyGS42 --paths.train ../data/gs42Spacy_T.spacy --paths.dev ../data/gs42Spacy_V.spacy")
+# with open('cdssSpacyExp_results.log','w') as f:
+#     f.write("{}\t{}\t{}\t{}\t{}\n".format('No.','Precision','Recall','F1Score','Accuracy'))
+with open('cdssSpacyExp_results.csv', 'w', newline='') as csvfile:
+    logwriter = csv.writer(csvfile, delimiter=' ',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    logwriter.writerow(['No.','Precision','Recall','F1Score','Accuracy'])
 
-nlp = spacy.load('../cdssSciSpacy/model-best')
+## Number of times to Repeat Experiment
+repeat = 3
+for seed in range(repeat):
+    print("Experiment: {}".format(seed+1))
+    
+    ## Split GS Dataset - 52 Train + 14 Validation + 67 Test
+    gsTrainVal, gsTest = train_test_split(gsCombData, test_size=0.50, random_state=seed)
+    gsTrain, gsVal = train_test_split(gsTrainVal, test_size=0.20, random_state=seed)
+    # print(len(gsTrain),len(gsVal), len(gsTest),sep='\t')
+    
+    createBERTtSV(gsTrain,'../data/gs66Spacy_T.tsv')
+    createBERTtSV(gsVal,'../data/gs66Spacy_V.tsv')
 
-y_preds, y_targets = getTargetPreds(gs42Data)
-printMetrics(y_preds, y_targets, '+ Synthetic 1866 Train / 622 Val + 42GS Test')
+    os.system('''
+    source activate pytorch
+    #cd ../data
+    #python -m spacy convert gs66Spacy_T.tsv ./ -t json -n 1 -c iob
+    #python -m spacy convert gs66Spacy_V.tsv ./ -t json -n 1 -c iob
+    #python -m spacy convert gs66Spacy_T.json ./ -t spacy
+    #python -m spacy convert gs66Spacy_V.json ./ -t spacy
+    #python -m spacy train -g 0 config.cfg --output ../cdssSciSpacyGS66 --paths.train ../data/gs66Spacy_T.spacy --paths.dev ../data/gs66Spacy_V.spacy''')
 
-y_preds, y_targets = getTargetPreds(gs91Data)
-printMetrics(y_preds, y_targets, '+ Synthetic 1866 Train / 622 Val + 91GS Test')
+    nlp = spacy.load('../cdssSciSpacy/model-best')
 
-y_preds, y_targets = getTargetPreds(gsCombData)
-printMetrics(y_preds, y_targets, '+ Synthetic 1866 Train / 622 Val + 133GS Test')
+    y_preds, y_targets = getTargetPreds(gsTest)
+    printMetrics(y_preds, y_targets, '+ Synthetic 1866 Train / 622 Val + 66GS 52 Train + 14 Validation + 67GS Test',seed+1)
