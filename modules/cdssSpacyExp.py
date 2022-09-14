@@ -282,7 +282,7 @@ with open('cdssSpacyExp_results.csv', 'w', newline='') as csvfile:
     logwriter.writerow(['No.','Precision','Recall','F1Score','Accuracy'])
 
 ## Number of times to Repeat Experiment
-repeat = 3
+repeat = 50
 for seed in range(repeat):
     print("Experiment: {}".format(seed+1))
     
