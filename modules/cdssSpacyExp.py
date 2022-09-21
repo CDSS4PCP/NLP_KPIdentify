@@ -1,3 +1,9 @@
+#########################################
+## Usage: Run 50 times Experiment Simulation for fine-tuning Synthetic CDSS sciSpacy with Random GS 66 + Test on Random GS 67
+## Author: Rohan Goli
+## Date: 09/11/2022
+#########################################
+
 import json
 import csv
 import os
@@ -171,7 +177,7 @@ def printMetrics(y_targets, y_preds,custom='',experiment=0):
     print("Accuracy given by SeqEval: {:.2f}%".format(accuracy))
     print("-"*60)
 
-BASE_SCISPACY_66GS_CONFIG = '''
+SYNTH_SCISPACY_66GS_CONFIG = '''
 # This is an auto-generated partial config. To use it with 'spacy train'
 # you can run spacy init fill-config to auto-fill all default settings:
 # python -m spacy init fill-config ./base_config.cfg ./config.cfg
@@ -263,7 +269,7 @@ tokenizer: "../cdssSciSpacy/model-best"
 vocab: "../cdssSciSpacy/model-best"
 '''
 with open('tempSpacy66GS.cfg','w') as f:
-    f.write(BASE_SCISPACY_66GS_CONFIG)
+    f.write(SYNTH_SCISPACY_66GS_CONFIG)
         
 gs42Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs42.json")
 gs91Data = read_json_array("../data/pubmed_data/json_data_synthetic_labels/v2_testgs91.json")
