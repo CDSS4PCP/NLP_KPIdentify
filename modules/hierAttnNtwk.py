@@ -1,3 +1,9 @@
+#################################
+## Author: Rohan Goli
+## Usage: Training/Testing Doc-Level Attention over words using hierAttnNtwk
+## Date: 09/21/22
+#################################
+
 # Implementing "Improving Clinical Named Entity Recognition with Global Neural Attention"
 # https://www.researchgate.net/profile/Chengyu-Wang-4/publication/326501010_Improving_Clinical_Named_Entity_Recognition_with_Global_Neural_Attention_Second_International_Joint_Conference_APWeb-WAIM_2018_Macau_China_July_23-25_2018_Proceedings_Part_II/links/5b9655f0299bf147393991cb/Improving-Clinical-Named-Entity-Recognition-with-Global-Neural-Attention-Second-International-Joint-Conference-APWeb-WAIM-2018-Macau-China-July-23-25-2018-Proceedings-Part-II.pdf
 

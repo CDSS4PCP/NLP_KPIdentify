@@ -27,12 +27,14 @@ def load_pubmed_data(path):
 
     return data
 
-def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_sentences=3, filter_kp = False):
+def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_sentences=3, filter_kp = False, model_name="en_core_sci_lg"):
     '''
     Create Train & Test Datasets as JSON with Synthetic Keywords
     '''
-    nlp = spacy.load("en_core_sci_lg")
-    nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+    nlp = spacy.load(model_name)
+
+    if model_name=="en_core_sci_lg":
+        nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
 
     if filter_kp:
         nlp2 = spacy.load('en_ner_bc5cdr_md')
@@ -45,7 +47,6 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
     total_len = len(fullData)
     with tqdm(enumerate(fullData),total=total_len) as pbar1:
         for index, paper in pbar1:
-    # for paper in fullData:
             comb_arr.append(paper['title']+' '+paper['abstract'])
             pmid_arr.append(paper['pmid'])
             data = {}
