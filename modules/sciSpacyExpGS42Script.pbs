@@ -6,4 +6,4 @@ cd $PBS_O_WORKDIR
 
 source activate pytorch
 cd ~/NLP_KPIdentify/modules
-python cdssSpacyExp.py
+python sciSpacyExpGS42.py
