@@ -917,8 +917,8 @@ for epoch in range(EPOCHS):
         best_model = model
 print('<'*30,'END Train','>'*30)
 
-torch.save(best_model.state_dict(), 'globNeuAttn-best-parameters.pt')
-model.load_state_dict(torch.load('globNeuAttn-best-parameters.pt'))
+torch.save(best_model.state_dict(), 'hierAttnNtwk.pt')
+model.load_state_dict(torch.load('hierAttnNtwk.pt'))
 
 print('<'*30,'START Test','>'*30)
 # Check predictions after training
