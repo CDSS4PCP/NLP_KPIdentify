@@ -14,6 +14,7 @@ import json
 from modules import utils
 from modules import createDataset as data
 from modules import preProcessData as ppd
+from modules import hierAttnNtwk as hNA
 
 # Get the absolute path under the current working directory
 WORKING_PATH = os.getcwd()
@@ -148,8 +149,10 @@ if __name__ == "__main__":
 
         pass
     elif args.mode == "train":
+        trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
         pass
     elif args.mode == "test":
+        testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
         pass
     elif args.mode == "testGS":
         pass

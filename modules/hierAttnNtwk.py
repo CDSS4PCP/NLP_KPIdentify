@@ -837,165 +837,166 @@ def get_batches_by_doc(data, doc_sents):
         
         yield data_x, data_y, data_masks
 
-print('<'*30,'START Read Data','>'*30)
-## Make up some training data
-train_data = utils.read_json_array(os.path.join(INTERIM_DATA, "train.json"))
-test_data = utils.read_json_array(os.path.join(INTERIM_DATA, "test.json"))
+if __name__ == "__main__":
+    print('<'*30,'START Read Data','>'*30)
+    ## Make up some training data
+    train_data = utils.read_json_array(os.path.join(INTERIM_DATA, "train.json"))
+    test_data = utils.read_json_array(os.path.join(INTERIM_DATA, "test.json"))
 
-pubmed_data_folder = os.path.join(WORKING_PATH, PUBMED_PROCESSED_DATA_GS)
-test44Abstracts = cData.load_pubmed_data(pubmed_data_folder)
-testgs_data = gen_gs_dataset_v2(test44Abstracts)
+    pubmed_data_folder = os.path.join(WORKING_PATH, PUBMED_PROCESSED_DATA_GS)
+    test44Abstracts = cData.load_pubmed_data(pubmed_data_folder)
+    testgs_data = gen_gs_dataset_v2(test44Abstracts)
 
 
-training_data, training_data_doc_sents = preprocess(train_data, "Train")
-testing_data, testing_data_doc_sents = preprocess(test_data, "Test")
-gs_data, gs_data_doc_sents = preprocess(testgs_data, "Gold Standard")
+    training_data, training_data_doc_sents = preprocess(train_data, "Train")
+    testing_data, testing_data_doc_sents = preprocess(test_data, "Test")
+    gs_data, gs_data_doc_sents = preprocess(testgs_data, "Gold Standard")
 
-## For Word Embeddings
-train_corpus_sentences = []
-for x in train_data:
-    train_corpus_sentences.extend(x['sentences'])
-print("Total Sentences in Train Corpus: ", len(train_corpus_sentences))
+    ## For Word Embeddings
+    train_corpus_sentences = []
+    for x in train_data:
+        train_corpus_sentences.extend(x['sentences'])
+    print("Total Sentences in Train Corpus: ", len(train_corpus_sentences))
 
-test_corpus_sentences = []
-for x in test_data:
-    test_corpus_sentences.extend(x['sentences'])
-print("Total Sentences in Test Corpus: ", len(test_corpus_sentences))
+    test_corpus_sentences = []
+    for x in test_data:
+        test_corpus_sentences.extend(x['sentences'])
+    print("Total Sentences in Test Corpus: ", len(test_corpus_sentences))
 
-ix_to_word, word_to_ix, vocab_size, word_embeddings = loadWordEmbd(wordEmbdType)
+    ix_to_word, word_to_ix, vocab_size, word_embeddings = loadWordEmbd(wordEmbdType)
 
-# ## Load Vocab
-# word_to_ix = utils.read_json_array("token2int.json")
+    # ## Load Vocab
+    # word_to_ix = utils.read_json_array("token2int.json")
 
-tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
-# ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
-print('<'*30,'END Read Data','>'*30)
+    tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+    ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+    # ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
+    print('<'*30,'END Read Data','>'*30)
 
-model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, DROPOUT, use_pretrained_embd=word_embeddings)
-optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+    model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, DROPOUT, use_pretrained_embd=word_embeddings)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
 
-model_stateDict = model.state_dict()
+    model_stateDict = model.state_dict()
 
-pretrainedLM = torch.load("BiLM.pt")
-pretrainedLM_stateDict = pretrainedLM
+    pretrainedLM = torch.load("BiLM.pt")
+    pretrainedLM_stateDict = pretrainedLM
 
-# 1. filter out unnecessary keys
-pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
-# 2. overwrite entries in the existing state dict
-model_stateDict.update(pretrained_dict) 
-# 3. load the new state dict
-model.load_state_dict(model_stateDict)
+    # 1. filter out unnecessary keys
+    pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
+    # 2. overwrite entries in the existing state dict
+    model_stateDict.update(pretrained_dict) 
+    # 3. load the new state dict
+    model.load_state_dict(model_stateDict)
 
-print('<'*30,'START Train','>'*30)
-model.train()
-model.to(DEVICE)
+    print('<'*30,'START Train','>'*30)
+    model.train()
+    model.to(DEVICE)
 
-# Make sure prepare_sequence from earlier in the LSTM section is loaded
-minloss = 10000
-for epoch in range(EPOCHS):
+    # Make sure prepare_sequence from earlier in the LSTM section is loaded
+    minloss = 10000
+    for epoch in range(EPOCHS):
+        losses= []
+        # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
+        for inputs, targets, masks, in get_batches_by_doc(training_data, training_data_doc_sents):
+            # Step 1. Remember that Pytorch accumulates gradients.
+            # We need to clear them out before each instance
+            model.zero_grad()
+
+            # Step 2. Get our inputs ready for the network, that is,
+            # turn them into Tensors of word indices.
+            inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
+
+            # Step 3. Run our forward pass.
+            loss = model.neg_log_likelihood(inputs, targets, masks)
+            # print("loss: ",loss, loss.shape)
+            losses.append(loss.detach().item())
+
+            # Step 4. Compute the loss, gradients, and update the parameters by
+            # calling optimizer.step()
+            loss.backward()
+            optimizer.step()
+        
+        curr_model_loss = np.mean(losses).item()
+        if (epoch+1)%2==0:
+            print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
+        if curr_model_loss<minloss:
+            minloss = curr_model_loss
+            best_model = model
+    print('<'*30,'END Train','>'*30)
+
+    torch.save(best_model.state_dict(), 'hierAttnNtwk.pt')
+    model.load_state_dict(torch.load('hierAttnNtwk.pt'))
+
+    print('<'*30,'START Test','>'*30)
+    # Check predictions after training
+    model.eval()
     losses= []
-    # for inputs, targets, masks in get_batches(training_data, BATCH_SIZE):
-    for inputs, targets, masks, in get_batches_by_doc(training_data, training_data_doc_sents):
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
-        model.zero_grad()
+    with torch.no_grad():
+        # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+        for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
+            inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
+            loss = model.neg_log_likelihood(inputs, targets, masks)
+            losses.append(loss.detach().item())
+    print('Test Loss: {:.3f}'.format(np.mean(losses)))
+    print('<'*30,'END Test','>'*30)
 
-        # Step 2. Get our inputs ready for the network, that is,
-        # turn them into Tensors of word indices.
-        inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
-
-        # Step 3. Run our forward pass.
-        loss = model.neg_log_likelihood(inputs, targets, masks)
-        # print("loss: ",loss, loss.shape)
-        losses.append(loss.detach().item())
-
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        # calling optimizer.step()
-        loss.backward()
-        optimizer.step()
-    
-    curr_model_loss = np.mean(losses).item()
-    if (epoch+1)%2==0:
-        print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
-    if curr_model_loss<minloss:
-        minloss = curr_model_loss
-        best_model = model
-print('<'*30,'END Train','>'*30)
-
-torch.save(best_model.state_dict(), 'hierAttnNtwk.pt')
-model.load_state_dict(torch.load('hierAttnNtwk.pt'))
-
-print('<'*30,'START Test','>'*30)
-# Check predictions after training
-model.eval()
-losses= []
-with torch.no_grad():
-    # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
-    for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
-        inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
-        loss = model.neg_log_likelihood(inputs, targets, masks)
-        losses.append(loss.detach().item())
-print('Test Loss: {:.3f}'.format(np.mean(losses)))
-print('<'*30,'END Test','>'*30)
-
-# torch.save(model.state_dict(),"BiLSTM-CRF.pt")
+    # torch.save(model.state_dict(),"BiLSTM-CRF.pt")
 
 
-x_sents = []
-y_preds, y_targets = [], []
-with torch.no_grad():
-    # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
-    for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
-        inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
-        _, tags = model(inputs,masks)
-        # print(targets, tags, sep='\n')
-        for idx, (pred,label) in enumerate(zip(tags, targets)):
-            x_sents.append(testing_data[idx][0])
-            length = len(x_sents[-1])
-            temp_preds = [ix_to_tag[i] for i in pred[:length]]
-            temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
-            y_preds.append(temp_preds)
-            y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+    x_sents = []
+    y_preds, y_targets = [], []
+    with torch.no_grad():
+        # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+        for inputs, targets, masks in get_batches_by_doc(testing_data, testing_data_doc_sents):
+            inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+            _, tags = model(inputs,masks)
+            # print(targets, tags, sep='\n')
+            for idx, (pred,label) in enumerate(zip(tags, targets)):
+                x_sents.append(testing_data[idx][0])
+                length = len(x_sents[-1])
+                temp_preds = [ix_to_tag[i] for i in pred[:length]]
+                temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+                y_preds.append(temp_preds)
+                y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
 
-print('<'*30,'TEST Data','>'*30)
-get_metrics(x_sents, y_preds, y_targets, mappers=True)
-print('SeqEval Metrics:')
-print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
-print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
-print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
-print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
-print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+    print('<'*30,'TEST Data','>'*30)
+    get_metrics(x_sents, y_preds, y_targets, mappers=True)
+    print('SeqEval Metrics:')
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
 
-x_sents = []
-y_preds, y_targets = [], []
-with torch.no_grad():
-    # for inputs, targets, masks in get_batches(gs_data, BATCH_SIZE):
-    for inputs, targets, masks in get_batches_by_doc(gs_data, gs_data_doc_sents):
-        inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
-        _, tags = model(inputs,masks)
-        # print(targets, tags, sep='\n')
-        for idx, (pred,label) in enumerate(zip(tags, targets)):
-            x_sents.append(gs_data[idx][0])
-            length = len(x_sents[-1])
-            temp_preds = [ix_to_tag[i] for i in pred[:length]]
-            temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
-            y_preds.append(temp_preds)
-            y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+    x_sents = []
+    y_preds, y_targets = [], []
+    with torch.no_grad():
+        # for inputs, targets, masks in get_batches(gs_data, BATCH_SIZE):
+        for inputs, targets, masks in get_batches_by_doc(gs_data, gs_data_doc_sents):
+            inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+            _, tags = model(inputs,masks)
+            # print(targets, tags, sep='\n')
+            for idx, (pred,label) in enumerate(zip(tags, targets)):
+                x_sents.append(gs_data[idx][0])
+                length = len(x_sents[-1])
+                temp_preds = [ix_to_tag[i] for i in pred[:length]]
+                temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+                y_preds.append(temp_preds)
+                y_targets.append([ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
 
-print('<'*30,'GS Data','>'*30)
-get_metrics(x_sents, y_preds, y_targets, mappers=True)
-print('SeqEval Metrics:')
-print(classification_report(y_targets, y_preds))
-print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
-print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
-print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
-print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
+    print('<'*30,'GS Data','>'*30)
+    get_metrics(x_sents, y_preds, y_targets, mappers=True)
+    print('SeqEval Metrics:')
+    print(classification_report(y_targets, y_preds))
+    print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
+    print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
+    print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
+    print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
 
-# c=0
-# for x,y,z in zip(x_sents,y_preds, y_targets):
-#     for pred in y:
-#         if pred not in ['O','B-KP','I-KP']:
-#             print(x,y,z,sep='\n')
-#             print('-'*20)  
-#     c+=1        
+    # c=0
+    # for x,y,z in zip(x_sents,y_preds, y_targets):
+    #     for pred in y:
+    #         if pred not in ['O','B-KP','I-KP']:
+    #             print(x,y,z,sep='\n')
+    #             print('-'*20)  
+    #     c+=1        
