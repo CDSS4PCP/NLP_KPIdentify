@@ -27,14 +27,18 @@ def load_pubmed_data(path):
 
     return data
 
-def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_sentences=3, filter_kp = False, model_name="en_core_sci_lg"):
+def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_sentences=3, filter_kp = False, model_name="en_core_sci_lg", additional_data=[]):
     '''
     Create Train & Test Datasets as JSON with Synthetic Keywords
     '''
+    print('Spacy Model to generate Synthetic Keywords:')
+    print(model_name)
     nlp = spacy.load(model_name)
 
     if model_name=="en_core_sci_lg":
         nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+    else:
+        nlp.add_pipe('sentencizer')
 
     if filter_kp:
         nlp2 = spacy.load('en_ner_bc5cdr_md')
@@ -44,6 +48,8 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
     pmid_arr =[]
     dataset = []
     p_id=0
+    
+    fullData.extend(additional_data)
     total_len = len(fullData)
     with tqdm(enumerate(fullData),total=total_len) as pbar1:
         for index, paper in pbar1:
@@ -58,6 +64,12 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
             dataset.append(data)
             p_id += 1
             pbar1.set_description("JSON pre-processing is completed for %s-th document!"%(p_id))
+
+    # print("Given Full Data: ", total_len)
+    # dataset.extend(additional_data)
+    # print("+ Additional Data: ", len(additional_data))
+    # total_len = len(dataset)
+    # print("New DataSet: ", total_len)
 
     if predictData==True:
         with open(os.path.join(json_data_path, "testgs.json"), "w") as outfile:
