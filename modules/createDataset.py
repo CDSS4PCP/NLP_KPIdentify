@@ -82,11 +82,15 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
         # for doc in nlp.pipe(comb_arr):
         for doc in pbar1:
             # text = [token.orth_ for token in doc if not token.is_punct | token.is_space] 
-            sents = [str(x) for x in doc.sents]
+            sents = [[token.orth_.lower() for token in sent if not token.is_punct | token.is_space] for sent in doc.sents]
 
             ## List all the sentences with are minimum threshold
             if len(sents)<min_sentences:
                 remove_sent_no_outliers.append(idx)
+                idx+=1
+                continue
+
+            text = [token.orth_ for token in doc if not token.is_punct | token.is_space]
 
             kws = [str(x) for x in doc.ents]
 
@@ -101,6 +105,8 @@ def generate_synthetic_dataset(fullData, json_data_path, predictData=False, min_
             kws.sort(reverse=True, key=len)
             
             dataset[idx]["keywords"]=kws
+            dataset[idx]['fullText'] = text
+            dataset[idx]['sentences'] = sents
             idx+=1
             pbar1.set_description("Synthetic Keywrods generated for %s-th document!"%idx)
 
