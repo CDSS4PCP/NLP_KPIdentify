@@ -11,18 +11,28 @@ import shutil
 import time
 import sys
 import json
+
+import gensim
+from gensim.models import KeyedVectors
+
 from modules import utils
 from modules import createDataset as data
 from modules import preProcessData as ppd
-from modules import hierAttnNtwk as hNA
+# from modules import hierAttnNtwk as hNA
+
+from modules.languageModel import LanguageModel, WordLSTM_v2, Trainer
+
+import numpy as np
 
 # Get the absolute path under the current working directory
 WORKING_PATH = os.getcwd()
+BI_LM_MODEL_FILE = "BiLM.pt"
+WORD_EMBED_FILE = 'LM_word2vec.bin'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Keyphrase extraction using hierAttn-BiLSTM-CRF")
 
-    parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/testgs/predict/createData')
+    parser.add_argument('--mode','-m', default='train', type=str, help='Mode of opertion: train/test/testgs/predict/createData/preTrain')
     parser.add_argument('--sections','-s', default=['title','abstract'], type=str, nargs='+', help='Sections in research paper to include: title/abstract/methods/results')
     parser.add_argument('--features','-f', default=['CEM','WFOF','POS','LEN','TI','TR'], type=str, nargs='+',
                         help=("Features to include:",
@@ -38,8 +48,9 @@ if __name__ == "__main__":
                         "LEN - Length of word",
                         ))
     parser.add_argument("--stem", "-stem",default="no",help="Vocabulary Stemming - yes/no")
-    parser.add_argument("--minSentences", "-minSentences", default=3, help="Minimum Sentences in Each Text")
-    parser.add_argument("--filterKP","-filterKP", default=False, help="Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
+    parser.add_argument("--minSentences", "-minSentences", default=3, help="CreateSynthDS :::: Minimum Sentences in Each Text")
+    parser.add_argument("--filterKP","-filterKP", default=False, help="CreateSynthDS :::: Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
+    parser.add_argument("-seqLen","--seqLength", type=int, default = 5, help="BiLM :::: To create Train Dataset with sequence length sliding window over sentence. Deafult(5)")
     
     args = parser.parse_args()
 
@@ -132,22 +143,175 @@ if __name__ == "__main__":
         
         ## Write JSON Data
         print("Saving GS91: ", len(gs91Data))
-        with open(os.path.join(config.JSON_DATA,"testgs91.json"), "w") as outfile:
-            json.dump(gs91Data, outfile)
+        utils.save_json(gs91Data, os.path.join(config.JSON_DATA,"testgs91.json"))
 
         print("Saving GS42: ", len(gs42Data))
-        with open(os.path.join(config.JSON_DATA,"testgs42.json"), "w") as outfile:
-            json.dump(gs42Data, outfile)
+        utils.save_json(gs42Data, os.path.join(config.JSON_DATA,"testgs42.json"))
 
         dataset_length = len(totalData)
         print("Saving Train: ", dataset_length//3)
-        with open(os.path.join(config.JSON_DATA,"train.json"), "w") as outfile:
-            json.dump(totalData[:dataset_length//3], outfile)
-        print("Saving Test: ", dataset_length-dataset_length//3)
-        with open(os.path.join(config.JSON_DATA,"test.json"), "w") as outfile:
-            json.dump(totalData[dataset_length//3:], outfile)  
+        utils.save_json(totalData[:dataset_length//3],os.path.join(config.JSON_DATA,"train.json"))
 
+        print("Saving Test: ", dataset_length-dataset_length//3)
+        utils.save_json(totalData[dataset_length//3:],os.path.join(config.JSON_DATA,"test.json"))
         pass
+
+    elif args.mode == "preTrain":
+        ###############
+        ## Load Data ##
+        ###############
+        trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
+        testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
+
+        ## Store All Sentences of Corpus
+        train_corpus_sentences = []
+        for x in trainData:
+            train_corpus_sentences.extend(x['sentences'])
+        print("Total Sentences in Train Corpus: ", len(train_corpus_sentences))
+        test_corpus_sentences = []
+        for x in testData:
+            test_corpus_sentences.extend(x['sentences'])
+        print("Total Sentences in Test Corpus: ", len(test_corpus_sentences))
+
+        ## Total Data
+        total_corpus_sentences = train_corpus_sentences+test_corpus_sentences
+
+        ############################
+        ## Create Word Embeddings ##
+        ############################
+        modelW2V = gensim.models.Word2Vec(
+                    sentences=total_corpus_sentences,
+                    vector_size=300, window=5,
+                    min_count=0,workers=10,
+                    sg=1,seed=42,compute_loss=True
+                    )
+        
+        ## Save Word Embeddings
+        modelW2V.wv.save_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+
+        ## Load Word Embeddings
+        modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+
+        ## Create Integer-to-Token mapping
+        int2token = {0:'<UNK>'}
+        cnt = 1
+        for word in modelW2V.key_to_index.keys():
+            int2token[cnt] = word
+            cnt+=1
+        ## Create Token-to-Integer mapping
+        token2int = {t: i for i, t in int2token.items()}
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(int2token)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Save Int2Token and Token2Int mappings
+        utils.save_json(token2int, os.path.join(config.INTERIM_DATA,"token2int.json"))
+        utils.save_json(int2token, os.path.join(config.INTERIM_DATA,"int2token.json"))
+
+        ##########################################
+        ## Create Bi-Directional Language Model ##
+        ##########################################
+        lang_model = LanguageModel(token2int=token2int)
+
+        ## Create Data Input/Targets for BiLM
+        def splitData_Input_Targets(csLM, corpus_sents, token2int):
+            ## Create Sequences
+            sequences = [csLM.create_seq(i, seq_len=args.seqLength) for i in corpus_sents]
+            ## Merge list-of-lists into a single list
+            sequences = sum(sequences, [])
+
+            ## Split Data into Input/Target text
+            inputs, targets = [], []
+            for sequence in sequences:
+                ## Split Sentence into Tokens
+                seqTokens = sequence.split()
+                ## Convert Text Sequences to Integer Sequences
+                seqInts = csLM.get_integer_seq(seqTokens, tokenized=True)
+                
+                if len(seqInts) != args.seqLength+1:
+                    continue
+                
+                inputs.append(seqInts[:-1])
+                targets.append(seqInts[1:])
+            return np.array(inputs, dtype="int32"),np.array(targets, dtype="int32")
+
+        x_train, y_train = splitData_Input_Targets(lang_model, train_corpus_sentences, token2int)
+        x_test, y_test = splitData_Input_Targets(lang_model, test_corpus_sentences, token2int)
+
+        ## Initiate Bi-LM Network
+        biLMNet = WordLSTM_v2(
+            n_layers = 1,
+            bidirection = True,
+            pretrainedWE = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = token2int
+            )
+
+        ## Move Bi-LM Network to GPU
+        biLMNet.cuda()
+        print("Bi-Directional Language Model :")
+        print(biLMNet)
+
+        ## Initiate Trainer
+        trainer = Trainer(
+            token2int=token2int,
+            X_train = x_train,
+            y_train = y_train,
+            X_test = x_test,
+            y_test = y_test
+            )
+
+        ## Initiate BiLM Training
+        trainer.train(
+            biLMNet,
+            batch_size = 64,
+            epochs=20
+            )
+
+        ## Save BiLM Model
+        trainer.saveModel(
+            biLMNet,
+            os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
+        )
+# (pytorch) [rgoli@node1397 NLP_KPIdentify]$ python mainV2.py -m preTrain
+# ====================================================================================================
+# Mode: preTrain
+# ====================================================================================================
+# Total Sentences in Train Corpus:  13603
+# Total Sentences in Test Corpus:  22766
+# Vocabulary Size: 5043
+# /home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.3 and num_layers=1
+#   warnings.warn("dropout option adds dropout after all but last "
+# Bi-Directional Language Model :
+# WordLSTM_v2(
+#   (emb_layer): Embedding(5043, 300)
+#   (lstm): LSTM(300, 128, batch_first=True, dropout=0.3, bidirectional=True)
+#   (dropout): Dropout(p=0.3, inplace=False)
+#   (fc): Linear(in_features=256, out_features=5043, bias=True)
+# )
+# Epoch: 1/20... mean_loss : 0.87, Perplexity : 2.39
+# Epoch: 2/20... mean_loss : 0.23, Perplexity : 1.26
+# Epoch: 3/20... mean_loss : 0.15, Perplexity : 1.16
+# Epoch: 4/20... mean_loss : 0.10, Perplexity : 1.11
+# Epoch: 5/20... mean_loss : 0.07, Perplexity : 1.08
+# Epoch: 6/20... mean_loss : 0.05, Perplexity : 1.05
+# Epoch: 7/20... mean_loss : 0.04, Perplexity : 1.04
+# Epoch: 8/20... mean_loss : 0.03, Perplexity : 1.03
+# Epoch: 9/20... mean_loss : 0.03, Perplexity : 1.03
+# Epoch: 10/20... mean_loss : 0.02, Perplexity : 1.02
+# Epoch: 11/20... mean_loss : 0.02, Perplexity : 1.02
+# Epoch: 12/20... mean_loss : 0.02, Perplexity : 1.02
+# Epoch: 13/20... mean_loss : 0.02, Perplexity : 1.02
+# Epoch: 14/20... mean_loss : 0.02, Perplexity : 1.02
+# Epoch: 15/20... mean_loss : 0.01, Perplexity : 1.01
+# Epoch: 16/20... mean_loss : 0.01, Perplexity : 1.01
+# Epoch: 17/20... mean_loss : 0.01, Perplexity : 1.01
+# Epoch: 18/20... mean_loss : 0.01, Perplexity : 1.01
+# Epoch: 19/20... mean_loss : 0.01, Perplexity : 1.01
+# Epoch: 20/20... mean_loss : 0.01, Perplexity : 1.01
+# Test Perplexity: 30.08
+        pass
+
     elif args.mode == "train":
         trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
         pass

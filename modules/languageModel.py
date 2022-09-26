@@ -74,12 +74,10 @@ english_punctuations_arr= ''.join(english_punctuations)
 
 class LanguageModel:
     
-    def __init__(self):
-        self.nlp = spacy.load("en_core_sci_lg")
-        self.nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
-
+    def __init__(self, token2int = {}):
         self.raw_data = None
         self.processed_data = None
+        self.token2int = token2int
 
     def load_pubmed_data(self,path):
         '''
@@ -139,6 +137,8 @@ class LanguageModel:
         '''
         Create Train & Test Datasets as JSON with Synthetic Keywords
         '''
+        self.nlp = spacy.load("en_core_sci_lg")
+        self.nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
 
         if filter_kp:
             nlp2 = spacy.load('en_ner_bc5cdr_md')
@@ -245,10 +245,19 @@ class LanguageModel:
         else:
             return sent + ['<UNK>']*(len(sent)-seq_len)
 
-    def get_integer_seq(self, seq, token2int):
-        return [token2int[w] for w in seq.split()]
+    def get_integer_seq(self, seq, tokenized=True):
+        if tokenized:
+            return [self.token2int[w] for w in seq]
+        else:
+            return [self.token2int[w] for w in seq.split()]
 
 class Trainer:
+    def __init__(self, token2int={}, X_train=[], y_train=[], X_test=[], y_test=[]):
+        self.token2int = token2int
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_Test = X_test
+        self.y_test = y_test
 
     def get_batches(self, arr_x, arr_y, batch_size):    
         # iterate through the arrays
@@ -279,7 +288,7 @@ class Trainer:
             # initialize hidden state
             h = net.init_hidden(batch_size)
             
-            for x, y in self.get_batches(x_int_train, y_int_train, batch_size):
+            for x, y in self.get_batches(self.X_train, self.y_train, batch_size):
                 
                 # convert numpy arrays to PyTorch arrays
                 inputs, targets = torch.from_numpy(x), torch.from_numpy(y)
@@ -316,7 +325,7 @@ class Trainer:
         net.eval()
         losses = []
         h = net.init_hidden(batch_size)
-        for x, y in self.get_batches(x_int_test, y_int_test, batch_size):
+        for x, y in self.get_batches(self.X_Test, self.y_test, batch_size):
             inputs, targets = torch.from_numpy(x), torch.from_numpy(y)
             targets = targets.type(torch.LongTensor)
 
@@ -331,10 +340,10 @@ class Trainer:
         print("Test Perplexity: %0.2f"%(np.exp(np.mean(losses))))
 
     # predict next token
-    def predict(self, net, tkn, h=None, token2int={}):
+    def predict(self, net, tkn, h=None):
 
         # tensor inputs
-        x = np.array([[token2int[tkn]]])
+        x = np.array([[self.token2int[tkn]]])
         inputs = torch.from_numpy(x)
 
         # push to GPU
@@ -364,7 +373,7 @@ class Trainer:
         return int2token[sampled_token_index], h
 
     # function to generate text
-    def sample(self, net, size, token2int, prime='it is'):
+    def sample(self, net, size, prime='it is'):
             
         # push to GPU
         net.cuda()
@@ -378,16 +387,19 @@ class Trainer:
 
         # predict next token
         for t in prime.split():
-            token, h = self.predict(net, t, h, token2int)
+            token, h = self.predict(net, t, h, self.token2int)
         
         toks.append(token)
 
         # predict subsequent tokens
         for i in range(size-1):
-            token, h = self.predict(net, toks[-1], h, token2int)
+            token, h = self.predict(net, toks[-1], h, self.token2int)
             toks.append(token)
 
         return ' '.join(toks)
+
+    def saveModel(self, net, file_path):
+        torch.save(net.state_dict(),file_path)
 
 class EmbeddingsReader:
 
@@ -586,8 +598,8 @@ class WordLSTM_v2(nn.Module):
     
     def init_hidden(self, batch_size):
         ## NLayers, Batch Size, HiddenSize
-        return (torch.randn(2, batch_size, self.n_hidden // 2).to(DEVICE),
-                torch.randn(2, batch_size, self.n_hidden // 2).to(DEVICE))  
+        return (torch.randn(self.n_layers*2, batch_size, self.n_hidden // 2).to(DEVICE),
+                torch.randn(self.n_layers*2, batch_size, self.n_hidden // 2).to(DEVICE))  
 
 
 if __name__ == "__main__":
@@ -785,7 +797,13 @@ if __name__ == "__main__":
         print(param_tensor, "\t", net.state_dict()[param_tensor].size())
 
     # Train the model
-    trainer = Trainer()
+    trainer = Trainer(
+        token2int = token2int,
+        X_train = x_int_train,
+        y_train = y_int_train,
+        X_test = x_int_test,
+        y_test = y_int_test
+    )
     trainer.train(net, batch_size = args.batchSize, epochs=args.epochs)
     print("\n"*2)
 

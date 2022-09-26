@@ -235,3 +235,8 @@ def string_escape(string):
     string = string.replace("^", "\^")
     string = string.replace("$", "\$")
     return string
+
+def save_json(obj, path):
+    with open(path, "w") as outfile:
+        json.dump(obj, outfile)
+    return True
