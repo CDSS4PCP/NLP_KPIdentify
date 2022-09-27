@@ -167,7 +167,7 @@ def preprocess(data, mode="Train", min_sent_len = 3):
 def loadWordEmbd(wordEmbdType):
     if wordEmbdType == "basic":
         # create integer-to-token mapping
-        ix_to_word = {0:'UNKNOWN'}
+        ix_to_word = {0:'<UNK>'}
         cnt = 1
 
         ## List of Vocabulary/words from all sentences in courpus
@@ -206,7 +206,7 @@ def loadWordEmbd(wordEmbdType):
         modelW2V = KeyedVectors.load_word2vec_format(word_embedding_file, binary=True)
 
         # create integer-to-token mapping
-        ix_to_word = {0:'UNKNOWN'}
+        ix_to_word = {0:'<UNK>'}
         cnt = 1
 
         for word in modelW2V.vocab.keys():
@@ -759,7 +759,7 @@ def get_batches(data, batch_size):
         #for x,y in data[prv:n]:
             for idx, w in enumerate(x[:MAX_SENT_LEN]):
                 if w not in word_to_ix:
-                    x[idx] = 'UNKNOWN'
+                    x[idx] = '<UNK>'
             idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
             data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
             data_x.append(torch.tensor(idxs, dtype=torch.long))
@@ -802,7 +802,7 @@ def get_batches_by_doc(data, doc_sents):
         #for x,y in data[prv:n]:
             for idx, w in enumerate(x[:MAX_SENT_LEN]):
                 if w not in word_to_ix:
-                    x[idx] = 'UNKNOWN'
+                    x[idx] = '<UNK>'
             idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
             data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
             data_x.append(torch.tensor(idxs, dtype=torch.long))
@@ -842,30 +842,35 @@ def get_batches_by_doc(data, doc_sents):
         yield data_x, data_y, data_masks
 
 class hierAttnNtwkTrainer():
-    def __init__(self, model, biLM_path, train_data, test_data, word_to_ix, tag_to_ix):
+    def __init__(self, model, biLM_path, train_data, test_data, word_to_ix, tag_to_ix, ix_to_tag):
         self.model = model
         self.biLM_path = biLM_path
         self.optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
-        self.train_data, self.train_data_doc_sents = preprocess(train_data, "Train")
-        self.test_data, self.test_data_doc_sents = preprocess(test_data, "Test")
+        if train_data:
+            self.train_data, self.train_data_doc_sents = preprocess(train_data, "Train")
+        if test_data:
+            self.test_data, self.test_data_doc_sents = preprocess(test_data, "Test")
         self.word_to_ix = word_to_ix
         self.tag_to_ix = tag_to_ix
+        self.ix_to_tag = ix_to_tag
 
-        model_stateDict = model.state_dict()
-        pretrainedLM = torch.load(biLM_path)
-        pretrainedLM_stateDict = pretrainedLM
+        if self.biLM_path:
+            model_stateDict = model.state_dict()
+            pretrainedLM = torch.load(biLM_path)
+            pretrainedLM_stateDict = pretrainedLM
 
-        # 1. filter out unnecessary keys
-        pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
-        # 2. overwrite entries in the existing state dict
-        model_stateDict.update(pretrained_dict) 
-        # 3. load the new state dict
-        self.model.load_state_dict(model_stateDict)
+            # 1. filter out unnecessary keys
+            pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
+            # 2. overwrite entries in the existing state dict
+            model_stateDict.update(pretrained_dict) 
+            # 3. load the new state dict
+            self.model.load_state_dict(model_stateDict)
+
         self.best_model = model
+        self.model.to(DEVICE)
 
     def train(self):
         self.model.train()
-        self.model.to(DEVICE)
         print('<'*30,'Start hierAttnNtwk-Bi-LSTM-CRF Train','>'*30)
         # Make sure prepare_sequence from earlier in the LSTM section is loaded
         minloss = 10000
@@ -915,7 +920,6 @@ class hierAttnNtwkTrainer():
         torch.save(self.best_model.state_dict(), file_path)
 
     def loadModel(self, file_path):
-        self.model = BiLSTM_CRF()
         self.model.load_state_dict(torch.load(file_path))
         return self.model
 
@@ -930,7 +934,7 @@ class hierAttnNtwkTrainer():
             #for x,y in data[prv:n]:
                 for idx, w in enumerate(x[:MAX_SENT_LEN]):
                     if w not in self.word_to_ix:
-                        x[idx] = 'UNKNOWN'
+                        x[idx] = '<UNK>'
                 idxs = [self.word_to_ix[w] for w in x[:MAX_SENT_LEN]]
                 data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
                 data_x.append(torch.tensor(idxs, dtype=torch.long))
@@ -968,6 +972,36 @@ class hierAttnNtwkTrainer():
             # print("Batch: ", prv)
             
             yield data_x, data_y, data_masks
+
+    def seqEvalReport(self, targets, preds):
+        print('SeqEval Metrics:')
+        print(classification_report(targets, preds, mode='strict', scheme=IOB2))
+        print("Precision given by SeqEval: {:.2f}%".format(precision_score(targets, preds)*100))
+        print("Recall given by SeqEval: {:.2f}%".format(recall_score(targets, preds)*100))
+        print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(targets, preds)*100))
+        print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(targets, preds)*100))
+
+
+    def getMetricsOnData(self, data, ds_type="Test"):
+        data, data_doc_sents = preprocess(data, ds_type)
+        x_sents = []
+        y_preds, y_targets = [], []
+        with torch.no_grad():
+            for inputs, targets, masks in self.get_batches_by_doc(data, data_doc_sents):
+                inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+                _, tags = self.model(inputs,masks)
+                for idx, (pred,label) in enumerate(zip(tags, targets)):
+                    x_sents.append(data[idx][0])
+                    length = len(x_sents[-1])
+                    temp_preds = [self.ix_to_tag[i] for i in pred[:length]]
+                    temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+                    y_preds.append(temp_preds)
+                    y_targets.append([self.ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+
+        print("Metrics on {} DS:".format(ds_type))
+        get_metrics(x_sents, y_preds, y_targets, mappers=True)
+        self.seqEvalReport(y_targets, y_preds)
+
 
 if __name__ == "__main__":
     print('<'*30,'START Read Data','>'*30)

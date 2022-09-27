@@ -99,17 +99,17 @@ def mark_keyword_all_sentences(keywords, sentences):
                 mapper[i:i+kw_len]=['I-KP']*kw_len
                 mapper[i]='B-KP'
 
-#                 if kw_len>=2:
-#                     mapper[i+kw_len-1]="I-KP"
-#                 if kw_len==1:
-#                     mapper[i]="B-KP"
+                # if kw_len>=2:
+                #     mapper[i+kw_len-1]="I-KP"
+                # if kw_len==1:
+                #     mapper[i]="B-KP"
 
             i+=1
 
-#     print(complete_text)
-#     print(mapper)
-#     for i,j in zip(complete_text,mapper):
-#         print(j,'\t',i)
+    # print(complete_text)
+    # print(mapper)
+    # for i,j in zip(complete_text,mapper):
+    #     print(j,'\t',i)
 
     final_mapper = []
     final_tokens = []
@@ -120,8 +120,8 @@ def mark_keyword_all_sentences(keywords, sentences):
         final_tokens.append(complete_text[start:start+slen])
         start+=slen
 
-#     for i,j in zip(sentences,final_mapper):
-#         print(i,j)
+    # for i,j in zip(sentences,final_mapper):
+    #     print(i,j)
     
     return complete_text, final_mapper, final_tokens
 
@@ -249,10 +249,6 @@ def build_features_infer(document, sections, mode, save_folder):
 
 # Construct features of data
 def build_features(path, sections, mode, save_folder):
-    # global js
-    # cache_path = os.path.join(save_folder, "cache_%s"%mode)
-    # if os.path.exists(cache_path): js = json.load(open(cache_path, 'r', encoding='utf-8'))
-
     feature_data=[]
     wfof_dict_total, complete_text_total, tokens_list_total, labels_list_total  = [], [], [], []
 
@@ -332,11 +328,6 @@ def build_features(path, sections, mode, save_folder):
 
             feature_data.append([document['id']+str(pidx), tokens_list, labels_list, keywords, features])
 
-#             count+=1
-#             print('+'*50)
-#             if count==10:
-#                 return True, True
-
             pbar1.set_description("%s-th document processed"%(pidx+1))  
 
     ## features TF-IDF and Text Rank
@@ -369,9 +360,6 @@ def build_features(path, sections, mode, save_folder):
                         pass
                 rev_data.append([" ".join(tokens), labels, POS, LEN, WFOF, TI, TR])
             return_datas[p_id] = rev_data
-
-            # print(return_datas)
-            # return True
 
             pbar2.set_description("The %s-th document feature is completed" % (d_index + 1))
     return return_datas, id_keywords
@@ -634,15 +622,17 @@ def build_data_sets(json_data_folder, sections, interim_folder, stemming='no'):
         fp.write("\n".join(POS_VOCAB))
     print("\033[34mINFO: Dataset partition completed\033[0m")
     
-def build_testgs_data_set(json_data_folder, sections, interim_folder, stemming='no'):      
-    testgs_path = os.path.join(json_data_folder, 'testgs.json')
+def build_testgs_data_set(json_data_folder, sections, interim_folder, stemming='no', ds_filename = 'testgs.json'):      
+    testgs_path = os.path.join(json_data_folder, ds_filename)
     
-    if stemming=="no":
-        predict_features, predict_keywords = build_features(testgs_path, sections, 'testgs', interim_folder)
-    else:
-        predict_features, predict_keywords = build_datas(testgs_path, sections, 'testgs', interim_folder)      
+    ds_type = ds_filename.split('.')[0]
 
-    save_datas(predict_features, predict_keywords, "testgs", interim_folder)
+    if stemming=="no":
+        predict_features, predict_keywords = build_features(testgs_path, sections, ds_type, interim_folder)
+    else:
+        predict_features, predict_keywords = build_datas(testgs_path, sections, ds_type, interim_folder)      
+
+    save_datas(predict_features, predict_keywords, ds_type, interim_folder)
 
 def build_infer_data_set(data, sections, interim_folder, stemming='no'):
     

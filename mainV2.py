@@ -1,6 +1,6 @@
 #################################
 ## Author: Rohan Goli
-## Usage: Experiment with model training/testing and prediction using Document-level attention by Hierarchical Attention BiLSTM-CRF
+## Usage: Document-level attention by Hierarchical Attention BiLSTM-CRF
 ## Date: 09/21/22
 #################################
 
@@ -11,6 +11,8 @@ import shutil
 import time
 import sys
 import json
+
+from collections import defaultdict
 
 import gensim
 from gensim.models import KeyedVectors
@@ -341,17 +343,20 @@ if __name__ == "__main__":
         trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
         testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
 
-        ## Load Word Embeddings
-        modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+        # ## Load Word Embeddings
+        # modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
 
-        ## Create Integer-to-Token mapping
-        ix_to_word = {0:'<UNK>'}
-        cnt = 1
-        for word in modelW2V.key_to_index.keys():
-            ix_to_word[cnt] = word
-            cnt+=1
-        ## Create Token-to-Integer mapping
-        word_to_ix = {t: i for i, t in ix_to_word.items()}
+        # ## Create Integer-to-Token mapping
+        # ix_to_word = {0:'<UNK>'}
+        # cnt = 1
+        # for word in modelW2V.key_to_index.keys():
+        #     ix_to_word[cnt] = word
+        #     cnt+=1
+        # ## Create Token-to-Integer mapping
+        # word_to_ix = {t: i for i, t in ix_to_word.items()}
+
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
 
         ## Store Vocab Size - For further reference
         vocab_size = len(ix_to_word)
@@ -380,16 +385,322 @@ if __name__ == "__main__":
             test_data = testData,
             biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
             word_to_ix = word_to_ix,
-            tag_to_ix = tag_to_ix
+            tag_to_ix = tag_to_ix,
+            ix_to_tag = ix_to_tag
         )
+        ## Start Training
         hierAttnNtwk_trainer.train()
+        ## Save Best Model
         hierAttnNtwk_trainer.saveModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
+
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Start hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Epoch: 2/30 Loss: 4.761
+        # Epoch: 4/30 Loss: 2.215
+        # Epoch: 6/30 Loss: 1.512
+        # Epoch: 8/30 Loss: 1.063
+        # Epoch: 10/30 Loss: 0.900
+        # Epoch: 12/30 Loss: 0.739
+        # Epoch: 14/30 Loss: 0.670
+        # Epoch: 16/30 Loss: 0.613
+        # Epoch: 18/30 Loss: 0.534
+        # Epoch: 20/30 Loss: 0.432
+        # Epoch: 22/30 Loss: 0.413
+        # Epoch: 24/30 Loss: 0.374
+        # Epoch: 26/30 Loss: 0.339
+        # Epoch: 28/30 Loss: 0.308
+        # Epoch: 30/30 Loss: 0.279
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Test Loss: 10.339
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # (pytorch) [rgoli@node1118 NLP_KPIdentify]$         
         pass
 
     elif args.mode == "test":
         testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
+        
+        ## Read Vocabulary Mapping
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+
+        ## Initialize Model Architecture with Word Embeddings, 
+        biLSTM_CRF_model = BiLSTM_CRF(
+            vocab_size = len(word_to_ix),
+            tag_to_ix = tag_to_ix,
+            embedding_dim = EMBEDDING_DIM,
+            dropout = DROPOUT,
+            use_pretrained_embd=word_embeddings
+            )
+        
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
+        hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+            model = biLSTM_CRF_model,
+            train_data = None,
+            test_data = None,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            word_to_ix = word_to_ix,
+            tag_to_ix = tag_to_ix,
+            ix_to_tag = ix_to_tag
+        )
+
+        ## Load Best Model
+        hierAttnNtwk_trainer.loadModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
+
+        ## Get Metrics on Test Data
+        hierAttnNtwk_trainer.getMetricsOnData(testData)
+        # (pytorch) [rgoli@node1118 NLP_KPIdentify]$ python mainV2.py -m test
+        # Word Embedding Type:  word2vec
+        # ====================================================================================================
+        # Mode: test
+        # ====================================================================================================
+        # Vocabulary Size: 5043
+        # Using pretrained word embeddings
+        # /home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+        #   warnings.warn("dropout option adds dropout after all but last "
+        # Test Keyword Marking:
+        # 100%|████████████████████████████████████████████████████████████████████| 2099/2099 [00:15<00:00, 132.40it/s]
+        # Metrics on Test DS:
+        # Confusion Matrix:
+        #  [[ 39402.    884.  15876.]
+        #  [  1197.  13285.   4920.]
+        #  [ 10196.   2577. 379908.]]
+        # --------------------------------------------------
+        # Label: B-KP
+        # TP:39402.0 FN:16760.0 FP:11393.0 TN:400690.0
+        # --------------------------------------------------
+        #     Accuracy:   0.939875
+        #     Misclassification:  0.060125
+        #     Precision:  0.775706
+        #     Sensitivity/Recall: 0.701578
+        #     Specificity:        0.972353
+        #     F1 Score:   0.736782
+        # --------------------------------------------------
+        # Label: I-KP
+        # TP:13285.0 FN:6117.0 FP:3461.0 TN:445382.0
+        # --------------------------------------------------
+        #     Accuracy:   0.979545
+        #     Misclassification:  0.020455
+        #     Precision:  0.793324
+        #     Sensitivity/Recall: 0.684723
+        #     Specificity:        0.992289
+        #     F1 Score:   0.735034
+        # --------------------------------------------------
+        # Label: O
+        # TP:379908.0 FN:12773.0 FP:20796.0 TN:54768.0
+        # --------------------------------------------------
+        #     Accuracy:   0.928309
+        #     Misclassification:  0.071691
+        #     Precision:  0.948101
+        #     Sensitivity/Recall: 0.967472
+        #     Specificity:        0.724790
+        #     F1 Score:   0.957689
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # Avg. Accuracy: 0.94924
+        # Avg. Precision: 0.839044
+        # Avg. F1-Score: 0.809835
+        # Avg. Sensitivity: 0.784591
+        # Avg. Specificity: 0.896477
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # SeqEval Metrics:
+        #               precision    recall  f1-score   support
+
+        #           KP       0.75      0.68      0.71     56162
+
+        #    micro avg       0.75      0.68      0.71     56162
+        #    macro avg       0.75      0.68      0.71     56162
+        # weighted avg       0.75      0.68      0.71     56162
+
+        # Precision given by SeqEval: 74.77%
+        # Recall given by SeqEval: 67.66%
+        # F1-Score given by SeqEval: 71.04%
+        # Accuracy given by SeqEval: 92.39%
         pass
+
     elif args.mode == "testGS":
+        ## Read Vocabulary Mapping
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+
+        ## Initialize Model Architecture with Word Embeddings, 
+        biLSTM_CRF_model = BiLSTM_CRF(
+            vocab_size = len(word_to_ix),
+            tag_to_ix = tag_to_ix,
+            embedding_dim = EMBEDDING_DIM,
+            dropout = DROPOUT,
+            use_pretrained_embd=word_embeddings
+            )
+        
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
+        hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+            model = biLSTM_CRF_model,
+            train_data = None,
+            test_data = None,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            word_to_ix = word_to_ix,
+            tag_to_ix = tag_to_ix,
+            ix_to_tag = ix_to_tag
+        )
+
+        ## Load Best Model
+        hierAttnNtwk_trainer.loadModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
+
+        ## Get Metrics on Test Data - GS42
+        testGS42Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs42.json"))
+        hierAttnNtwk_trainer.getMetricsOnData(testGS42Data, "Test GS42")
+
+        ## Get Metrics on Test Data - GS91
+        testGS91Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91.json"))
+        hierAttnNtwk_trainer.getMetricsOnData(testGS91Data, "Test GS91")
+        
+        # (pytorch) [rgoli@node1118 NLP_KPIdentify]$ python mainV2.py -m testGS
+        # Word Embedding Type:  word2vec
+        # ====================================================================================================
+        # Mode: testGS
+        # ====================================================================================================
+        # Vocabulary Size: 5043
+        # Using pretrained word embeddings
+        # /home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+        #   warnings.warn("dropout option adds dropout after all but last "
+        # Test GS42 Keyword Marking:
+        # 100%|███████████████████████████████████████████████████████████████| 42/42 [00:00<00:00, 105.31it/s]
+        # Metrics on Test GS42 DS:
+        # Confusion Matrix:
+        #  [[ 567.   18.  463.]
+        #  [  46.  230.  174.]
+        #  [ 267.   63. 6665.]]
+        # --------------------------------------------------
+        # Label: B-KP
+        # TP:567.0 FN:481.0 FP:313.0 TN:7132.0
+        # --------------------------------------------------
+        #     Accuracy:   0.906511
+        #     Misclassification:  0.093489
+        #     Precision:  0.644318
+        #     Sensitivity/Recall: 0.541031
+        #     Specificity:        0.957958
+        #     F1 Score:   0.588174
+        # --------------------------------------------------
+        # Label: I-KP
+        # TP:230.0 FN:220.0 FP:81.0 TN:7962.0
+        # --------------------------------------------------
+        #     Accuracy:   0.964559
+        #     Misclassification:  0.035441
+        #     Precision:  0.739550
+        #     Sensitivity/Recall: 0.511111
+        #     Specificity:        0.989929
+        #     F1 Score:   0.604468
+        # --------------------------------------------------
+        # Label: O
+        # TP:6665.0 FN:330.0 FP:637.0 TN:861.0
+        # --------------------------------------------------
+        #     Accuracy:   0.886142
+        #     Misclassification:  0.113858
+        #     Precision:  0.912764
+        #     Sensitivity/Recall: 0.952823
+        #     Specificity:        0.574766
+        #     F1 Score:   0.932363
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # Avg. Accuracy: 0.91907
+        # Avg. Precision: 0.765544
+        # Avg. F1-Score: 0.708335
+        # Avg. Sensitivity: 0.668322
+        # Avg. Specificity: 0.840885
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # SeqEval Metrics:
+        #               precision    recall  f1-score   support
+
+        #           KP       0.60      0.50      0.54      1048
+
+        #    micro avg       0.60      0.50      0.54      1048
+        #    macro avg       0.60      0.50      0.54      1048
+        # weighted avg       0.60      0.50      0.54      1048
+
+        # Precision given by SeqEval: 59.59%
+        # Recall given by SeqEval: 50.10%
+        # F1-Score given by SeqEval: 54.43%
+        # Accuracy given by SeqEval: 87.86%
+        # Test GS91 Keyword Marking:
+        # 100%|███████████████████████████████████████████████████████████████| 91/91 [00:00<00:00, 147.61it/s]
+        # Metrics on Test GS91 DS:
+        # Confusion Matrix:
+        #  [[ 1282.    62.  1042.]
+        #  [   91.   419.   303.]
+        #  [  601.   165. 15518.]]
+        # --------------------------------------------------
+        # Label: B-KP
+        # TP:1282.0 FN:1104.0 FP:692.0 TN:16405.0
+        # --------------------------------------------------
+        #     Accuracy:   0.907817
+        #     Misclassification:  0.092183
+        #     Precision:  0.649443
+        #     Sensitivity/Recall: 0.537301
+        #     Specificity:        0.959525
+        #     F1 Score:   0.588073
+        # --------------------------------------------------
+        # Label: I-KP
+        # TP:419.0 FN:394.0 FP:227.0 TN:18443.0
+        # --------------------------------------------------
+        #     Accuracy:   0.968126
+        #     Misclassification:  0.031874
+        #     Precision:  0.648607
+        #     Sensitivity/Recall: 0.515375
+        #     Specificity:        0.987841
+        #     F1 Score:   0.574366
+        # --------------------------------------------------
+        # Label: O
+        # TP:15518.0 FN:766.0 FP:1345.0 TN:1854.0
+        # --------------------------------------------------
+        #     Accuracy:   0.891649
+        #     Misclassification:  0.108351
+        #     Precision:  0.920240
+        #     Sensitivity/Recall: 0.952960
+        #     Specificity:        0.579556
+        #     F1 Score:   0.936314
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # Avg. Accuracy: 0.92253
+        # Avg. Precision: 0.739430
+        # Avg. F1-Score: 0.699584
+        # Avg. Sensitivity: 0.668545
+        # Avg. Specificity: 0.842308
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        # SeqEval Metrics:
+        #               precision    recall  f1-score   support
+
+        #           KP       0.61      0.50      0.55      2386
+
+        #    micro avg       0.61      0.50      0.55      2386
+        #    macro avg       0.61      0.50      0.55      2386
+        # weighted avg       0.61      0.50      0.55      2386
+
+        # Precision given by SeqEval: 60.68%
+        # Recall given by SeqEval: 50.25%
+        # F1-Score given by SeqEval: 54.97%
+        # Accuracy given by SeqEval: 88.38%
         pass
     else:
         print("Invalid option selected!!!\n Mode of opertion: train/test/predict/createData")

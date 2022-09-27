@@ -369,17 +369,17 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     
     pdata = pd.read_csv(test_path, sep=' <sep> ', engine='python', names=names)
     sentences = pdata['text'][:].values
-#     for pred, target in zip(y_preds,y_targets):
-#         x=len
-#         for val in pred:
-#             if val not in ['B-KP','I-KP','O']:
-#                 print(pred)
-#         for val in target:
-#             if val not in ['B-KP','I-KP','O']:
-#                 print(target)
-#     print(sentences[0])
-#     print(y_preds[0])
-#     print(y_targets[0])
+    # for pred, target in zip(y_preds,y_targets):
+    #     x=len
+    #     for val in pred:
+    #         if val not in ['B-KP','I-KP','O']:
+    #             print(pred)
+    #     for val in target:
+    #         if val not in ['B-KP','I-KP','O']:
+    #             print(target)
+    # print(sentences[0])
+    # print(y_preds[0])
+    # print(y_targets[0])
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     
     print('SeqEval Metrics:')
@@ -397,7 +397,7 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     return p, r, f1
 
 # Model testgs predict function
-def testgs(file_folder, corpus_type, data_type, texts_features=None):
+def testgs(file_folder, file_name, corpus_type, data_type, texts_features=None):
     # File path
     testgs_path = os.path.join(file_folder, '%s.txt'%data_type)
     predict_info_path = os.path.join(file_folder, '%s_info.json'%data_type)
@@ -442,29 +442,29 @@ def testgs(file_folder, corpus_type, data_type, texts_features=None):
     
     pdata = pd.read_csv(testgs_path, sep=' <sep> ', engine='python', names=names)
     target_kp = []
-#     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
-#         print("Actual Sentence: ", sent)
-#         # sent_len = len(pred)
+    # for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
+    #     print("Actual Sentence: ", sent)
+    #     # sent_len = len(pred)
     
     complete_text = '. '.join(pdata['text'][:].values)
     sentences = pdata['text'][:].values
     
     pred_kws = parse_tags(sentences, y_preds)
     pred_kws.sort(reverse=True, key=len)
-#     print(pred_kws, end='\n\n')
+    # print(pred_kws, end='\n\n')
         
-#     markings = mark_keyword_all_sentences(pred_kws,sentences)
-#     complt_text = markings[0]
-#     mark_kws = markings[1]
-#     mark_tokens = markings[2]
-#     # print(complt_text)
+    # markings = mark_keyword_all_sentences(pred_kws,sentences)
+    # complt_text = markings[0]
+    # mark_kws = markings[1]
+    # mark_tokens = markings[2]
+    # # print(complt_text)
     
-#     for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
-#         if mark!=pred:
-#             print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
+    # for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
+    #     if mark!=pred:
+    #         print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
     
-#     print("Complete Text:\n",complete_text,end='\n\n')
-#     print(pred_kws, end='\n\n')
+    # print("Complete Text:\n",complete_text,end='\n\n')
+    # print(pred_kws, end='\n\n')
     
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     
@@ -475,30 +475,30 @@ def testgs(file_folder, corpus_type, data_type, texts_features=None):
     print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
     print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(y_targets, y_preds)*100))
     
-#     print('CRF Suite Classification Report:')
-#     labels=['B-KP','I-KP','O']
-#     labels.remove('O')
-#     sorted_labels = sorted(labels,key=lambda name: (name[1:], name[0]))
-#     print(crfmetrics.flat_classification_report(y_targets, y_preds, sorted_labels))
+    # print('CRF Suite Classification Report:')
+    # labels=['B-KP','I-KP','O']
+    # labels.remove('O')
+    # sorted_labels = sorted(labels,key=lambda name: (name[1:], name[0]))
+    # print(crfmetrics.flat_classification_report(y_targets, y_preds, sorted_labels))
     
-#     for i,j in zip(y_preds,y_targets):
-#         print(i,j,sep='\n',end='\n\n')
+    # for i,j in zip(y_preds,y_targets):
+    #     print(i,j,sep='\n',end='\n\n')
     
     # print("Text:\n", all_sentences, end='\n\n')
 
-        # i=0
-        # pred_words = []
-        # while i<sent_len:
-        #     if pred[i]=='O':
-        #         i+=1
-        #         continue
+    #     i=0
+    #     pred_words = []
+    #     while i<sent_len:
+    #         if pred[i]=='O':
+    #             i+=1
+    #             continue
 
-        #     if pred[i]=='K_B':
-        #         pred_words.append([pred[i]])
-        #     else:
-        #         pred_words[-1].extend(pred[i])
+    #         if pred[i]=='K_B':
+    #             pred_words.append([pred[i]])
+    #         else:
+    #             pred_words[-1].extend(pred[i])
             
-        #     i+=1
+    #         i+=1
             
     # p, r, f1, NUM = performance_metrics(y_preds, predict_info_path)
     # print("\033[034mINFO: p: %s, r: %s, f1: %s\033[0m"%(p, r, f1))
@@ -554,9 +554,9 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     
     pdata = pd.read_csv(predict_path, sep=' <sep> ', engine='python', names=names)
     target_kp = []
-#     for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
-#         print("Actual Sentence: ", sent)
-#         # sent_len = len(pred)
+    # for sent,pred,label in zip(pdata['text'],y_preds,y_targets):
+    #     print("Actual Sentence: ", sent)
+    #     # sent_len = len(pred)
     
     complete_text = '. '.join(pdata['text'][:].values)
     sentences = pdata['text'][:].values
@@ -564,16 +564,16 @@ def predict_kws(file_folder, corpus_type, data_type, texts_features=None):
     pred_kws = parse_tags(sentences, y_preds)
     pred_kws.sort(reverse=True, key=len)
     return pred_kws
-#     print(pred_kws, end='\n\n')
+    # print(pred_kws, end='\n\n')
         
-#     markings = mark_keyword_all_sentences(pred_kws,sentences)
-#     complt_text = markings[0]
-#     mark_kws = markings[1]
-#     mark_tokens = markings[2]
-#     # print(complt_text)
+    # markings = mark_keyword_all_sentences(pred_kws,sentences)
+    # complt_text = markings[0]
+    # mark_kws = markings[1]
+    # mark_tokens = markings[2]
+    # # print(complt_text)
     
-#     for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
-#         if mark!=pred:
-#             print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
+    # for sent, mark, token, pred, targ in zip(sentences, mark_kws, mark_tokens,y_preds,y_targets):
+    #     if mark!=pred:
+    #         print('Sentence: ',sent,'\nTokens:',token, '\nPrep.Func. Markings:',mark,'\nKP Predictions',pred, '\nGS Markings',targ ,end='\n\n')
 
  
