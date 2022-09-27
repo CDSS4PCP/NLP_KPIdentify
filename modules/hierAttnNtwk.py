@@ -11,6 +11,10 @@
 
 # Attention - Pytorch & Keras - https://www.kaggle.com/code/mlwhiz/attention-pytorch-and-keras/notebook 
 
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
@@ -20,8 +24,6 @@ import torch.nn.functional as F
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
 
-import os
-import sys
 import utils
 
 import unidecode
@@ -38,9 +40,9 @@ from sklearn.metrics import confusion_matrix
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
 from seqeval.scheme import IOB2
 
-from languageModel import EmbeddingsReader
+from modules.languageModel import EmbeddingsReader
 
-import createDataset as cData
+import modules.createDataset as cData
 
 import gensim
 from gensim.models import KeyedVectors
@@ -161,6 +163,7 @@ def preprocess(data, mode="Train", min_sent_len = 3):
 
     return  prcd_data, prcd_data_doc_sents  
 
+## Direct use in mainV2.py - Fix Duplication of Implementation/USAGE
 def loadWordEmbd(wordEmbdType):
     if wordEmbdType == "basic":
         # create integer-to-token mapping
@@ -787,6 +790,7 @@ def get_batches(data, batch_size):
         
         yield data_x, data_y, data_masks
 
+## Already in Class hierAttnNtwkTrainer - Fix Duplication of Function Implementation
 def get_batches_by_doc(data, doc_sents):    
     # iterate through the arrays
     prv = 0
@@ -836,6 +840,134 @@ def get_batches_by_doc(data, doc_sents):
         # print("Batch: ", prv)
         
         yield data_x, data_y, data_masks
+
+class hierAttnNtwkTrainer():
+    def __init__(self, model, biLM_path, train_data, test_data, word_to_ix, tag_to_ix):
+        self.model = model
+        self.biLM_path = biLM_path
+        self.optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+        self.train_data, self.train_data_doc_sents = preprocess(train_data, "Train")
+        self.test_data, self.test_data_doc_sents = preprocess(test_data, "Test")
+        self.word_to_ix = word_to_ix
+        self.tag_to_ix = tag_to_ix
+
+        model_stateDict = model.state_dict()
+        pretrainedLM = torch.load(biLM_path)
+        pretrainedLM_stateDict = pretrainedLM
+
+        # 1. filter out unnecessary keys
+        pretrained_dict = {k: v for k, v in pretrainedLM_stateDict.items() if k in model_stateDict}
+        # 2. overwrite entries in the existing state dict
+        model_stateDict.update(pretrained_dict) 
+        # 3. load the new state dict
+        self.model.load_state_dict(model_stateDict)
+        self.best_model = model
+
+    def train(self):
+        self.model.train()
+        self.model.to(DEVICE)
+        print('<'*30,'Start hierAttnNtwk-Bi-LSTM-CRF Train','>'*30)
+        # Make sure prepare_sequence from earlier in the LSTM section is loaded
+        minloss = 10000
+        for epoch in range(EPOCHS):
+            losses= []
+            for inputs, targets, masks, in self.get_batches_by_doc(self.train_data, self.train_data_doc_sents):
+                # Step 1. Remember that Pytorch accumulates gradients.
+                # We need to clear them out before each instance
+                self.model.zero_grad()
+
+                # Step 2. Get our inputs ready for the network, that is,
+                # turn them into Tensors of word indices.
+                inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
+
+                # Step 3. Run our forward pass.
+                loss = self.model.neg_log_likelihood(inputs, targets, masks)
+                # print("loss: ",loss, loss.shape)
+                losses.append(loss.detach().item())
+
+                # Step 4. Compute the loss, gradients, and update the parameters by
+                # calling optimizer.step()
+                loss.backward()
+                self.optimizer.step()
+            
+            curr_model_loss = np.mean(losses).item()
+            if (epoch+1)%2==0:
+                print("Epoch: {}/{} Loss: {:.3f}".format(epoch+1,EPOCHS,curr_model_loss))
+            if curr_model_loss<minloss:
+                minloss = curr_model_loss
+                self.best_model = self.model
+        print('<'*30,'END hierAttnNtwk-Bi-LSTM-CRF Train','>'*30)
+
+        print('<'*30,'START hierAttnNtwk-Bi-LSTM-CRF Test','>'*30)
+        # Check predictions after training
+        self.best_model.eval()
+        losses= []
+        with torch.no_grad():
+            # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
+            for inputs, targets, masks in self.get_batches_by_doc(self.test_data, self.test_data_doc_sents):
+                inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
+                loss = self.best_model.neg_log_likelihood(inputs, targets, masks)
+                losses.append(loss.detach().item())
+        print('Test Loss: {:.3f}'.format(np.mean(losses)))
+        print('<'*30,'END hierAttnNtwk-Bi-LSTM-CRF Test','>'*30)
+
+    def saveModel(self, file_path):
+        torch.save(self.best_model.state_dict(), file_path)
+
+    def loadModel(self, file_path):
+        self.model = BiLSTM_CRF()
+        self.model.load_state_dict(torch.load(file_path))
+        return self.model
+
+    def get_batches_by_doc(self, data, doc_sents):    
+        # iterate through the arrays
+        prv = 0
+        for n in doc_sents:
+            data_x = []
+            data_masks = []
+            data_y = []
+            for x,y in data[prv:prv+n]:
+            #for x,y in data[prv:n]:
+                for idx, w in enumerate(x[:MAX_SENT_LEN]):
+                    if w not in self.word_to_ix:
+                        x[idx] = 'UNKNOWN'
+                idxs = [self.word_to_ix[w] for w in x[:MAX_SENT_LEN]]
+                data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+                data_x.append(torch.tensor(idxs, dtype=torch.long))
+                data_y.append(torch.tensor([self.tag_to_ix[t] for t in y[:MAX_SENT_LEN]], dtype=torch.long))
+
+            # pad first seq to desired length
+            try:
+                data_x[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_x[0].shape[0]), 0)(data_x[0])
+                data_y[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_y[0].shape[0]), 0)(data_y[0])
+                data_masks[0] = nn.ConstantPad1d((0, MAX_SENT_LEN - data_masks[0].shape[0]), 0)(data_masks[0])
+            except Exception as e:
+                print("Prev={}, N={}".format(prv,n))
+                print("Total Len:", len(data), "Access:", prv+n)
+                print(data[prv:prv+n])
+                print(e)
+                print(data_x, data_y)
+                # print(len(data_x), len(data_y), print(len(data_masks)))
+            
+            # pad all seqs to desired length
+            data_x_pad = pad_sequence(data_x, batch_first= True)
+            data_y_pad = pad_sequence(data_y, batch_first= True)
+            data_masks_pad = pad_sequence(data_masks, batch_first= True)
+            
+            # Convert list of tensors to tuple
+            data_x_tuple = tuple(data_x_pad)
+            data_y_tuple = tuple(data_y_pad)
+            data_masks_tuple = tuple(data_masks_pad)
+            
+            # Convert tuple of tensors to Stack of Tensors
+            data_x = torch.stack(data_x_tuple)
+            data_y = torch.stack(data_y_tuple)
+            data_masks = torch.stack(data_masks_tuple)
+            
+            prv += n
+            # print("Batch: ", prv)
+            
+            yield data_x, data_y, data_masks
 
 if __name__ == "__main__":
     print('<'*30,'START Read Data','>'*30)

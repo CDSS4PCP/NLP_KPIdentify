@@ -23,6 +23,10 @@ keywordExtraction/GNA_Files/*.log
 keywordExtraction/GNA_Files/*.h5
 keywordExtraction/GNA_Files/*.model
 
+sciSpacy*/*
+cdssSciSpacy*/**/*
+**/temp*.cfg
+
 # Ignore interim data
 interim_data/**/*
 !interim_data/config.json

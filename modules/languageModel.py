@@ -252,8 +252,9 @@ class LanguageModel:
             return [self.token2int[w] for w in seq.split()]
 
 class Trainer:
-    def __init__(self, token2int={}, X_train=[], y_train=[], X_test=[], y_test=[]):
+    def __init__(self, token2int={}, int2token={}, X_train=[], y_train=[], X_test=[], y_test=[]):
         self.token2int = token2int
+        self.int2token = int2token
         self.X_train = X_train
         self.y_train = y_train
         self.X_Test = X_test
@@ -370,7 +371,7 @@ class Trainer:
         sampled_token_index = top_n_idx[random.sample([0,1,2],1)[0]]
 
         # return the encoded value of the predicted char and the hidden state
-        return int2token[sampled_token_index], h
+        return self.int2token[sampled_token_index], h
 
     # function to generate text
     def sample(self, net, size, prime='it is'):
@@ -387,13 +388,13 @@ class Trainer:
 
         # predict next token
         for t in prime.split():
-            token, h = self.predict(net, t, h, self.token2int)
+            token, h = self.predict(net, t, h)
         
         toks.append(token)
 
         # predict subsequent tokens
         for i in range(size-1):
-            token, h = self.predict(net, toks[-1], h, self.token2int)
+            token, h = self.predict(net, toks[-1], h)
             toks.append(token)
 
         return ' '.join(toks)

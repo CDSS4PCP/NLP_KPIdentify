@@ -18,16 +18,25 @@ from gensim.models import KeyedVectors
 from modules import utils
 from modules import createDataset as data
 from modules import preProcessData as ppd
-# from modules import hierAttnNtwk as hNA
 
-from modules.languageModel import LanguageModel, WordLSTM_v2, Trainer
+from modules.languageModel import LanguageModel, WordLSTM_v2, Trainer, EmbeddingsReader
+from modules.hierAttnNtwk import BiLSTM_CRF, hierAttnNtwkTrainer
 
 import numpy as np
+
+import torch
+torch.manual_seed(1)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Get the absolute path under the current working directory
 WORKING_PATH = os.getcwd()
 BI_LM_MODEL_FILE = "BiLM.pt"
 WORD_EMBED_FILE = 'LM_word2vec.bin'
+BILSTMCRF_MODEL_NAME = 'hierAttn-BiLSMT-CRF'
+START_TAG = "<START>"
+STOP_TAG = "<STOP>"
+EMBEDDING_DIM = 300
+DROPOUT = 0.2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Keyphrase extraction using hierAttn-BiLSTM-CRF")
@@ -255,6 +264,7 @@ if __name__ == "__main__":
         ## Initiate Trainer
         trainer = Trainer(
             token2int=token2int,
+            int2token=int2token,
             X_train = x_train,
             y_train = y_train,
             X_test = x_test,
@@ -273,48 +283,109 @@ if __name__ == "__main__":
             biLMNet,
             os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
         )
-# (pytorch) [rgoli@node1397 NLP_KPIdentify]$ python mainV2.py -m preTrain
-# ====================================================================================================
-# Mode: preTrain
-# ====================================================================================================
-# Total Sentences in Train Corpus:  13603
-# Total Sentences in Test Corpus:  22766
-# Vocabulary Size: 5043
-# /home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.3 and num_layers=1
-#   warnings.warn("dropout option adds dropout after all but last "
-# Bi-Directional Language Model :
-# WordLSTM_v2(
-#   (emb_layer): Embedding(5043, 300)
-#   (lstm): LSTM(300, 128, batch_first=True, dropout=0.3, bidirectional=True)
-#   (dropout): Dropout(p=0.3, inplace=False)
-#   (fc): Linear(in_features=256, out_features=5043, bias=True)
-# )
-# Epoch: 1/20... mean_loss : 0.87, Perplexity : 2.39
-# Epoch: 2/20... mean_loss : 0.23, Perplexity : 1.26
-# Epoch: 3/20... mean_loss : 0.15, Perplexity : 1.16
-# Epoch: 4/20... mean_loss : 0.10, Perplexity : 1.11
-# Epoch: 5/20... mean_loss : 0.07, Perplexity : 1.08
-# Epoch: 6/20... mean_loss : 0.05, Perplexity : 1.05
-# Epoch: 7/20... mean_loss : 0.04, Perplexity : 1.04
-# Epoch: 8/20... mean_loss : 0.03, Perplexity : 1.03
-# Epoch: 9/20... mean_loss : 0.03, Perplexity : 1.03
-# Epoch: 10/20... mean_loss : 0.02, Perplexity : 1.02
-# Epoch: 11/20... mean_loss : 0.02, Perplexity : 1.02
-# Epoch: 12/20... mean_loss : 0.02, Perplexity : 1.02
-# Epoch: 13/20... mean_loss : 0.02, Perplexity : 1.02
-# Epoch: 14/20... mean_loss : 0.02, Perplexity : 1.02
-# Epoch: 15/20... mean_loss : 0.01, Perplexity : 1.01
-# Epoch: 16/20... mean_loss : 0.01, Perplexity : 1.01
-# Epoch: 17/20... mean_loss : 0.01, Perplexity : 1.01
-# Epoch: 18/20... mean_loss : 0.01, Perplexity : 1.01
-# Epoch: 19/20... mean_loss : 0.01, Perplexity : 1.01
-# Epoch: 20/20... mean_loss : 0.01, Perplexity : 1.01
-# Test Perplexity: 30.08
+
+        print(trainer.sample(biLMNet, 45, prime = "clinical decision support systems"),"\n")
+        print(trainer.sample(biLMNet, 45, prime = "prescription errors"),"\n")
+        print(trainer.sample(biLMNet, 45, prime = "one of the"),"\n")
+        print(trainer.sample(biLMNet, 45, prime = "asthma management programs for primary care providers increasing adherence to asthma guidelines"),"\n")
+        
+        # (pytorch) [rgoli@node1397 NLP_KPIdentify]$ python mainV2.py -m preTrain
+        # Word Embedding Type:  word2vec
+        # ====================================================================================================
+        # Mode: preTrain
+        # ====================================================================================================
+        # Total Sentences in Train Corpus:  13603
+        # Total Sentences in Test Corpus:  22766
+        # Vocabulary Size: 5043
+        # /home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.3 and num_layers=1
+        #   warnings.warn("dropout option adds dropout after all but last "
+        # Bi-Directional Language Model :
+        # WordLSTM_v2(
+        #   (emb_layer): Embedding(5043, 300)
+        #   (lstm): LSTM(300, 128, batch_first=True, dropout=0.3, bidirectional=True)
+        #   (dropout): Dropout(p=0.3, inplace=False)
+        #   (fc): Linear(in_features=256, out_features=5043, bias=True)
+        # )
+        # Epoch: 1/20... mean_loss : 0.88, Perplexity : 2.41
+        # Epoch: 2/20... mean_loss : 0.23, Perplexity : 1.26
+        # Epoch: 3/20... mean_loss : 0.15, Perplexity : 1.17
+        # Epoch: 4/20... mean_loss : 0.11, Perplexity : 1.11
+        # Epoch: 5/20... mean_loss : 0.07, Perplexity : 1.08
+        # Epoch: 6/20... mean_loss : 0.05, Perplexity : 1.06
+        # Epoch: 7/20... mean_loss : 0.04, Perplexity : 1.04
+        # Epoch: 8/20... mean_loss : 0.03, Perplexity : 1.03
+        # Epoch: 9/20... mean_loss : 0.03, Perplexity : 1.03
+        # Epoch: 10/20... mean_loss : 0.02, Perplexity : 1.02
+        # Epoch: 11/20... mean_loss : 0.02, Perplexity : 1.02
+        # Epoch: 12/20... mean_loss : 0.02, Perplexity : 1.02
+        # Epoch: 13/20... mean_loss : 0.02, Perplexity : 1.02
+        # Epoch: 14/20... mean_loss : 0.01, Perplexity : 1.02
+        # Epoch: 15/20... mean_loss : 0.01, Perplexity : 1.01
+        # Epoch: 16/20... mean_loss : 0.01, Perplexity : 1.01
+        # Epoch: 17/20... mean_loss : 0.01, Perplexity : 1.01
+        # Epoch: 18/20... mean_loss : 0.01, Perplexity : 1.01
+        # Epoch: 19/20... mean_loss : 0.01, Perplexity : 1.01
+        # Epoch: 20/20... mean_loss : 0.01, Perplexity : 1.01
+        # Test Perplexity: 31.14
+        # clinical decision support systems to healthcare smith data sources of the evidence the evidence and evidence statements evidence statements pertaining statements and pertaining to medication events addressing the medication profiles which were presented to phealth phealth phealth health questionnaire pssuq network ssn network sensor data transfer tasks tasks e.g. 
+
+        # prescription errors of review of evidence and current guidance on safe for medication use as an ehr an electronic medical electronic medical records medical record ehr medical ehr data is known for their use of the studies studies appeared could get a individualized therapy therapy and therapy 
+
+        # one of the gl-dss of gl-dss of multiple than when than than 48 between 2013 between groups considered the interaction probability prespecification analysis is vital values increased in increased to increased to increased in children with minor head trauma and mht among among people among people can sustainably 
+
+        # asthma management programs for primary care providers increasing adherence to asthma guidelines designed in need to our services to detect potential drug-drug potential to potential drug-drug interactions or discussed are currently represented without without external without any without ct without ct scan ct scan results no difference in terms between stakeholders and often and 3 and often
+        
         pass
 
     elif args.mode == "train":
         trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
+        testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
+
+        ## Load Word Embeddings
+        modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+
+        ## Create Integer-to-Token mapping
+        ix_to_word = {0:'<UNK>'}
+        cnt = 1
+        for word in modelW2V.key_to_index.keys():
+            ix_to_word[cnt] = word
+            cnt+=1
+        ## Create Token-to-Integer mapping
+        word_to_ix = {t: i for i, t in ix_to_word.items()}
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+
+        biLSTM_CRF_model = BiLSTM_CRF(
+            vocab_size = len(word_to_ix),
+            tag_to_ix = tag_to_ix,
+            embedding_dim = EMBEDDING_DIM,
+            dropout = DROPOUT,
+            use_pretrained_embd=word_embeddings
+            )
+        
+        hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+            model = biLSTM_CRF_model,
+            train_data = trainData,
+            test_data = testData,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            word_to_ix = word_to_ix,
+            tag_to_ix = tag_to_ix
+        )
+        hierAttnNtwk_trainer.train()
+        hierAttnNtwk_trainer.saveModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
         pass
+
     elif args.mode == "test":
         testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
         pass
