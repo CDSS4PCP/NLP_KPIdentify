@@ -22,7 +22,12 @@ from modules import createDataset as data
 from modules import preProcessData as ppd
 
 from modules.languageModel import LanguageModel, WordLSTM_v2, Trainer, EmbeddingsReader
+## For Hierarchical-Attention based Sent-Level Bi-LSTM-CRF
 from modules.hierAttnNtwk import BiLSTM_CRF, hierAttnNtwkTrainer
+
+## For Naive Bi-LSTM-CRF
+# from modules.hierAttnNtwk import hierAttnNtwkTrainer
+# from modules.biLSTMCRF import BiLSTM_CRF
 
 import numpy as np
 
@@ -702,5 +707,6 @@ if __name__ == "__main__":
         # F1-Score given by SeqEval: 54.97%
         # Accuracy given by SeqEval: 88.38%
         pass
+    
     else:
         print("Invalid option selected!!!\n Mode of opertion: train/test/predict/createData")
