@@ -738,9 +738,9 @@ if __name__ == "__main__":
         with open('expMixDS.csv', 'w', newline='') as csvfile:
             logwriter = csv.writer(csvfile, delimiter=';',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            logwriter.writerow(['Combination','Exp. No.','Test DataSet','Train DS Length','Precision','Recall','F1Score','Accuracy'])
+            logwriter.writerow(['Exp. No.','Combination','Train DS Length','Test DataSet','Test DS Length','Precision','Recall','F1Score','Accuracy'])
 
-        experiment_mix_combs = [(100,48),(100,36),(100,24),(100,12),(100,6),(100,3)]
+        experiment_mix_combs = [(100,48),(100,36),(100,24),(100,12),(100,6),(100,3),(100,0)]
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
             repeat = 10
@@ -799,8 +799,8 @@ if __name__ == "__main__":
                 with open('expMixDS.csv', 'a', newline='') as csvfile:
                     logwriter = csv.writer(csvfile, delimiter=';',
                                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    logwriter.writerow([experiment_name, seed+1 , 'Test', test_p,test_r,test_f1,test_acc])
-                    logwriter.writerow([experiment_name, seed+1 , 'GS91', gs_p,gs_r,gs_f1,gs_acc])
+                    logwriter.writerow([seed+1 , experiment_name, ds_length, 'Test', len(exp_testData), test_p,test_r,test_f1,test_acc])
+                    logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91', len(exp_gs91Data), gs_p,gs_r,gs_f1,gs_acc])
 
             pass
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N expMixDS
-#PBS -l select=1:ncpus=24:mem=62gb:ngpus=1:gpu_model=v100,walltime=17:00:00
+#PBS -l select=1:ncpus=24:mem=62gb:ngpus=1:gpu_model=v100,walltime=50:00:00
 #PBS -j oe
 cd $PBS_O_WORKDIR
 
