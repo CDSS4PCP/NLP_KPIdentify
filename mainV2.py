@@ -17,11 +17,16 @@ from collections import defaultdict
 import gensim
 from gensim.models import KeyedVectors
 
+from sklearn.model_selection import train_test_split
+import random
+import csv
+
 from modules import utils
 from modules import createDataset as data
 from modules import preProcessData as ppd
 
 from modules.languageModel import LanguageModel, WordLSTM_v2, Trainer, EmbeddingsReader
+
 ## For Hierarchical-Attention based Sent-Level Bi-LSTM-CRF
 from modules.hierAttnNtwk import BiLSTM_CRF, hierAttnNtwkTrainer
 
@@ -708,5 +713,95 @@ if __name__ == "__main__":
         # Accuracy given by SeqEval: 88.38%
         pass
     
+    elif args.mode == "expMixDS":
+        trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
+        testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
+        testGS42Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs42.json"))
+        testGS91Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91.json"))
+        
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+
+        with open('expMixDS.csv', 'w', newline='') as csvfile:
+            logwriter = csv.writer(csvfile, delimiter=';',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            logwriter.writerow(['Combination','Exp. No.','DataSet','Precision','Recall','F1Score','Accuracy'])
+
+        experiment_mix_combs = [(100,48),(100,24),(100,12),(100,6),(100,3)]
+        for tBt, gsBt in experiment_mix_combs:
+            ## Number of times to Repeat Experiment
+            repeat = 1
+            for seed in range(repeat):
+                print("Combination: {} Train : {} GS, Experiment - #{}".format(tBt,gsBt,seed))
+                ## Create Randomized Synthetic Train/Test Data for each experiment
+                exp_trainData, exp_testData = train_test_split(trainData+testData, test_size=0.67, random_state=seed)
+                exp_gs42Data, exp_gs91Data = train_test_split(testGS42Data+ testGS91Data, test_size=0.69, random_state=seed)
+
+                i=j=0
+                exp_MixData = []
+                while i<len(exp_trainData):
+                    while i%tBt==0 and j<gsBt:
+                        exp_MixData.append(random.choice(exp_gs42Data))
+                        j+=1
+                    j=0
+                    exp_MixData.append(exp_trainData[i])
+                    i+=1
+
+                # print(len(exp_trainData),len(exp_gs42Data))
+                # print(len(exp_MixData))
+                # print([data['id'] for data in exp_MixData[:20]])
+
+                ## Initialize new model
+                biLSTM_CRF_model = BiLSTM_CRF(
+                    vocab_size = len(word_to_ix),
+                    tag_to_ix = tag_to_ix,
+                    embedding_dim = EMBEDDING_DIM,
+                    dropout = DROPOUT,
+                    use_pretrained_embd=word_embeddings
+                    )
+                
+                ## Intialize new trainer
+                hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+                    model = biLSTM_CRF_model,
+                    train_data = exp_MixData, ## Random Mix Data
+                    test_data = exp_testData,
+                    biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+                    word_to_ix = word_to_ix,
+                    tag_to_ix = tag_to_ix,
+                    ix_to_tag = ix_to_tag
+                )
+
+                ## Start Random Truth Mix Training
+                hierAttnNtwk_trainer.train()
+                
+                ## Get Metrics on Test Data
+                test_p,test_r,test_f1,test_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_testData)
+
+                ## Get Metrics on Test Data - GS91
+                gs_p,gs_r,gs_f1,gs_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_gs91Data, "Test GS91")
+
+                experiment_name = "T{}:GS{}".format(tBt,gsBt)
+
+                with open('expMixDS.csv', 'a', newline='') as csvfile:
+                    logwriter = csv.writer(csvfile, delimiter=';',
+                                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                    logwriter.writerow([experiment_name, seed+1 , 'Test', test_p,test_r,test_f1,test_acc])
+                    logwriter.writerow([experiment_name, seed+1 , 'GS91', gs_p,gs_r,gs_f1,gs_acc])
+
+            pass
+
     else:
         print("Invalid option selected!!!\n Mode of opertion: train/test/predict/createData")

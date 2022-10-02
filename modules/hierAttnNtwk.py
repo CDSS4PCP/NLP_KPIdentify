@@ -976,10 +976,16 @@ class hierAttnNtwkTrainer():
     def seqEvalReport(self, targets, preds):
         print('SeqEval Metrics:')
         print(classification_report(targets, preds, mode='strict', scheme=IOB2))
-        print("Precision given by SeqEval: {:.2f}%".format(precision_score(targets, preds)*100))
-        print("Recall given by SeqEval: {:.2f}%".format(recall_score(targets, preds)*100))
-        print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(targets, preds)*100))
-        print("Accuracy given by SeqEval: {:.2f}%".format(accuracy_score(targets, preds)*100))
+        precision = precision_score(targets, preds)*100
+        recall = recall_score(targets, preds)*100
+        f1score = f1_score(targets, preds)*100
+        accuracy = accuracy_score(targets, preds)*100
+        print("Precision given by SeqEval: {:.2f}%".format(precision))
+        print("Recall given by SeqEval: {:.2f}%".format(recall))
+        print("F1-Score given by SeqEval: {:.2f}%".format(f1score))
+        print("Accuracy given by SeqEval: {:.2f}%".format(accuracy))
+
+        return  precision, recall, f1score, accuracy
 
 
     def getMetricsOnData(self, data, ds_type="Test"):
@@ -999,8 +1005,12 @@ class hierAttnNtwkTrainer():
                     y_targets.append([self.ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
 
         print("Metrics on {} DS:".format(ds_type))
-        get_metrics(x_sents, y_preds, y_targets, mappers=True)
-        self.seqEvalReport(y_targets, y_preds)
+        
+        ## Token-Level Metrics
+        # get_metrics(x_sents, y_preds, y_targets, mappers=True)
+
+        ## Sequence Evaluyation Metrics
+        return self.seqEvalReport(y_targets, y_preds)
 
 
 if __name__ == "__main__":
