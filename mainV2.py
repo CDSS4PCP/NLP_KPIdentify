@@ -740,7 +740,7 @@ if __name__ == "__main__":
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             logwriter.writerow(['Combination','Exp. No.','DataSet','Precision','Recall','F1Score','Accuracy'])
 
-        experiment_mix_combs = [(100,48),(100,24),(100,12),(100,6),(100,3)]
+        experiment_mix_combs = [(100,48),(100,36),(100,24),(100,12),(100,6),(100,3)]
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
             repeat = 1
