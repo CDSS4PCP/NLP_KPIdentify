@@ -738,12 +738,12 @@ if __name__ == "__main__":
         with open('expMixDS.csv', 'w', newline='') as csvfile:
             logwriter = csv.writer(csvfile, delimiter=';',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            logwriter.writerow(['Combination','Exp. No.','DataSet','Precision','Recall','F1Score','Accuracy'])
+            logwriter.writerow(['Combination','Exp. No.','Test DataSet','Train DS Length','Precision','Recall','F1Score','Accuracy'])
 
         experiment_mix_combs = [(100,48),(100,36),(100,24),(100,12),(100,6),(100,3)]
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
-            repeat = 1
+            repeat = 10
             for seed in range(repeat):
                 print("Combination: {} Train : {} GS, Experiment - #{}".format(tBt,gsBt,seed))
                 ## Create Randomized Synthetic Train/Test Data for each experiment
@@ -760,6 +760,7 @@ if __name__ == "__main__":
                     exp_MixData.append(exp_trainData[i])
                     i+=1
 
+                ds_length = len(exp_MixData)
                 # print(len(exp_trainData),len(exp_gs42Data))
                 # print(len(exp_MixData))
                 # print([data['id'] for data in exp_MixData[:20]])
