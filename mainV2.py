@@ -726,12 +726,6 @@ if __name__ == "__main__":
         vocab_size = len(ix_to_word)
         print("Vocabulary Size: {}".format(vocab_size))
 
-        ## Load Word Embeddings Binary
-        word_embeddings = EmbeddingsReader.from_binary(
-            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-            vocab = word_to_ix
-            )
-
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
@@ -740,10 +734,10 @@ if __name__ == "__main__":
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             logwriter.writerow(['Exp. No.','Combination','Train DS Length','Test DataSet','Test DS Length','Precision','Recall','F1Score','Accuracy'])
 
-        experiment_mix_combs = [(100,48),(100,36),(100,24),(100,12),(100,6),(100,3),(100,0)]
+        experiment_mix_combs = [(100, 0), (100, 3), (100, 6), (100, 12), (100, 24), (100, 36), (100, 48)]
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
-            repeat = 10
+            repeat = 4
             for seed in range(repeat):
                 print("Combination: {} Train : {} GS, Experiment - #{}".format(tBt,gsBt,seed))
                 ## Create Randomized Synthetic Train/Test Data for each experiment
@@ -765,6 +759,12 @@ if __name__ == "__main__":
                 # print(len(exp_MixData))
                 # print([data['id'] for data in exp_MixData[:20]])
 
+                ## Load Word Embeddings Binary
+                word_embeddings = EmbeddingsReader.from_binary(
+                    filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                    vocab = word_to_ix
+                    )
+                
                 ## Initialize new model
                 biLSTM_CRF_model = BiLSTM_CRF(
                     vocab_size = len(word_to_ix),
@@ -802,6 +802,12 @@ if __name__ == "__main__":
                     logwriter.writerow([seed+1 , experiment_name, ds_length, 'Test', len(exp_testData), test_p,test_r,test_f1,test_acc])
                     logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91', len(exp_gs91Data), gs_p,gs_r,gs_f1,gs_acc])
 
+                del word_embeddings
+                del biLSTM_CRF_model
+                del hierAttnNtwk_trainer
+                torch.cuda.empty_cache()
+                print("PyTorch Memory Allocation ::",torch.cuda.memory_allocated())
+                del exp_trainData, exp_testData, exp_gs42Data, exp_gs91Data, exp_MixData
             pass
 
     else:
