@@ -36,6 +36,8 @@ from modules.hierAttnNtwk import BiLSTM_CRF, hierAttnNtwkTrainer
 
 import numpy as np
 
+from GPUtil import showUtilization as gpu_usage
+
 import torch
 torch.manual_seed(1)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -734,14 +736,28 @@ if __name__ == "__main__":
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             logwriter.writerow(['Exp. No.','Combination','Train DS Length','Test DataSet','Test DS Length','Precision','Recall','F1Score','Accuracy'])
 
-        experiment_mix_combs = [(100, 0), (100, 3), (100, 6), (100, 12), (100, 24), (100, 36), (100, 48)]
+        # experiment_mix_combs = [(100, 0), (100, 3), (100, 6), (100, 12), (100, 24), (100, 36), (100, 48)]
+        # experiment_mix_combs = [(100, 0)]
+        experiment_mix_combs = [(100, 0), (100, 2), (100, 4), (100, 6), (100, 8), (100, 10), (100, 12)]
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
-            repeat = 4
+            repeat = 10
             for seed in range(repeat):
                 print("Combination: {} Train : {} GS, Experiment - #{}".format(tBt,gsBt,seed))
                 ## Create Randomized Synthetic Train/Test Data for each experiment
                 exp_trainData, exp_testData = train_test_split(trainData+testData, test_size=0.67, random_state=seed)
+                
+                ## Non-Shuffled Data Set with Train(begin), Test(Mid+End Blocks) 1:2 Train-Test Ratio Split
+                # exp_trainData, exp_testData = trainData, testData
+                
+                ## Non-Shuffled Data Set with Train(End), Test(Begin+Mid Blocks) 1:2 Train-Test Ratio Split
+                # totalData = trainData+testData
+                # exp_trainData, exp_testData = totalData[2098:], totalData[:2098]
+                
+                ## Non-Shuffled Data Set with Train(Mid), Test(Begin+End Blocks) 1:2 Train-Test Ratio Split
+                # exp_trainData, exp_testData = totalData[1049:2098], totalData[:1049]+totalData[2098:0]
+                
+                ## Shuffle GS 42, GS 91 
                 exp_gs42Data, exp_gs91Data = train_test_split(testGS42Data+ testGS91Data, test_size=0.69, random_state=seed)
 
                 i=j=0
@@ -771,7 +787,7 @@ if __name__ == "__main__":
                     tag_to_ix = tag_to_ix,
                     embedding_dim = EMBEDDING_DIM,
                     dropout = DROPOUT,
-                    use_pretrained_embd=word_embeddings
+                    use_pretrained_embd=word_embeddings ## Load Pre-Trained Word Embeddings
                     )
                 
                 ## Intialize new trainer
@@ -779,7 +795,7 @@ if __name__ == "__main__":
                     model = biLSTM_CRF_model,
                     train_data = exp_MixData, ## Random Mix Data
                     test_data = exp_testData,
-                    biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+                    biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE), ## Load Pre-trained Bi-Language Model
                     word_to_ix = word_to_ix,
                     tag_to_ix = tag_to_ix,
                     ix_to_tag = ix_to_tag
@@ -794,7 +810,7 @@ if __name__ == "__main__":
                 ## Get Metrics on Test Data - GS91
                 gs_p,gs_r,gs_f1,gs_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_gs91Data, "Test GS91")
 
-                experiment_name = "T{}:GS{}".format(tBt,gsBt)
+                experiment_name = "Synth{}:GS{}".format(tBt,gsBt)
 
                 with open('expMixDS.csv', 'a', newline='') as csvfile:
                     logwriter = csv.writer(csvfile, delimiter=';',
@@ -802,11 +818,16 @@ if __name__ == "__main__":
                     logwriter.writerow([seed+1 , experiment_name, ds_length, 'Test', len(exp_testData), test_p,test_r,test_f1,test_acc])
                     logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91', len(exp_gs91Data), gs_p,gs_r,gs_f1,gs_acc])
 
+                # print("GPU Utilization - After Training: ")
+                # gpu_usage()
                 del word_embeddings
                 del biLSTM_CRF_model
                 del hierAttnNtwk_trainer
                 torch.cuda.empty_cache()
+                #torch.cuda.reset()
                 print("PyTorch Memory Allocation ::",torch.cuda.memory_allocated())
+                # print("GPU Utilization - After Clearing Cache: ")
+                # gpu_usage() 
                 del exp_trainData, exp_testData, exp_gs42Data, exp_gs91Data, exp_MixData
             pass
 
