@@ -18,7 +18,7 @@ import string
 import spacy
 from sklearn.metrics import confusion_matrix
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
-from seqeval.scheme import IOB2
+from seqeval.scheme import BILOU
 from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger(__name__)
@@ -101,8 +101,12 @@ def mark_keyword_all_sentences(keywords, sentences):
         i=0
         while i<complete_text_len-kw_len:
             if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
-                mapper[i:i+kw_len]=['I-KP']*kw_len
-                mapper[i]='B-KP'
+                if kw_len==1:
+                    mapper[i]='U-KP'
+                else:
+                    mapper[i:i+kw_len]=['I-KP']*kw_len
+                    mapper[i]='B-KP'
+                    mapper[i+kw_len-1]='L-KP'
             i+=1
 
     final_mapper = []
@@ -161,7 +165,7 @@ def getTargetPreds(data):
 
 def printMetrics(y_targets, y_preds,custom='',experiment=0):
     print("\nSeqEval Metrics on sciSpacy {}:\n".format(custom))
-    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=BILOU))
     precision = precision_score(y_targets, y_preds)*100
     recall = recall_score(y_targets, y_preds)*100
     f1score = f1_score(y_targets, y_preds)*100

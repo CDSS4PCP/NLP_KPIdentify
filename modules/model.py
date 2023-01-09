@@ -19,7 +19,7 @@ from modules.utils import  performance_metrics, read_text, parse_tags, get_metri
 from modules.preProcessData import mark_keyword_all_sentences
 
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
-from seqeval.scheme import IOB2
+from seqeval.scheme import BILOU
 
 from sklearn_crfsuite import metrics as crfmetrics
 
@@ -383,7 +383,7 @@ def test(file_folder, corpus_type, data_type, texts_features=None):
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     
     print('SeqEval Metrics:')
-    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=BILOU))
     print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
     print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
     print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
@@ -469,7 +469,7 @@ def testgs(file_folder, file_name, corpus_type, data_type, texts_features=None):
     get_metrics(sentences, y_preds, y_targets, mappers=True)
     
     print('SeqEval Metrics:')
-    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=BILOU))
     print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
     print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
     print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))

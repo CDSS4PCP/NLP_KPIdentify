@@ -380,8 +380,8 @@ if __name__ == "__main__":
             vocab = word_to_ix
             )
 
-        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
@@ -445,8 +445,8 @@ if __name__ == "__main__":
             vocab = word_to_ix
             )
 
-        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
         ## Initialize Model Architecture with Word Embeddings, 
         biLSTM_CRF_model = BiLSTM_CRF(
@@ -556,8 +556,8 @@ if __name__ == "__main__":
             vocab = word_to_ix
             )
 
-        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
         ## Initialize Model Architecture with Word Embeddings, 
         biLSTM_CRF_model = BiLSTM_CRF(
@@ -728,8 +728,8 @@ if __name__ == "__main__":
         vocab_size = len(ix_to_word)
         print("Vocabulary Size: {}".format(vocab_size))
 
-        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
         with open('expMixDS.csv', 'w', newline='') as csvfile:
             logwriter = csv.writer(csvfile, delimiter=';',
