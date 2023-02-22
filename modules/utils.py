@@ -111,7 +111,7 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     N = len(text_arr)
     i=0
     matrix = np.zeros(9).reshape(3,3)
-    labels=['B-KP','I-KP','O']
+    labels=['U-KP','B-KP','I-KP','L-KP','O']
     while i<N:
         matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=labels)
         # TP += matrix[0][0]

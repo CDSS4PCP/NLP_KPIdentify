@@ -96,8 +96,12 @@ def mark_keyword_all_sentences(keywords, sentences):
         i=0
         while i<complete_text_len-kw_len:
             if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
-                mapper[i:i+kw_len]=['I-KP']*kw_len
-                mapper[i]='B-KP'
+                if kw_len==1:
+                    mapper[i]='U-KP'
+                else:
+                    mapper[i:i+kw_len]=['I-KP']*kw_len
+                    mapper[i]='B-KP'
+                    mapper[i+kw_len-1]='L-KP'
 
                 # if kw_len>=2:
                 #     mapper[i+kw_len-1]="I-KP"

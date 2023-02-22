@@ -1,0 +1,107 @@
+(pytorch) [rgoli@node0059 NLP_KPIdentify]$ python mainV2.py -m train             Word Embedding Type:  word2vec
+====================================================================================================
+Mode: train
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Train Keyword Marking:
+100%|█████████████████████████████████████████████████████████████| 1049/1049 [00:09<00:00, 105.41it/s]
+Test Keyword Marking:
+100%|█████████████████████████████████████████████████████████████| 2099/2099 [00:15<00:00, 139.62it/s]
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Start hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Epoch: 2/30 Loss: 4.911
+Epoch: 4/30 Loss: 2.799
+Epoch: 6/30 Loss: 1.734
+Epoch: 8/30 Loss: 1.189
+Epoch: 10/30 Loss: 1.057
+Epoch: 12/30 Loss: 0.883
+Epoch: 14/30 Loss: 0.801
+Epoch: 16/30 Loss: 0.698
+Epoch: 18/30 Loss: 0.653
+Epoch: 20/30 Loss: 0.620
+Epoch: 22/30 Loss: 0.644
+Epoch: 24/30 Loss: 0.590
+Epoch: 26/30 Loss: 0.549
+Epoch: 28/30 Loss: 0.537
+Epoch: 30/30 Loss: 0.570
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Test Loss: 10.774
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+(pytorch) [rgoli@node0059 NLP_KPIdentify]$ python mainV2.py -m test
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: test
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Test Keyword Marking:
+100%|████████████████████████████████████████████████| 2099/2099 [00:15<00:00, 136.66it/s]
+Metrics on Test DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.80      0.61      0.69     55273
+
+   micro avg       0.80      0.61      0.69     55273
+   macro avg       0.80      0.61      0.69     55273
+weighted avg       0.80      0.61      0.69     55273
+
+/home/rgoli/.conda/envs/pytorch/lib/python3.8/site-packages/seqeval/metrics/sequence_labeling.py:171: UserWarning: L-KP seems not to be NE tag.
+  warnings.warn('{} seems not to be NE tag.'.format(chunk))
+/home/rgoli/.conda/envs/pytorch/lib/python3.8/site-packages/seqeval/metrics/sequence_labeling.py:171: UserWarning: U-KP seems not to be NE tag.
+  warnings.warn('{} seems not to be NE tag.'.format(chunk))
+Precision given by SeqEval: 76.19%
+Recall given by SeqEval: 59.60%
+F1-Score given by SeqEval: 66.88%
+Accuracy given by SeqEval: 91.84%
+(pytorch) [rgoli@node0059 NLP_KPIdentify]$ python mainV2.py -m testGS
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: testGS
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Test GS42 Keyword Marking:
+100%|████████████████████████████████████████████████████| 42/42 [00:00<00:00, 111.21it/s]
+Metrics on Test GS42 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.63      0.42      0.50      1019
+
+   micro avg       0.63      0.42      0.50      1019
+   macro avg       0.63      0.42      0.50      1019
+weighted avg       0.63      0.42      0.50      1019
+
+/home/rgoli/.conda/envs/pytorch/lib/python3.8/site-packages/seqeval/metrics/sequence_labeling.py:171: UserWarning: L-KP seems not to be NE tag.
+  warnings.warn('{} seems not to be NE tag.'.format(chunk))
+/home/rgoli/.conda/envs/pytorch/lib/python3.8/site-packages/seqeval/metrics/sequence_labeling.py:171: UserWarning: U-KP seems not to be NE tag.
+  warnings.warn('{} seems not to be NE tag.'.format(chunk))
+Precision given by SeqEval: 59.97%
+Recall given by SeqEval: 40.84%
+F1-Score given by SeqEval: 48.59%
+Accuracy given by SeqEval: 86.88%
+Test GS91 Keyword Marking:
+100%|████████████████████████████████████████████████████| 91/91 [00:00<00:00, 152.21it/s]
+Metrics on Test GS91 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.71      0.44      0.54      2360
+
+   micro avg       0.71      0.44      0.54      2360
+   macro avg       0.71      0.44      0.54      2360
+weighted avg       0.71      0.44      0.54      2360
+
+Precision given by SeqEval: 65.08%
+Recall given by SeqEval: 42.39%
+F1-Score given by SeqEval: 51.34%
+Accuracy given by SeqEval: 88.51%
+(pytorch) [rgoli@node0059 NLP_KPIdentify]$ 

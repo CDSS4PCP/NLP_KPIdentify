@@ -25,7 +25,7 @@ import numpy as np
 
 from sklearn.metrics import confusion_matrix
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
-from seqeval.scheme import IOB2
+from seqeval.scheme import BILOU
 
 from modules.languageModel import EmbeddingsReader
 
@@ -135,7 +135,7 @@ def sent2words(sent):
     ## Return words, POS tags, lengths of words, processed sentence
     return words, pos, length, ' '.join(words)
 
-# Mark Keyphrases with BIO Format Labels
+# Mark Keyphrases with BILOU Format Labels
 def mark_keyword_all_sentences(keywords, sentences):
 
     sentence_lengths = [len(sent) for sent in sentences]
@@ -157,8 +157,12 @@ def mark_keyword_all_sentences(keywords, sentences):
         i=0
         while i<complete_text_len-kw_len:
             if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
-                mapper[i:i+kw_len]=['I-KP']*kw_len
-                mapper[i]='B-KP'
+                if kw_len==1:
+                    mapper[i]='U-KP'
+                else:
+                    mapper[i:i+kw_len]=['I-KP']*kw_len
+                    mapper[i]='B-KP'
+                    mapper[i+kw_len-1]='L-KP'
             i+=1
 
     final_mapper = []
@@ -647,7 +651,7 @@ def get_metrics(text_arr, kws_arr, gs_arr, mappers=False):
     N = len(text_arr)
     i=0
     matrix = np.zeros(9).reshape(3,3)
-    labels=['B-KP','I-KP','O']
+    labels=['U-KP','B-KP','I-KP','L-KP','O']
     while i<N:
         matrix += confusion_matrix(gs_mappers[i],test_mappers[i], labels=labels)
         i+=1
@@ -804,9 +808,8 @@ if __name__ == "__main__":
     # ## Load Vocab
     # word_to_ix = utils.read_json_array("token2int.json")
 
-    tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
-    ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
-    # ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
+    tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+    ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
     print('<'*30,'END Read Data','>'*30)
 
     model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM, use_pretrained_embd=word_embeddings)
@@ -892,7 +895,7 @@ if __name__ == "__main__":
     print('<'*30,'TEST Data','>'*30)
     get_metrics(x_sents, y_preds, y_targets, mappers=True)
     print('SeqEval Metrics:')
-    print(classification_report(y_targets, y_preds, mode='strict', scheme=IOB2))
+    print(classification_report(y_targets, y_preds, mode='strict', scheme=BILOU))
     print("Precision given by SeqEval: {:.2f}%".format(precision_score(y_targets, y_preds)*100))
     print("Recall given by SeqEval: {:.2f}%".format(recall_score(y_targets, y_preds)*100))
     print("F1-Score given by SeqEval: {:.2f}%".format(f1_score(y_targets, y_preds)*100))
@@ -926,7 +929,7 @@ if __name__ == "__main__":
     c=0
     for x,y,z in zip(x_sents,y_preds, y_targets):
         for pred in y:
-            if pred not in ['O','B-KP','I-KP']:
+            if pred not in ['O','B-KP','I-KP','U-KP','L-KP']:
                 print(x,y,z,sep='\n')
                 print('-'*20)  
         c+=1        
