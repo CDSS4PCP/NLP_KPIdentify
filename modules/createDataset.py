@@ -176,6 +176,44 @@ def gen_gs_dataset(gsData, json_data_path):
     with open(os.path.join(json_data_path, "testgs.json"), "w") as outfile:
         json.dump(dataset, outfile)
         
+def generate_predict_dataset(fullData, min_sentences=3, filter_kp = False, model_name="en_core_sci_lg"):
+    '''
+    Create Train & Test Datasets as JSON with Synthetic Keywords
+    '''
+    print('Spacy Model to generate Synthetic Keywords:')
+    print(model_name)
+    nlp = spacy.load(model_name)
+
+    if model_name=="en_core_sci_lg":
+        nlp.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+    else:
+        nlp.add_pipe('sentencizer')
+
+    if filter_kp:
+        nlp2 = spacy.load('en_ner_bc5cdr_md')
+        nlp2.add_pipe("scispacy_linker", config={"resolve_abbreviations": True, "linker_name": "umls"})
+
+    temp_comb_text = fullData[0]['title']+' '+fullData[0]['abstract']
+    doc = nlp(temp_comb_text)
+    sents = [[token.orth_.lower() for token in sent if not token.is_punct | token.is_space] for sent in doc.sents]
+    text = [token.orth_ for token in doc if not token.is_punct | token.is_space]
+
+    kws = [str(x) for x in doc.ents]
+
+    ## Filter KWS for DISEASES/GPE/Institutes
+    if filter_kp:
+        rule_out_ents = [str(_) for _ in nlp2(temp_comb_text).ents]
+        rule_out_ents = [_ for _ in rule_out_ents if not _.isupper()]
+        if rule_out_ents!=[]:
+            kws = [_ for _ in kws if _ not in rule_out_ents]
+        kws = [_ for _ in kws if all([True if n_ not in _.lower() else False for n_ in outlier_kws])]
+
+    kws.sort(reverse=True, key=len)
+    fullData[0]["keywords"]=kws
+    fullData[0]['fullText'] = text
+    fullData[0]['sentences'] = sents
+
+    return fullData
 
 # if __name__ == "__main__":
 #     fullData = load_data()

@@ -856,7 +856,7 @@ class hierAttnNtwkTrainer():
 
         if self.biLM_path:
             model_stateDict = model.state_dict()
-            pretrainedLM = torch.load(biLM_path)
+            pretrainedLM = torch.load(biLM_path, map_location=DEVICE)
             pretrainedLM_stateDict = pretrainedLM
 
             # 1. filter out unnecessary keys
@@ -920,7 +920,7 @@ class hierAttnNtwkTrainer():
         torch.save(self.best_model.state_dict(), file_path)
 
     def loadModel(self, file_path):
-        self.model.load_state_dict(torch.load(file_path))
+        self.model.load_state_dict(torch.load(file_path, map_location=DEVICE))
         return self.model
 
     def get_batches_by_doc(self, data, doc_sents):    
@@ -1011,6 +1011,25 @@ class hierAttnNtwkTrainer():
 
         ## Sequence Evaluyation Metrics
         return self.seqEvalReport(y_targets, y_preds)
+    
+    def getPredictionKP(self, data, ds_type="Predict"):
+        data, data_doc_sents = preprocess(data, ds_type)
+        x_sents = []
+        y_preds, y_targets = [], []
+        with torch.no_grad():
+            for inputs, targets, masks in self.get_batches_by_doc(data, data_doc_sents):
+                inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+                _, tags = self.model(inputs,masks)
+                for idx, (pred,label) in enumerate(zip(tags, targets)):
+                    x_sents.append(data[idx][0])
+                    length = len(x_sents[-1])
+                    temp_preds = [self.ix_to_tag[i] for i in pred[:length]]
+                    temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+                    y_preds.append(temp_preds)
+                    y_targets.append([self.ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+
+        return y_preds
+
 
 
 if __name__ == "__main__":
@@ -1062,7 +1081,7 @@ if __name__ == "__main__":
     # 2. overwrite entries in the existing state dict
     model_stateDict.update(pretrained_dict) 
     # 3. load the new state dict
-    model.load_state_dict(model_stateDict)
+    model.load_state_dict(model_stateDict, map_location=DEVICE)
 
     print('<'*30,'START Train','>'*30)
     model.train()
@@ -1101,7 +1120,7 @@ if __name__ == "__main__":
     print('<'*30,'END Train','>'*30)
 
     torch.save(best_model.state_dict(), 'hierAttnNtwk.pt')
-    model.load_state_dict(torch.load('hierAttnNtwk.pt'))
+    model.load_state_dict(torch.load('hierAttnNtwk.pt'), map_location=DEVICE)
 
     print('<'*30,'START Test','>'*30)
     # Check predictions after training

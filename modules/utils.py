@@ -7,10 +7,11 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics.cluster import normalized_mutual_info_score
 
 names = ['text', 'label', 'POS', 'LEN', 'WFOF', 'TI', 'TR']
-def parse_tags(texts, preds):
+def parse_tags(texts, preds, infer=False):
     keywords = []
     for text, pred in zip(texts, preds):
-        text = text.split(' ')
+        if infer==False:
+            text = text.split(' ')
         K_B_index = [i for i, tag in enumerate(pred) if (tag == 'B-KP' or tag == 'U-KP')]
         for index in K_B_index:
             if index == len(pred) - 1:

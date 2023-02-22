@@ -52,6 +52,77 @@ STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 300
 DROPOUT = 0.2
 
+def predict_kp(predict_data):
+        ## Read Vocabulary Mapping
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+
+        ## Initialize Model Architecture with Word Embeddings 
+        biLSTM_CRF_model = BiLSTM_CRF(
+            vocab_size = len(word_to_ix),
+            tag_to_ix = tag_to_ix,
+            embedding_dim = EMBEDDING_DIM,
+            dropout = DROPOUT,
+            use_pretrained_embd=word_embeddings
+            )
+
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
+        hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+            model = biLSTM_CRF_model,
+            train_data = None,
+            test_data = None,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            word_to_ix = word_to_ix,
+            tag_to_ix = tag_to_ix,
+            ix_to_tag = ix_to_tag
+        )
+
+        ## Load Best Model
+        hierAttnNtwk_trainer.loadModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
+
+        try:
+            predict_data = data.generate_predict_dataset(
+                predict_data,
+                min_sentences=args.minSentences,
+                filter_kp=args.filterKP,
+                model_name=os.path.join(WORKING_PATH,"cdssSciSpacy/model-best")
+                )
+        except NameError:
+            predict_data = data.generate_predict_dataset(
+                predict_data,
+                min_sentences=3,
+                filter_kp=False,
+                model_name=os.path.join(WORKING_PATH,"cdssSciSpacy/model-best")
+                )
+
+        predict_tags = hierAttnNtwk_trainer.getPredictionKP(predict_data, "Predict")
+
+        # for sent,tag in zip(predict_data[0]['sentences'], predict_tags):
+        #     print(sent, tag, len(sent)==len(tag), end='\n\n', sep='\n')
+        
+        predict_kps = utils.parse_tags(
+            predict_data[0]['sentences'], predict_tags,
+            infer=True
+            )
+        predict_kps.sort(reverse=True, key=len)
+        
+        predict_data[0]['actual_keywords'] = predict_kps
+
+        return predict_data
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Keyphrase extraction using hierAttn-BiLSTM-CRF")
 
@@ -367,6 +438,7 @@ if __name__ == "__main__":
         # ## Create Token-to-Integer mapping
         # word_to_ix = {t: i for i, t in ix_to_word.items()}
 
+        ## Read Vocabulary Mapping
         ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
         word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
 
@@ -383,6 +455,7 @@ if __name__ == "__main__":
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -391,6 +464,7 @@ if __name__ == "__main__":
             use_pretrained_embd=word_embeddings
             )
         
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
         hierAttnNtwk_trainer = hierAttnNtwkTrainer(
             model = biLSTM_CRF_model,
             train_data = trainData,
@@ -448,7 +522,7 @@ if __name__ == "__main__":
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
-        ## Initialize Model Architecture with Word Embeddings, 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -559,7 +633,7 @@ if __name__ == "__main__":
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
-        ## Initialize Model Architecture with Word Embeddings, 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -567,7 +641,7 @@ if __name__ == "__main__":
             dropout = DROPOUT,
             use_pretrained_embd=word_embeddings
             )
-        
+
         ## Initialize Model-Trainer with Model Architecture, Word Mappings
         hierAttnNtwk_trainer = hierAttnNtwkTrainer(
             model = biLSTM_CRF_model,
@@ -714,7 +788,24 @@ if __name__ == "__main__":
         # F1-Score given by SeqEval: 54.97%
         # Accuracy given by SeqEval: 88.38%
         pass
-    
+
+    elif args.mode == "predict":
+        predict_data = [{
+            "id": "",
+            "title": "",
+            "abstract": "",
+            "methods": "",
+            "results": "",
+            "keywords": [],
+            "actual_keywords": [],
+            "fullText": "",
+            "sentences": ""
+            }]
+        predict_data[0]['title'] = input("Enter the Title:\n")
+        predict_data[0]['abstract'] = input("Enter the Abstract:\n")
+
+        print(predict_kp(predict_data))
+
     elif args.mode == "expMixDS":
         trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
         testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))

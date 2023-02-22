@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% set active_page = "forms" %}
+
+{% block title %}Forms{% endblock %}
+
+{% block head %}
+{{ super() }}
+
+
+{% endblock %}
+
+{% block page_content %}
+<h1 class="cap">Forms</h1>
+
+<div style="width:100%;">
+    <div style="float:left;width:4=20%;">
+        <h3>Form</h3>
+        <form action="/getPredictions" method="post">
+            <label>Title:</label><br>
+            <textarea rows = "3" cols = "50" name = "title" required>{% if result %}{{result[0]['title']}}{% endif %}</textarea><br>
+            <label>Abstract:</label><br>
+            <textarea rows = "16" cols = "50" name = "abstract" required>{% if result %}{{result[0]['abstract']}}{% endif %}</textarea><br>
+            <input type="submit">
+        </form>
+    </div>
+    <div style="float:right;width:40%;">
+        {% if result %}
+            <label>Keywords</label><br>
+            <ol>
+            {% for kp in result[0]['actual_keywords'] %}
+                <li>{{kp}}</li>
+            {% endfor %}
+            </ol>
+        {% endif %}
+    </div>
+</div>
+
+<!-- <h3>Form 2: Add 100</h3>
+<form action="/form2" method="post">
+    <input type="number" name="number" value="" required />
+    <input type="submit">
+</form> -->
+
+
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+
+{% endblock %}
