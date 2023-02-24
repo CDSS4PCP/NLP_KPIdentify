@@ -9,14 +9,13 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates/")
 
 
-@router.get("/forms", response_class=HTMLResponse)
+@router.get("/getPredictions", response_class=HTMLResponse)
 def form_get(request: Request):
-    # result = "Type a number"
-    return templates.TemplateResponse('forms.html', context={'request': request})
+    return templates.TemplateResponse('getPredictions.html', context={'request': request})
 
 
 @router.post("/getPredictions", response_class=HTMLResponse)
-def form_post1(request: Request, title: str = Form(...), abstract: str = Form(...)):
+def form_post(request: Request, title: str = Form(...), abstract: str = Form(...)):
     predict_data = [{
         "id": "",
         "title": "",
@@ -32,11 +31,4 @@ def form_post1(request: Request, title: str = Form(...), abstract: str = Form(..
     predict_data[0]['abstract'] = abstract
 
     result = predict_kp(predict_data)
-    # print(result)
     return templates.TemplateResponse('forms.html', context={'request': request, 'result': result})
-
-
-# @router.post("/form2", response_class=HTMLResponse)
-# def form_post2(request: Request, number: int = Form(...)):
-#     result = number + 100
-#     return templates.TemplateResponse('forms.html', context={'request': request, 'result': result, 'yournum': number})

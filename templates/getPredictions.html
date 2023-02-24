@@ -10,11 +10,11 @@
 {% endblock %}
 
 {% block page_content %}
-<h1 class="cap">Forms</h1>
+<h1 class="cap">KP Prediction</h1>
 
 <div style="width:100%;">
     <div style="float:left;width:4=20%;">
-        <h3>Form</h3>
+        <!-- <h3>Form</h3> -->
         <form action="/getPredictions" method="post">
             <label>Title:</label><br>
             <textarea rows = "3" cols = "50" name = "title" required>{% if result %}{{result[0]['title']}}{% endif %}</textarea><br>
