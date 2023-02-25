@@ -31,4 +31,4 @@ def form_post(request: Request, title: str = Form(...), abstract: str = Form(...
     predict_data[0]['abstract'] = abstract
 
     result = predict_kp(predict_data)
-    return templates.TemplateResponse('forms.html', context={'request': request, 'result': result})
+    return templates.TemplateResponse('getPredictions.html', context={'request': request, 'result': result})
