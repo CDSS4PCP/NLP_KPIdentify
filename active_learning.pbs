@@ -1,0 +1,10 @@
+#!/bin/bash
+#PBS -N active_learning
+#PBS -l select=1:ncpus=24:mem=62gb:ngpus=1:gpu_model=v100,walltime=50:00:00
+#PBS -j oe
+cd $PBS_O_WORKDIR
+
+source activate cdss_5
+cd ~/NLP_KPIdentify-NLP-KP-6
+python active_learning.py
+echo "DONE"
