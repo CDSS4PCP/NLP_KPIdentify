@@ -855,6 +855,7 @@ class hierAttnNtwkTrainer():
         self.ix_to_tag = ix_to_tag
 
         if self.biLM_path:
+            print("Using pre-trained BiLM Model...")
             model_stateDict = model.state_dict()
             pretrainedLM = torch.load(biLM_path)
             pretrainedLM_stateDict = pretrainedLM

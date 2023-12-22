@@ -74,6 +74,8 @@ if __name__ == "__main__":
     parser.add_argument("--minSentences", "-minSentences", default=3, help="CreateSynthDS :::: Minimum Sentences in Each Text")
     parser.add_argument("--filterKP","-filterKP", default=False, help="CreateSynthDS :::: Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
     parser.add_argument("-seqLen","--seqLength", type=int, default = 5, help="BiLM :::: To create Train Dataset with sequence length sliding window over sentence. Deafult(5)")
+    parser.add_argument("--wordembeddings","-we", type=eval, default='True', choices=[True, False], help="WordEmbeddings :::: Use pre-trained word embeddings. Default(True)")
+    parser.add_argument("--bilm","-bilm", type=eval, default='True', choices=[True, False], help="BiLM :::: Use pre-trained BiLM model")
     
     args = parser.parse_args()
 
@@ -375,10 +377,15 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = EmbeddingsReader.from_binary(
-            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-            vocab = word_to_ix
-            )
+        word_embeddings = None
+        if(args.wordembeddings):
+            word_embeddings = EmbeddingsReader.from_binary(
+                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                vocab = word_to_ix
+                )        
+        bilm_file = None
+        if(args.bilm):
+            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
 
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
@@ -395,7 +402,7 @@ if __name__ == "__main__":
             model = biLSTM_CRF_model,
             train_data = trainData,
             test_data = testData,
-            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            biLM_path = bilm_file,
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
@@ -440,10 +447,16 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = EmbeddingsReader.from_binary(
-            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-            vocab = word_to_ix
-            )
+        word_embeddings = None
+        if(args.wordembeddings):
+            word_embeddings = EmbeddingsReader.from_binary(
+                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                vocab = word_to_ix
+                )  
+            
+        bilm_file = None
+        if(args.bilm):
+            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
 
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
@@ -462,7 +475,7 @@ if __name__ == "__main__":
             model = biLSTM_CRF_model,
             train_data = None,
             test_data = None,
-            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            biLM_path = bilm_file,
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
@@ -551,10 +564,15 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = EmbeddingsReader.from_binary(
-            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-            vocab = word_to_ix
-            )
+        word_embeddings = None
+        if(args.wordembeddings):
+            word_embeddings = EmbeddingsReader.from_binary(
+                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                vocab = word_to_ix
+                )
+        bilm_file = None
+        if(args.bilm):
+            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
 
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
@@ -573,7 +591,7 @@ if __name__ == "__main__":
             model = biLSTM_CRF_model,
             train_data = None,
             test_data = None,
-            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            biLM_path = bilm_file,
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
@@ -776,10 +794,16 @@ if __name__ == "__main__":
                 # print([data['id'] for data in exp_MixData[:20]])
 
                 ## Load Word Embeddings Binary
-                word_embeddings = EmbeddingsReader.from_binary(
-                    filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-                    vocab = word_to_ix
-                    )
+                word_embeddings = None
+                if(args.wordembeddings):
+                    word_embeddings = EmbeddingsReader.from_binary(
+                        filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                        vocab = word_to_ix
+                        )
+                    
+                bilm_file = None
+                if(args.bilm):
+                    bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
                 
                 ## Initialize new model
                 biLSTM_CRF_model = BiLSTM_CRF(
@@ -795,7 +819,7 @@ if __name__ == "__main__":
                     model = biLSTM_CRF_model,
                     train_data = exp_MixData, ## Random Mix Data
                     test_data = exp_testData,
-                    biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE), ## Load Pre-trained Bi-Language Model
+                    biLM_path = bilm_file, ## Load Pre-trained Bi-Language Model
                     word_to_ix = word_to_ix,
                     tag_to_ix = tag_to_ix,
                     ix_to_tag = ix_to_tag

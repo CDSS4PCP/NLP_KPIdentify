@@ -1,0 +1,179 @@
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m train
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: train
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Train Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████| 1049/1049 [00:09<00:00, 106.97it/s]
+Test Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████| 2099/2099 [00:14<00:00, 141.86it/s]
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Start hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Epoch: 2/30 Loss: 4.887
+Epoch: 4/30 Loss: 2.568
+Epoch: 6/30 Loss: 1.796
+Epoch: 8/30 Loss: 1.391
+Epoch: 10/30 Loss: 1.012
+Epoch: 12/30 Loss: 0.991
+Epoch: 14/30 Loss: 0.795
+Epoch: 16/30 Loss: 0.672
+Epoch: 18/30 Loss: 0.663
+Epoch: 20/30 Loss: 0.551
+Epoch: 22/30 Loss: 0.538
+Epoch: 24/30 Loss: 0.467
+Epoch: 26/30 Loss: 0.461
+Epoch: 28/30 Loss: 0.389
+Epoch: 30/30 Loss: 0.400
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Test Loss: 10.672
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        Command being timed: "python mainV2.py -m train"
+        User time (seconds): 1736.77
+        System time (seconds): 7.50
+        Percent of CPU this job got: 99%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 29:05.65
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4502332
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 19
+        Minor (reclaiming a frame) page faults: 1025393
+        Voluntary context switches: 100937
+        Involuntary context switches: 22714
+        Swaps: 0
+        File system inputs: 6112
+        File system outputs: 21008
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m test
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: test
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Using pre-trained BiLM Model...
+Test Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████| 2099/2099 [00:14<00:00, 139.95it/s]
+Metrics on Test DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.77      0.67      0.72     56162
+
+   micro avg       0.77      0.67      0.72     56162
+   macro avg       0.77      0.67      0.72     56162
+weighted avg       0.77      0.67      0.72     56162
+
+Precision given by SeqEval: 77.08%
+Recall given by SeqEval: 66.83%
+F1-Score given by SeqEval: 71.59%
+Accuracy given by SeqEval: 92.57%
+        Command being timed: "python mainV2.py -m test"
+        User time (seconds): 63.48
+        System time (seconds): 4.51
+        Percent of CPU this job got: 105%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:04.28
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4467424
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 910799
+        Voluntary context switches: 20105
+        Involuntary context switches: 148397
+        Swaps: 0
+        File system inputs: 64
+        File system outputs: 72
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m testGS
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: testGS
+====================================================================================================
+Vocabulary Size: 5043
+Using pretrained word embeddings
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Using pre-trained BiLM Model...
+Test GS42 Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:00<00:00, 115.17it/s]
+Metrics on Test GS42 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.61      0.49      0.54      1048
+
+   micro avg       0.61      0.49      0.54      1048
+   macro avg       0.61      0.49      0.54      1048
+weighted avg       0.61      0.49      0.54      1048
+
+Precision given by SeqEval: 60.83%
+Recall given by SeqEval: 49.05%
+F1-Score given by SeqEval: 54.31%
+Accuracy given by SeqEval: 87.93%
+Test GS91 Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████████| 91/91 [00:00<00:00, 155.79it/s]
+Metrics on Test GS91 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.66      0.49      0.56      2386
+
+   micro avg       0.66      0.49      0.56      2386
+   macro avg       0.66      0.49      0.56      2386
+weighted avg       0.66      0.49      0.56      2386
+
+Precision given by SeqEval: 65.62%
+Recall given by SeqEval: 48.87%
+F1-Score given by SeqEval: 56.02%
+Accuracy given by SeqEval: 89.11%
+        Command being timed: "python mainV2.py -m testGS"
+        User time (seconds): 12.58
+        System time (seconds): 3.82
+        Percent of CPU this job got: 132%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:12.34
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4350092
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 654322
+        Voluntary context switches: 14622
+        Involuntary context switches: 58312
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 8
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$
+
+(pytorch) [rgoli@node0074 ~]$ gpustat
+node0074.palmetto.clemson.edu  Thu Dec 21 00:52:51 2023  525.125.06
+[0] Tesla V100-PCIE-16GB | 31°C,  46 % |  1913 / 16384 MB | rgoli(1860M) root(22M) gdm(22M)
+(pytorch) [rgoli@node0074 ~]$ gpustat
+node0074.palmetto.clemson.edu  Thu Dec 21 01:23:21 2023  525.125.06
+[0] Tesla V100-PCIE-16GB | 28°C,   0 % |    49 / 16384 MB | root(22M) gdm(22M)
+(pytorch) [rgoli@node0074 ~]$

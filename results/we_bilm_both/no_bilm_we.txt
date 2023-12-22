@@ -1,0 +1,166 @@
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m train -bilm False -we False
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: train
+====================================================================================================
+Vocabulary Size: 5043
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Train Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████| 1049/1049 [00:09<00:00, 106.07it/s]
+Test Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████| 2099/2099 [00:14<00:00, 141.27it/s]
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Start hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Epoch: 2/30 Loss: 1.459
+Epoch: 4/30 Loss: 0.731
+Epoch: 6/30 Loss: 0.442
+Epoch: 8/30 Loss: 0.315
+Epoch: 10/30 Loss: 0.213
+Epoch: 12/30 Loss: 0.168
+Epoch: 14/30 Loss: 0.128
+Epoch: 16/30 Loss: 0.108
+Epoch: 18/30 Loss: 0.087
+Epoch: 20/30 Loss: 0.078
+Epoch: 22/30 Loss: 0.065
+Epoch: 24/30 Loss: 0.055
+Epoch: 26/30 Loss: 0.054
+Epoch: 28/30 Loss: 0.047
+Epoch: 30/30 Loss: 0.039
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Train >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Test Loss: 14.933
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END hierAttnNtwk-Bi-LSTM-CRF Test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        Command being timed: "python mainV2.py -m train -bilm False -we False"
+        User time (seconds): 1786.58
+        System time (seconds): 7.51
+        Percent of CPU this job got: 99%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 29:58.84
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4486804
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 1082883
+        Voluntary context switches: 101195
+        Involuntary context switches: 279539
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 20944
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m test -bilm False -we False
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: test
+====================================================================================================
+Vocabulary Size: 5043
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Test Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████| 2099/2099 [00:15<00:00, 137.88it/s]
+Metrics on Test DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.76      0.70      0.73     56162
+
+   micro avg       0.76      0.70      0.73     56162
+   macro avg       0.76      0.70      0.73     56162
+weighted avg       0.76      0.70      0.73     56162
+
+Precision given by SeqEval: 75.86%
+Recall given by SeqEval: 70.55%
+F1-Score given by SeqEval: 73.11%
+Accuracy given by SeqEval: 92.70%
+        Command being timed: "python mainV2.py -m test -bilm False -we False"
+        User time (seconds): 60.96
+        System time (seconds): 5.04
+        Percent of CPU this job got: 104%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:03.32
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4454800
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 1044127
+        Voluntary context switches: 20090
+        Involuntary context switches: 46341
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 8
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$ /usr/bin/time -v python mainV2.py -m testGS -bilm False -we False
+Word Embedding Type:  word2vec
+====================================================================================================
+Mode: testGS
+====================================================================================================
+Vocabulary Size: 5043
+/home/rgoli/.local/lib/python3.8/site-packages/torch/nn/modules/rnn.py:62: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+Test GS42 Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:00<00:00, 115.81it/s]
+Metrics on Test GS42 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.58      0.52      0.55      1048
+
+   micro avg       0.58      0.52      0.55      1048
+   macro avg       0.58      0.52      0.55      1048
+weighted avg       0.58      0.52      0.55      1048
+
+Precision given by SeqEval: 58.23%
+Recall given by SeqEval: 51.62%
+F1-Score given by SeqEval: 54.73%
+Accuracy given by SeqEval: 87.50%
+Test GS91 Keyword Marking:
+100%|█████████████████████████████████████████████████████████████████████████████████████| 91/91 [00:00<00:00, 156.37it/s]
+Metrics on Test GS91 DS:
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.64      0.53      0.58      2386
+
+   micro avg       0.64      0.53      0.58      2386
+   macro avg       0.64      0.53      0.58      2386
+weighted avg       0.64      0.53      0.58      2386
+
+Precision given by SeqEval: 63.50%
+Recall given by SeqEval: 53.23%
+F1-Score given by SeqEval: 57.91%
+Accuracy given by SeqEval: 89.14%
+        Command being timed: "python mainV2.py -m testGS -bilm False -we False"
+        User time (seconds): 10.98
+        System time (seconds): 3.90
+        Percent of CPU this job got: 116%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:12.73
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 4358400
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 701789
+        Voluntary context switches: 17827
+        Involuntary context switches: 106
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 8
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+(pytorch) [rgoli@node0074 NLP_KPIdentify]$
