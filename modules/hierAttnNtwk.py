@@ -38,7 +38,7 @@ import numpy as np
 
 from sklearn.metrics import confusion_matrix
 from seqeval.metrics import classification_report, accuracy_score, f1_score, recall_score, precision_score
-from seqeval.scheme import IOB2
+from seqeval.scheme import BILOU, IOB2
 
 from modules.languageModel import EmbeddingsReader
 
@@ -52,6 +52,7 @@ import scispacy
 from scispacy.linking import EntityLinker
 
 from tqdm import tqdm
+import configV2 as config
 
 logger = logging.getLogger(__name__)
 stop_words = nltk.corpus.stopwords.words('english')
@@ -85,7 +86,7 @@ MAX_SENT_LEN = 128
 IMPOSSIBLE = -1e4
 ## Use pre-trained word embeddings
 wordEmbdType = "word2vec" # basic/word2vec
-WORD_EMBED_FILE = 'lM_word2vec.bin'
+WORD_EMBED_FILE = 'LM_word2vec.bin'
 print("Word Embedding Type: ", wordEmbdType)
 
 def argmax(vec):
@@ -509,6 +510,12 @@ class SentAttention(nn.Module):
         # print(weighted_input.shape)
         # return torch.sum(weighted_input, 1)
 
+
+def get_unknown_word_embedding(word):
+    model = KeyedVectors.load(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE))
+    return model[word]
+
+
 class BiLSTM_CRF(nn.Module):
 
     def __init__(self, vocab_size, tag_to_ix, embedding_dim, dropout, use_pretrained_embd=None):
@@ -524,6 +531,8 @@ class BiLSTM_CRF(nn.Module):
             print("Using pretrained word embeddings")
             self.word_embeds, self.embedding_dim = use_pretrained_embd
             self.word_embeds.requires_grad = True ## CHANGE1
+
+            
 
         # Bidirectional word-level RNN
         # self.word_rnn = nn.GRU(embedding_dim, HIDDEN_DIM // 2, num_layers=1, bidirectional=True,
@@ -618,7 +627,26 @@ class BiLSTM_CRF(nn.Module):
 
         return attn_applied.permute(0,2,1)
 
-    def _get_lstm_features(self, sentences, masks=None):
+    def get_word_embedding(self, sentences, masks, data_tokens):
+
+        B, L = sentences.shape
+        C = EMBEDDING_DIM
+        word_embeddings = torch.zeros(B, L, C, dtype=torch.float, device=masks.device)
+
+        for b in range(B):
+            for l in range(L):
+                if masks[b][l] == 1:
+                    if sentences[b][l] == 0:
+                        word_embeddings[b][l] = torch.tensor(get_unknown_word_embedding(data_tokens[b][l]), device=masks.device)
+                    else:
+                        word_embeddings[b][l] = self.word_embeds(sentences[b][l])
+                else:
+                    word_embeddings[b][l] = self.word_embeds(sentences[b][l])
+                    #word_embeddings[b][l] = torch.zeros(C, dtype=torch.float, device=masks.device)
+
+        return word_embeddings
+
+    def _get_lstm_features(self, sentences, masks=None, data_tokens=None):
         # print('_get_lstm_features : ',sentences.shape)
         B, L = sentences.shape
 
@@ -631,7 +659,14 @@ class BiLSTM_CRF(nn.Module):
 
         # Get word embeddings, apply dropout
         # MAX_SENT_LEN=128 * No. of Sents(Batch Size) * EMBEDDING_DIM=300 ## 128 * 5 * 300
-        sentences = self.dropout(self.word_embeds(sentences))
+        if data_tokens == None:
+            sentences = self.dropout(self.word_embeds(sentences))
+        else:
+            
+            sentence_embeddings = self.get_word_embedding(sentences, masks, data_tokens)
+            
+            sentences = self.dropout(sentence_embeddings)
+            
 
         # LSTM_OUT1 =  BS * MAX_SENT_LEN=128 * HIDDEN_DIM=256 ; FINAL HIDDEN STATE = 2 * BS * 128 ; FINAL CELL STATE = 2 * BS * 128
         lstm1_out, self.hidden = self.lstm(sentences, self.hidden)
@@ -669,6 +704,14 @@ class BiLSTM_CRF(nn.Module):
         :return: [B] score in the log space
         """
         B, L, C = features.shape
+        for b in range(B):
+            l = len(tags[b])
+            #print(l)
+            if l < L:
+                for i in range(l, L):
+                    tags[b].append(self.tag_to_ix[STOP_TAG])
+                
+        tags = torch.tensor(tags, dtype = torch.int64, device = features.device)
 
         # emission score
         emit_scores = features.gather(dim=2, index=tags.unsqueeze(-1)).squeeze(-1)
@@ -699,15 +742,15 @@ class BiLSTM_CRF(nn.Module):
 
         # Initialize the viterbi variables in log space
         max_score = torch.full((B, C), IMPOSSIBLE, device=features.device)  # [B, C]
-        max_score[:, self.tag_to_ix[START_TAG]] = 0
+        max_score[:, self.tag_to_ix[START_TAG]] = 0 # [1*5]
 
         for t in range(L):
-            mask_t = masks[:, t].unsqueeze(1)  # [B, 1]
-            emit_score_t = features[:, t]  # [B, C]
+            mask_t = masks[:, t].unsqueeze(1)  # [B, 1] [1,1]
+            emit_score_t = features[:, t]  # [B, C] [1,5]
 
-            # [B, 1, C] + [C, C]
+            # [B, 1, C] + [C, C] # [1,1,5] + [5,5]
             acc_score_t = max_score.unsqueeze(1) + self.transitions  # [B, C, C]
-            acc_score_t, bps[:, t, :] = acc_score_t.max(dim=-1)
+            acc_score_t, bps[:, t, :] = acc_score_t.max(dim=-1) # []
             acc_score_t += emit_score_t
             max_score = acc_score_t * mask_t + max_score * (1 - mask_t)  # max_score or acc_score_t
 
@@ -732,18 +775,20 @@ class BiLSTM_CRF(nn.Module):
         return best_score, best_paths
 
     def neg_log_likelihood(self, sentences, tags, masks):
-        feats = self._get_lstm_features(sentences, masks)
-
+        feats = self._get_lstm_features(sentences, masks = masks)
+        
         forward_score = self._forward_alg(feats, masks)
         gold_score = self._score_sentence(feats, tags, masks)
         return (forward_score - gold_score).mean()
 
-    def forward(self, sentence, masks):  # dont confuse this with _forward_alg above.
+    def forward(self, sentence, masks, data_tokens=None):  # dont confuse this with _forward_alg above.
         # Get the emission scores from the BiLSTM
-        lstm_feats = self._get_lstm_features(sentence, masks)
+
+        lstm_feats = self._get_lstm_features(sentence, masks, None)
 
         # Find the best path, given the features.
         score, tag_seq = self._viterbi_decode(lstm_feats, masks)
+        
         return score, tag_seq
 
 def get_batches(data, batch_size):    
@@ -761,6 +806,7 @@ def get_batches(data, batch_size):
                 if w not in word_to_ix:
                     x[idx] = '<UNK>'
             idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
+            
             data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
             data_x.append(torch.tensor(idxs, dtype=torch.long))
             data_y.append(torch.tensor([tag_to_ix[t] for t in y[:MAX_SENT_LEN]], dtype=torch.long))
@@ -803,6 +849,7 @@ def get_batches_by_doc(data, doc_sents):
             for idx, w in enumerate(x[:MAX_SENT_LEN]):
                 if w not in word_to_ix:
                     x[idx] = '<UNK>'
+
             idxs = [word_to_ix[w] for w in x[:MAX_SENT_LEN]]
             data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
             data_x.append(torch.tensor(idxs, dtype=torch.long))
@@ -855,9 +902,8 @@ class hierAttnNtwkTrainer():
         self.ix_to_tag = ix_to_tag
 
         if self.biLM_path:
-            print("Using pre-trained BiLM Model...")
             model_stateDict = model.state_dict()
-            pretrainedLM = torch.load(biLM_path)
+            pretrainedLM = torch.load(biLM_path, map_location=DEVICE)
             pretrainedLM_stateDict = pretrainedLM
 
             # 1. filter out unnecessary keys
@@ -877,7 +923,7 @@ class hierAttnNtwkTrainer():
         minloss = 10000
         for epoch in range(EPOCHS):
             losses= []
-            for inputs, targets, masks, in self.get_batches_by_doc(self.train_data, self.train_data_doc_sents):
+            for inputs, targets, masks, data_tokens in self.get_batches_by_doc(self.train_data, self.train_data_doc_sents):
                 # Step 1. Remember that Pytorch accumulates gradients.
                 # We need to clear them out before each instance
                 self.model.zero_grad()
@@ -885,7 +931,7 @@ class hierAttnNtwkTrainer():
                 # Step 2. Get our inputs ready for the network, that is,
                 # turn them into Tensors of word indices.
                 inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
-
+                
                 # Step 3. Run our forward pass.
                 loss = self.model.neg_log_likelihood(inputs, targets, masks)
                 # print("loss: ",loss, loss.shape)
@@ -910,7 +956,7 @@ class hierAttnNtwkTrainer():
         losses= []
         with torch.no_grad():
             # for inputs, targets, masks in get_batches(testing_data, BATCH_SIZE):
-            for inputs, targets, masks in self.get_batches_by_doc(self.test_data, self.test_data_doc_sents):
+            for inputs, targets, masks, data_tokens in self.get_batches_by_doc(self.test_data, self.test_data_doc_sents):
                 inputs, targets, masks = inputs.to(DEVICE), targets.to(DEVICE), masks.to(DEVICE)
                 loss = self.best_model.neg_log_likelihood(inputs, targets, masks)
                 losses.append(loss.detach().item())
@@ -921,25 +967,44 @@ class hierAttnNtwkTrainer():
         torch.save(self.best_model.state_dict(), file_path)
 
     def loadModel(self, file_path):
-        self.model.load_state_dict(torch.load(file_path))
+        self.model.load_state_dict(torch.load(file_path, map_location=DEVICE))
+        
         return self.model
 
     def get_batches_by_doc(self, data, doc_sents):    
         # iterate through the arrays
         prv = 0
+        
+        unk_tokens_count = 0
+        total_tokens_count = 0
+
         for n in doc_sents:
             data_x = []
             data_masks = []
             data_y = []
-            for x,y in data[prv:prv+n]:
-            #for x,y in data[prv:n]:
+            data_tokens = []
+            for x,y in data[prv:prv+n]: #for x,y in data[prv:n]:
+                tokens_data = [w for w in x[:MAX_SENT_LEN]]
+
                 for idx, w in enumerate(x[:MAX_SENT_LEN]):
                     if w not in self.word_to_ix:
                         x[idx] = '<UNK>'
+                
                 idxs = [self.word_to_ix[w] for w in x[:MAX_SENT_LEN]]
-                data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+                
+                
+                #data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+                
+                for idx in idxs:
+                    if idx == 0:
+                        unk_tokens_count = unk_tokens_count + 1
+                    total_tokens_count = total_tokens_count + 1
+
+                data_masks.append(torch.tensor([1]*len(x), dtype=torch.long))
+                
                 data_x.append(torch.tensor(idxs, dtype=torch.long))
                 data_y.append(torch.tensor([self.tag_to_ix[t] for t in y[:MAX_SENT_LEN]], dtype=torch.long))
+                data_tokens.append(tokens_data)    
 
             # pad first seq to desired length
             try:
@@ -972,8 +1037,9 @@ class hierAttnNtwkTrainer():
             prv += n
             # print("Batch: ", prv)
             
-            yield data_x, data_y, data_masks
-
+            yield data_x, data_y, data_masks, data_tokens
+    
+    
     def seqEvalReport(self, targets, preds):
         print('SeqEval Metrics:')
         print(classification_report(targets, preds, mode='strict', scheme=IOB2))
@@ -991,12 +1057,21 @@ class hierAttnNtwkTrainer():
 
     def getMetricsOnData(self, data, ds_type="Test"):
         data, data_doc_sents = preprocess(data, ds_type)
+        print("preprocess done")
+        #print(data)
+        #print(data_doc_sentences)
         x_sents = []
         y_preds, y_targets = [], []
         with torch.no_grad():
-            for inputs, targets, masks in self.get_batches_by_doc(data, data_doc_sents):
+            for inputs, targets, masks, data_tokens in self.get_batches_by_doc(data, data_doc_sents):
                 inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
-                _, tags = self.model(inputs,masks)
+                #print(inputs.shape)
+                #print(masks.shape)
+                #print(inputs)
+                #print(masks)
+                #print(self.model(inputs,masks))
+                #_, tags = self.model(inputs,masks)
+                tags = self.model(inputs,masks)[1]
                 for idx, (pred,label) in enumerate(zip(tags, targets)):
                     x_sents.append(data[idx][0])
                     length = len(x_sents[-1])
@@ -1012,6 +1087,26 @@ class hierAttnNtwkTrainer():
 
         ## Sequence Evaluyation Metrics
         return self.seqEvalReport(y_targets, y_preds)
+    
+    def getPredictionKP(self, data, ds_type="Predict"):
+        data, data_doc_sents = preprocess(data, ds_type)
+        x_sents = []
+        y_preds, y_targets = [], []
+        
+        with torch.no_grad():
+            for inputs, targets, masks, data_tokens in self.get_batches_by_doc(data, data_doc_sents):
+                inputs, masks = inputs.to(DEVICE), masks.to(DEVICE)
+                _, tags, doc_score = self.model(inputs, masks, data_tokens)
+                
+                for idx, (pred,label) in enumerate(zip(tags, targets)):
+                    x_sents.append(data[idx][0])
+                    length = len(x_sents[-1])
+                    temp_preds = [self.ix_to_tag[i] for i in pred[:length]]
+                    temp_preds = temp_preds + ['O'] * (length - len(temp_preds))
+                    y_preds.append(temp_preds)
+                    y_targets.append([self.ix_to_tag[i] for i in label.detach().cpu().tolist()[:length]])
+
+        return y_preds, doc_score
 
 
 if __name__ == "__main__":
@@ -1045,9 +1140,11 @@ if __name__ == "__main__":
     # ## Load Vocab
     # word_to_ix = utils.read_json_array("token2int.json")
 
+    # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+    # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
+    
     tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
     ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
-    # ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: START_TAG, 4: STOP_TAG}
     print('<'*30,'END Read Data','>'*30)
 
     model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, DROPOUT, use_pretrained_embd=word_embeddings)
@@ -1063,7 +1160,7 @@ if __name__ == "__main__":
     # 2. overwrite entries in the existing state dict
     model_stateDict.update(pretrained_dict) 
     # 3. load the new state dict
-    model.load_state_dict(model_stateDict)
+    model.load_state_dict(model_stateDict, map_location=DEVICE)
 
     print('<'*30,'START Train','>'*30)
     model.train()
@@ -1102,7 +1199,7 @@ if __name__ == "__main__":
     print('<'*30,'END Train','>'*30)
 
     torch.save(best_model.state_dict(), 'hierAttnNtwk.pt')
-    model.load_state_dict(torch.load('hierAttnNtwk.pt'))
+    model.load_state_dict(torch.load('hierAttnNtwk.pt'), map_location=DEVICE)
 
     print('<'*30,'START Test','>'*30)
     # Check predictions after training

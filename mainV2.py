@@ -16,6 +16,8 @@ from collections import defaultdict
 
 import gensim
 from gensim.models import KeyedVectors
+from gensim.models import FastText
+
 
 from sklearn.model_selection import train_test_split
 import random
@@ -36,7 +38,7 @@ from modules.hierAttnNtwk import BiLSTM_CRF, hierAttnNtwkTrainer
 
 import numpy as np
 
-from GPUtil import showUtilization as gpu_usage
+#from GPUtil import showUtilization as gpu_usage
 
 import torch
 torch.manual_seed(1)
@@ -51,6 +53,79 @@ START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 300
 DROPOUT = 0.2
+
+def predict_kp(predict_data):
+        ## Read Vocabulary Mapping
+        ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
+        word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
+
+        ## Store Vocab Size - For further reference
+        vocab_size = len(ix_to_word)
+        print("Vocabulary Size: {}".format(vocab_size))
+
+        ## Load Word Embeddings Binary
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
+
+        tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
+        ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
+
+        ## Initialize Model Architecture with Word Embeddings 
+        biLSTM_CRF_model = BiLSTM_CRF(
+            vocab_size = len(word_to_ix),
+            tag_to_ix = tag_to_ix,
+            embedding_dim = EMBEDDING_DIM,
+            dropout = DROPOUT,
+            use_pretrained_embd=word_embeddings
+            )
+
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
+        hierAttnNtwk_trainer = hierAttnNtwkTrainer(
+            model = biLSTM_CRF_model,
+            train_data = None,
+            test_data = None,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
+            word_to_ix = word_to_ix,
+            tag_to_ix = tag_to_ix,
+            ix_to_tag = ix_to_tag
+        )
+
+        ## Load Best Model
+        hierAttnNtwk_trainer.loadModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
+
+        try:
+            predict_data = data.generate_predict_dataset(
+                predict_data,
+                min_sentences=args.minSentences,
+                filter_kp=args.filterKP,
+                model_name=os.path.join(WORKING_PATH,"cdssSciSpacy/model-best")
+                )
+        except NameError:
+            predict_data = data.generate_predict_dataset(
+                predict_data,
+                min_sentences=3,
+                filter_kp=False,
+                model_name=os.path.join(WORKING_PATH,"cdssSciSpacy/model-best")
+                )
+
+        predict_tags, doc_score = hierAttnNtwk_trainer.getPredictionKP(predict_data, "Predict")
+
+        # for sent,tag in zip(predict_data[0]['sentences'], predict_tags):
+        #     print(sent, tag, len(sent)==len(tag), end='\n\n', sep='\n')
+        
+        predict_kps = utils.parse_tags(
+            predict_data[0]['sentences'], predict_tags,
+            infer=True
+            )
+        predict_kps.sort(reverse=True, key=len)
+        
+        predict_data[0]['actual_keywords'] = predict_kps
+
+        return predict_data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Keyphrase extraction using hierAttn-BiLSTM-CRF")
@@ -74,8 +149,6 @@ if __name__ == "__main__":
     parser.add_argument("--minSentences", "-minSentences", default=3, help="CreateSynthDS :::: Minimum Sentences in Each Text")
     parser.add_argument("--filterKP","-filterKP", default=False, help="CreateSynthDS :::: Filter KP generation for DISEASE/GPE/HEALTH/MEDICATION")
     parser.add_argument("-seqLen","--seqLength", type=int, default = 5, help="BiLM :::: To create Train Dataset with sequence length sliding window over sentence. Deafult(5)")
-    parser.add_argument("--wordembeddings","-we", type=eval, default='True', choices=[True, False], help="WordEmbeddings :::: Use pre-trained word embeddings. Default(True)")
-    parser.add_argument("--bilm","-bilm", type=eval, default='True', choices=[True, False], help="BiLM :::: Use pre-trained BiLM model")
     
     args = parser.parse_args()
 
@@ -166,7 +239,7 @@ if __name__ == "__main__":
             i+=1
         totalData[j:]=[]
         
-        ## Write JSON Data
+        # Write JSON Data
         print("Saving GS91: ", len(gs91Data))
         utils.save_json(gs91Data, os.path.join(config.JSON_DATA,"testgs91.json"))
 
@@ -174,6 +247,28 @@ if __name__ == "__main__":
         utils.save_json(gs42Data, os.path.join(config.JSON_DATA,"testgs42.json"))
 
         dataset_length = len(totalData)
+        totalData = random.sample(totalData, dataset_length)
+
+        data_points = list(range(0, 91))
+        random.shuffle(data_points)
+        gs91a = []
+
+        for i in range(42):
+            gs91a.append(gs91Data[data_points[i]])
+
+        for i in gs91a:
+            print(i["id"])
+
+        print("Saving GS91a: ", len(gs91a))
+        utils.save_json(gs91a, os.path.join(config.JSON_DATA,"testgs91_a_new.json"))
+
+        gs91b = []
+        for i in range(42,91):
+            gs91b.append(gs91Data[data_points[i]])
+
+        print("Saving GS91b: ", len(gs91b))
+        utils.save_json(gs91b, os.path.join(config.JSON_DATA,"testgs91_b_new.json"))
+            
         print("Saving Train: ", dataset_length//3)
         utils.save_json(totalData[:dataset_length//3],os.path.join(config.JSON_DATA,"train.json"))
 
@@ -204,18 +299,31 @@ if __name__ == "__main__":
         ############################
         ## Create Word Embeddings ##
         ############################
-        modelW2V = gensim.models.Word2Vec(
-                    sentences=total_corpus_sentences,
-                    vector_size=300, window=5,
-                    min_count=0,workers=10,
-                    sg=1,seed=42,compute_loss=True
-                    )
+        # modelW2V = gensim.models.Word2Vec(
+        #             sentences=total_corpus_sentences,
+        #             vector_size=300, window=5,
+        #             min_count=0,workers=10,
+        #             sg=1,seed=42,compute_loss=True
+        #             )
         
-        ## Save Word Embeddings
-        modelW2V.wv.save_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+        # Train FastText model
+        modelW2V = FastText(sentences=total_corpus_sentences, vector_size=300, window=5, min_count=0, workers=10, sg=1)
 
-        ## Load Word Embeddings
-        modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+        word_vectors = modelW2V.wv
+        print(word_vectors["hepascore"])
+        
+        word_vectors.save(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE))
+        modelW2V = KeyedVectors.load(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE))
+
+        # # Now you can access individual word embeddings
+        # embedding_of_word = modelW2V["hepascore"]
+        # print("Embedding of the word 'word':", embedding_of_word)
+
+        ## Save Word Embeddings
+        # modelW2V.wv.save_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
+
+        # ## Load Word Embeddings
+        # modelW2V = KeyedVectors.load_word2vec_format(os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE), binary=True)
 
         ## Create Integer-to-Token mapping
         int2token = {0:'<UNK>'}
@@ -225,6 +333,8 @@ if __name__ == "__main__":
             cnt+=1
         ## Create Token-to-Integer mapping
         token2int = {t: i for i, t in int2token.items()}
+
+        print(modelW2V.get_vector("hepascore"))
 
         ## Store Vocab Size - For further reference
         vocab_size = len(int2token)
@@ -369,6 +479,7 @@ if __name__ == "__main__":
         # ## Create Token-to-Integer mapping
         # word_to_ix = {t: i for i, t in ix_to_word.items()}
 
+        ## Read Vocabulary Mapping
         ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
         word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
 
@@ -377,19 +488,17 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = None
-        if(args.wordembeddings):
-            word_embeddings = EmbeddingsReader.from_binary(
-                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-                vocab = word_to_ix
-                )        
-        bilm_file = None
-        if(args.bilm):
-            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
 
+        # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -398,17 +507,22 @@ if __name__ == "__main__":
             use_pretrained_embd=word_embeddings
             )
         
+        ## Initialize Model-Trainer with Model Architecture, Word Mappings
         hierAttnNtwk_trainer = hierAttnNtwkTrainer(
             model = biLSTM_CRF_model,
             train_data = trainData,
             test_data = testData,
-            biLM_path = bilm_file,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
         )
         ## Start Training
         hierAttnNtwk_trainer.train()
+
+        print('>'*100)
+        print(hierAttnNtwk_trainer.best_model.word_embeds.weight)
+        print('>'*100)
         ## Save Best Model
         hierAttnNtwk_trainer.saveModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
 
@@ -447,21 +561,17 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = None
-        if(args.wordembeddings):
-            word_embeddings = EmbeddingsReader.from_binary(
-                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-                vocab = word_to_ix
-                )  
-            
-        bilm_file = None
-        if(args.bilm):
-            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
 
+        # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
 
-        ## Initialize Model Architecture with Word Embeddings, 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -475,7 +585,7 @@ if __name__ == "__main__":
             model = biLSTM_CRF_model,
             train_data = None,
             test_data = None,
-            biLM_path = bilm_file,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
@@ -485,7 +595,13 @@ if __name__ == "__main__":
         hierAttnNtwk_trainer.loadModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
 
         ## Get Metrics on Test Data
-        hierAttnNtwk_trainer.getMetricsOnData(testData)
+        test_p,test_r,test_f1,test_acc = hierAttnNtwk_trainer.getMetricsOnData(testData)
+
+        with open('model_comparision_experiments.csv', 'a', newline='') as csvfile:
+            logwriter = csv.writer(csvfile, delimiter=';',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            logwriter.writerow(['Test', len(testData), test_p,test_r,test_f1,test_acc])
+
         # (pytorch) [rgoli@node1118 NLP_KPIdentify]$ python mainV2.py -m test
         # Word Embedding Type:  word2vec
         # ====================================================================================================
@@ -564,20 +680,17 @@ if __name__ == "__main__":
         print("Vocabulary Size: {}".format(vocab_size))
 
         ## Load Word Embeddings Binary
-        word_embeddings = None
-        if(args.wordembeddings):
-            word_embeddings = EmbeddingsReader.from_binary(
-                filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-                vocab = word_to_ix
-                )
-        bilm_file = None
-        if(args.bilm):
-            bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
+        word_embeddings = EmbeddingsReader.from_binary(
+            filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+            vocab = word_to_ix
+            )
 
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
-        ## Initialize Model Architecture with Word Embeddings, 
+        ## Initialize Model Architecture with Word Embeddings 
         biLSTM_CRF_model = BiLSTM_CRF(
             vocab_size = len(word_to_ix),
             tag_to_ix = tag_to_ix,
@@ -585,13 +698,13 @@ if __name__ == "__main__":
             dropout = DROPOUT,
             use_pretrained_embd=word_embeddings
             )
-        
+
         ## Initialize Model-Trainer with Model Architecture, Word Mappings
         hierAttnNtwk_trainer = hierAttnNtwkTrainer(
             model = biLSTM_CRF_model,
             train_data = None,
             test_data = None,
-            biLM_path = bilm_file,
+            biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE),
             word_to_ix = word_to_ix,
             tag_to_ix = tag_to_ix,
             ix_to_tag = ix_to_tag
@@ -602,11 +715,26 @@ if __name__ == "__main__":
 
         ## Get Metrics on Test Data - GS42
         testGS42Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs42.json"))
-        hierAttnNtwk_trainer.getMetricsOnData(testGS42Data, "Test GS42")
+        gs42_p,gs42_r,gs42_f1,gs42_acc = hierAttnNtwk_trainer.getMetricsOnData(testGS42Data, "Test GS42")
 
         ## Get Metrics on Test Data - GS91
         testGS91Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91.json"))
-        hierAttnNtwk_trainer.getMetricsOnData(testGS91Data, "Test GS91")
+        gs_p,gs_r,gs_f1,gs_acc = hierAttnNtwk_trainer.getMetricsOnData(testGS91Data, "Test GS91")
+
+        testgs91aData = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91_a_new.json"))
+        gs91a_p,gs91a_r,gs91a_f1,gs91a_acc = hierAttnNtwk_trainer.getMetricsOnData(testgs91aData, "Test GS91_a_new")
+
+        testgs91bData = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91_b_new.json"))
+        gs91b_p,gs91b_r,gs91b_f1,gs91b_acc = hierAttnNtwk_trainer.getMetricsOnData(testgs91bData, "Test GS91_b_new")
+
+        with open('model_comparision_experiments.csv', 'a', newline='') as csvfile:
+            logwriter = csv.writer(csvfile, delimiter=';',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            logwriter.writerow(['GS42', len(testGS42Data), gs42_p,gs42_r,gs42_f1,gs42_acc])
+            logwriter.writerow(['GS91', len(testGS91Data), gs_p,gs_r,gs_f1,gs_acc])
+            logwriter.writerow(['GS91A', len(testgs91aData), gs91a_p,gs91a_r,gs91a_f1,gs91a_acc])
+            logwriter.writerow(['GS91B', len(testgs91bData), gs91b_p,gs91b_r,gs91b_f1,gs91b_acc])
+            
         
         # (pytorch) [rgoli@node1118 NLP_KPIdentify]$ python mainV2.py -m testGS
         # Word Embedding Type:  word2vec
@@ -732,12 +860,33 @@ if __name__ == "__main__":
         # F1-Score given by SeqEval: 54.97%
         # Accuracy given by SeqEval: 88.38%
         pass
-    
+
+    elif args.mode == "predict":
+        predict_data = [{
+            "id": "",
+            "title": "",
+            "abstract": "",
+            "methods": "",
+            "results": "",
+            "keywords": [],
+            "actual_keywords": [],
+            "fullText": "",
+            "sentences": ""
+            }]
+        predict_data[0]['title'] = input("Enter the Title:\n")
+        predict_data[0]['abstract'] = input("Enter the Abstract:\n")
+
+        print(predict_kp(predict_data))
+
     elif args.mode == "expMixDS":
         trainData = utils.read_json_array(os.path.join(config.JSON_DATA, "train.json"))
         testData = utils.read_json_array(os.path.join(config.JSON_DATA, "test.json"))
         testGS42Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs42.json"))
         testGS91Data = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91.json"))
+
+        print(len(testGS42Data))
+        for i in testGS42Data:
+            print(i["id"])
         
         ix_to_word = utils.read_json_array(os.path.join(config.INTERIM_DATA,"int2token.json"))
         word_to_ix = utils.read_json_array(os.path.join(config.INTERIM_DATA,"token2int.json"))
@@ -748,6 +897,8 @@ if __name__ == "__main__":
 
         tag_to_ix = {"O": 0, "B-KP": 1, "I-KP": 2, START_TAG: 3, STOP_TAG: 4}
         ix_to_tag = {0:"O", 1: "B-KP", 2: "I-KP", 3: "O", 4: "O"}
+        # tag_to_ix = {"O" : 0, "U-KP" : 1, "B-KP" : 2, "I-KP" : 3, "L-KP" :4, START_TAG: 5, STOP_TAG: 6}
+        # ix_to_tag = {0 : "O", 1 : "U-KP", 2 : "B-KP", 3 : "I-KP", 4 : "L-KP", 5: "O", 6: "O"}
 
         with open('expMixDS.csv', 'w', newline='') as csvfile:
             logwriter = csv.writer(csvfile, delimiter=';',
@@ -756,10 +907,13 @@ if __name__ == "__main__":
 
         # experiment_mix_combs = [(100, 0), (100, 3), (100, 6), (100, 12), (100, 24), (100, 36), (100, 48)]
         # experiment_mix_combs = [(100, 0)]
-        experiment_mix_combs = [(100, 0), (100, 2), (100, 4), (100, 6), (100, 8), (100, 10), (100, 12)]
+        #experiment_mix_combs = [(100, 0), (100, 2), (100, 4), (100, 6), (100, 8), (100, 10), (100, 12)]
+        
+        experiment_mix_combs = [(100, 0)]
+        
         for tBt, gsBt in experiment_mix_combs:
             ## Number of times to Repeat Experiment
-            repeat = 10
+            repeat = 1
             for seed in range(repeat):
                 print("Combination: {} Train : {} GS, Experiment - #{}".format(tBt,gsBt,seed))
                 ## Create Randomized Synthetic Train/Test Data for each experiment
@@ -778,6 +932,9 @@ if __name__ == "__main__":
                 ## Shuffle GS 42, GS 91 
                 exp_gs42Data, exp_gs91Data = train_test_split(testGS42Data+ testGS91Data, test_size=0.69, random_state=seed)
 
+                # for i in exp_gs42Data:
+                #     print(i["id"])
+
                 i=j=0
                 exp_MixData = []
                 while i<len(exp_trainData):
@@ -794,16 +951,10 @@ if __name__ == "__main__":
                 # print([data['id'] for data in exp_MixData[:20]])
 
                 ## Load Word Embeddings Binary
-                word_embeddings = None
-                if(args.wordembeddings):
-                    word_embeddings = EmbeddingsReader.from_binary(
-                        filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
-                        vocab = word_to_ix
-                        )
-                    
-                bilm_file = None
-                if(args.bilm):
-                    bilm_file = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE)
+                word_embeddings = EmbeddingsReader.from_binary(
+                    filename = os.path.join(config.INTERIM_DATA,WORD_EMBED_FILE),
+                    vocab = word_to_ix
+                    )
                 
                 ## Initialize new model
                 biLSTM_CRF_model = BiLSTM_CRF(
@@ -819,7 +970,7 @@ if __name__ == "__main__":
                     model = biLSTM_CRF_model,
                     train_data = exp_MixData, ## Random Mix Data
                     test_data = exp_testData,
-                    biLM_path = bilm_file, ## Load Pre-trained Bi-Language Model
+                    biLM_path = os.path.join(config.INTERIM_DATA,BI_LM_MODEL_FILE), ## Load Pre-trained Bi-Language Model
                     word_to_ix = word_to_ix,
                     tag_to_ix = tag_to_ix,
                     ix_to_tag = ix_to_tag
@@ -827,32 +978,41 @@ if __name__ == "__main__":
 
                 ## Start Random Truth Mix Training
                 hierAttnNtwk_trainer.train()
+                # BILSTMCRF_MODEL_NAME = 'hierAttn-BiLSMT-CRF_exp'
+                # hierAttnNtwk_trainer.saveModel(os.path.join(config.INTERIM_DATA, BILSTMCRF_MODEL_NAME))
                 
-                ## Get Metrics on Test Data
-                test_p,test_r,test_f1,test_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_testData)
+                # ## Get Metrics on Test Data
+                # test_p,test_r,test_f1,test_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_testData)
 
-                ## Get Metrics on Test Data - GS91
-                gs_p,gs_r,gs_f1,gs_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_gs91Data, "Test GS91")
+                # ## Get Metrics on Test Data - GS91
+                # gs_p,gs_r,gs_f1,gs_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_gs91Data, "Test GS91")
+                
+                # gs42_p,gs42_r,gs42_f1,gs42_acc = hierAttnNtwk_trainer.getMetricsOnData(exp_gs42Data, "Test GS42")
 
-                experiment_name = "Synth{}:GS{}".format(tBt,gsBt)
+                # gs91b = utils.read_json_array(os.path.join(config.JSON_DATA, "testgs91_b.json"))
+                # gs91b_p,gs91b_r,gs91b_f1,gs91b_acc = hierAttnNtwk_trainer.getMetricsOnData(gs91b, "Test GS91b")
 
-                with open('expMixDS.csv', 'a', newline='') as csvfile:
-                    logwriter = csv.writer(csvfile, delimiter=';',
-                                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    logwriter.writerow([seed+1 , experiment_name, ds_length, 'Test', len(exp_testData), test_p,test_r,test_f1,test_acc])
-                    logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91', len(exp_gs91Data), gs_p,gs_r,gs_f1,gs_acc])
+                # experiment_name = "Synth{}:GS{}".format(tBt,gsBt)
 
-                # print("GPU Utilization - After Training: ")
-                # gpu_usage()
-                del word_embeddings
-                del biLSTM_CRF_model
-                del hierAttnNtwk_trainer
-                torch.cuda.empty_cache()
-                #torch.cuda.reset()
-                print("PyTorch Memory Allocation ::",torch.cuda.memory_allocated())
-                # print("GPU Utilization - After Clearing Cache: ")
-                # gpu_usage() 
-                del exp_trainData, exp_testData, exp_gs42Data, exp_gs91Data, exp_MixData
+                # with open('expMixDS.csv', 'a', newline='') as csvfile:
+                #     logwriter = csv.writer(csvfile, delimiter=';',
+                #                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                #     logwriter.writerow([seed+1 , experiment_name, ds_length, 'Test', len(exp_testData), test_p,test_r,test_f1,test_acc])
+                #     logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91', len(exp_gs91Data), gs_p,gs_r,gs_f1,gs_acc])
+                #     logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS42', len(exp_gs42Data), gs42_p,gs42_r,gs42_f1,gs42_acc])
+                #     logwriter.writerow([seed+1 , experiment_name, ds_length, 'GS91b', len(gs91b), gs91b_p,gs91b_r,gs91b_f1,gs91b_acc])
+
+                # # print("GPU Utilization - After Training: ")
+                # # gpu_usage()
+                # del word_embeddings
+                # del biLSTM_CRF_model
+                # del hierAttnNtwk_trainer
+                # torch.cuda.empty_cache()
+                # #torch.cuda.reset()
+                # print("PyTorch Memory Allocation ::",torch.cuda.memory_allocated())
+                # # print("GPU Utilization - After Clearing Cache: ")
+                # # gpu_usage() 
+                # del exp_trainData, exp_testData, exp_gs42Data, exp_gs91Data, exp_MixData
             pass
 
     else:

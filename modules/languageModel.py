@@ -411,6 +411,7 @@ class EmbeddingsReader:
             return np.random.uniform(-uniform, uniform, (vocab_size, embed_dim))
 
         with io.open(filename, "r", encoding="utf-8") as f:
+        #with io.open(filename, "rb") as f:
             for i, line in enumerate(f):
                 line = line.rstrip("\n ")
                 values = line.split(" ")
@@ -440,7 +441,6 @@ class EmbeddingsReader:
             return np.random.uniform(-uniform, uniform, (vocab_size, embed_dim))
 
         def read_word(f):
-
             s = bytearray()
             ch = f.read(1)
 
@@ -448,26 +448,62 @@ class EmbeddingsReader:
                 s.extend(ch)
                 ch = f.read(1)
             s = s.decode('utf-8')
-            # Only strip out normal space and \n not other spaces which are words.
             return s.strip(' \n')
 
+        # Load FastText model
+        model = KeyedVectors.load(filename)
+
         vocab_size = len(vocab)
-        with io.open(filename, "rb") as f:
-            header = f.readline()
-            file_vocab_size, embed_dim = map(int, header.split())
-            weight = init_embeddings(len(vocab), embed_dim, unif)
-            if '<UNK>' in vocab:
-                weight[vocab['<UNK>']] = 0.0
-            width = 4 * embed_dim
-            for i in range(file_vocab_size):
-                word = read_word(f)
-                raw = f.read(width)
-                if word in vocab:
-                    vec = np.fromstring(raw, dtype=np.float32)
-                    weight[vocab[word]] = vec
+        embed_dim = model.vector_size
+        weight = init_embeddings(len(vocab), embed_dim, unif)
+
+        if '<UNK>' in vocab:
+            weight[vocab['<UNK>']] = 0.0
+
+        
+        for word, i in vocab.items():
+            if word != '<UNK>' and word in model:
+                weight[i] = model[word]
+    
         embeddings = nn.Embedding(weight.shape[0], weight.shape[1])
         embeddings.weight = nn.Parameter(torch.from_numpy(weight).float())
         return embeddings, embed_dim
+    
+    
+    # @staticmethod
+    # def from_binary(filename, vocab, unif=0.25):
+    #     def init_embeddings(vocab_size, embed_dim, uniform):
+    #         return np.random.uniform(-uniform, uniform, (vocab_size, embed_dim))
+
+    #     def read_word(f):
+
+    #         s = bytearray()
+    #         ch = f.read(1)
+
+    #         while ch != b' ':
+    #             s.extend(ch)
+    #             ch = f.read(1)
+    #         s = s.decode('utf-8')
+    #         # Only strip out normal space and \n not other spaces which are words.
+    #         return s.strip(' \n')
+
+    #     vocab_size = len(vocab)
+    #     with io.open(filename, "rb") as f:
+    #         header = f.readline()
+    #         file_vocab_size, embed_dim = map(int, header.split())
+    #         weight = init_embeddings(len(vocab), embed_dim, unif)
+    #         if '<UNK>' in vocab:
+    #             weight[vocab['<UNK>']] = 0.0
+    #         width = 4 * embed_dim
+    #         for i in range(file_vocab_size):
+    #             word = read_word(f)
+    #             raw = f.read(width)
+    #             if word in vocab:
+    #                 vec = np.fromstring(raw, dtype=np.float32)
+    #                 weight[vocab[word]] = vec
+    #     embeddings = nn.Embedding(weight.shape[0], weight.shape[1])
+    #     embeddings.weight = nn.Parameter(torch.from_numpy(weight).float())
+    #     return embeddings, embed_dim
 
 class WordLSTM(nn.Module):
     
