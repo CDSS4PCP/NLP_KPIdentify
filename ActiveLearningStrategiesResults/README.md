@@ -19,4 +19,4 @@ To analyze the results:
 2. Refer to **Sheet 1** for detailed experiment settings and cycle-wise results.
 3. Check the **Summary Sheet** for an overview of the experiment’s performance trends.
 
-These results help evaluate the effectiveness of different Active Learning strategies based on recall, F1 score, and other key performance metrics.
+These results help evaluate the effectiveness of different Active Learning strategies based on recall, F1 score.
