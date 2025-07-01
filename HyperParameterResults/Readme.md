@@ -6,7 +6,7 @@ This directory contains the results of hyperparameter tuning experiments perform
 
 - Each file in this directory corresponds to a different hyperparameter configuration tested (e.g., dropout rates, sequence lengths, batch sizes).
 - Each experiment file is a Google Sheet export (or similar spreadsheet) containing detailed results across Active Learning cycles.
-- Files are typically named in a way that reflects the hyperparameter being tested (e.g., `dropout_0.3_results.xlsx`, `seq_len_128_results.xlsx`).
+- Files are typically named in a way that reflects the hyperparameter being tested.
 
 ## 📄 Inside Each Experiment File
 
