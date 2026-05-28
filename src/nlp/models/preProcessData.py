@@ -17,7 +17,35 @@ from src.nlp.models.utils import read_json_datas, string_escape, read_json_array
 from src.nlp.models.textrank import textrank
 from src.nlp.models.tf_idf import tf_idf
 
-import config
+
+def _nltk_version_at_least(major, minor, patch=0):
+    parts = []
+    for token in nltk.__version__.split('.'):
+        digits = ''.join(ch for ch in token if ch.isdigit())
+        if not digits:
+            break
+        parts.append(int(digits))
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3]) >= (major, minor, patch)
+
+
+def _ensure_nltk_resource(resource_path, download_name):
+    try:
+        nltk.data.find(resource_path)
+    except (LookupError, OSError):
+        logger.info("Downloading missing NLTK resource: %s", download_name)
+        nltk.download(download_name, quiet=True)
+
+
+logger = logging.getLogger(__name__)
+
+_ensure_nltk_resource('corpora/stopwords', 'stopwords')
+_ensure_nltk_resource('tokenizers/punkt', 'punkt')
+_ensure_nltk_resource('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger')
+if _nltk_version_at_least(3, 8, 2):
+    _ensure_nltk_resource('tokenizers/punkt_tab', 'punkt_tab')
+    _ensure_nltk_resource('taggers/averaged_perceptron_tagger_eng', 'averaged_perceptron_tagger_eng')
 
 stop_words = nltk.corpus.stopwords.words('english')
 
@@ -31,7 +59,26 @@ english_punctuations = [',', '.', ':', ';', '``','?', '（','）','(', ')',
 english_punctuations_arr= ''.join(english_punctuations)
 stemmer = PorterStemmer()
 
-logger = logging.getLogger(__name__)
+
+def _tokenize_for_matching(text, keep_stopwords=True):
+    """Normalize text consistently for sentence-keyword span matching."""
+    if not isinstance(text, str):
+        text = '' if text is None else str(text)
+
+    text = contractions.fix(text)
+    text = text.lower().strip()
+    text = unidecode.unidecode(text)
+    text = text.encode("ascii", "ignore").decode()
+    text = re.sub('http[s]?://\\S+', '', text)
+    text = re.sub('\\d+\\.*\\d*\-+\\d+\\.*\\d*', ' ', text)
+    text = text.translate(str.maketrans(english_punctuations_arr, ' ' * len(english_punctuations_arr)))
+
+    words = word_tokenize(text)
+    words = [word for word in words if not all(c in string.punctuation for c in word)]
+    if not keep_stopwords:
+        words = [word for word in words if word not in stop_words]
+    words = [word for word in words if len(word) > 0]
+    return words
 
 def sent2words(sent):
     '''Pre-process sentence text to words'''
@@ -75,62 +122,109 @@ def sent2words(sent):
     return words, pos, length, ' '.join(words)
 
 # Mark Keyphrases with BIO Format Labels
-def mark_keyword_all_sentences(keywords, sentences):
+def mark_keyword_all_sentences(keywords, sentences, schema='IOBES', return_stats=False):
+    if len(sentences) > 0 and isinstance(sentences[0], str):
+        sentences = [x.split() for x in sentences]
 
-    sentence_lengths = [len(x.split()) for x in sentences]
+    sentence_lengths = [len(sent) for sent in sentences]
     logger.debug("Sentence length: %s"%sentence_lengths)
 
-    complete_text = ' '.join(sentences).split()
+    complete_text = []
+    for sent in sentences:
+        complete_text.extend(sent)
     logger.debug("Complete Text: %s"%complete_text)
 
     complete_text_len = len(complete_text)
     mapper = ['O']*complete_text_len
-    kws = [sent2words(x)[0] for x in keywords]
-    # print("Processed Keywords")
-    # print(kws)
+    normalized_text = []
+    norm_to_orig_idx = []
 
-    for kw in kws:
+    for idx, token in enumerate(complete_text):
+        for match_tok in _tokenize_for_matching(token, keep_stopwords=True):
+            normalized_text.append(match_tok)
+            norm_to_orig_idx.append(idx)
+
+    normalized_keywords = [_tokenize_for_matching(x, keep_stopwords=True) for x in keywords]
+    stats = {
+        'keyword_total': len(keywords),
+        'keyword_nonempty': 0,
+        'keyword_matched': 0,
+        'keyword_unmatched': 0,
+        'unmatched_examples': [],
+        'unmatched_reasons': Counter(),
+    }
+
+    for raw_kw, kw in zip(keywords, normalized_keywords):
         kw_len=len(kw)
         if kw_len == 0:
             continue
+        stats['keyword_nonempty'] += 1
+
+        matched_kw = False
+        saw_overlap_conflict = False
         i=0
-        while i<complete_text_len-kw_len:
-            if complete_text[i:i+kw_len]==kw and mapper[i:i+kw_len]==['O']*kw_len:
-                if kw_len==1:
-                    mapper[i]='U-KP'
-                else:
-                    mapper[i:i+kw_len]=['I-KP']*kw_len
-                    mapper[i]='B-KP'
-                    mapper[i+kw_len-1]='L-KP'
+        norm_text_len = len(normalized_text)
+        while i <= norm_text_len - kw_len:
+            if normalized_text[i:i+kw_len] == kw:
+                start_orig = norm_to_orig_idx[i]
+                end_orig = norm_to_orig_idx[i+kw_len-1]
+                span_start = min(start_orig, end_orig)
+                span_end = max(start_orig, end_orig)
+                span_len = span_end - span_start + 1
 
-                # if kw_len>=2:
-                #     mapper[i+kw_len-1]="I-KP"
-                # if kw_len==1:
-                #     mapper[i]="B-KP"
+                if mapper[span_start:span_end+1] != ['O'] * span_len:
+                    saw_overlap_conflict = True
+                    i += 1
+                    continue
 
-            i+=1
+                if schema == 'BIO':
+                    mapper[span_start]='B-KP'
+                    if span_len > 1:
+                        mapper[span_start+1:span_end+1]=['I-KP']*(span_len-1)
+                elif schema == 'BILOU':
+                    if span_len == 1:
+                        mapper[span_start]='U-KP'
+                    else:
+                        mapper[span_start:span_end+1]=['I-KP']*span_len
+                        mapper[span_start]='B-KP'
+                        mapper[span_end]='L-KP'
+                else: # IOBES
+                    if span_len == 1:
+                        mapper[span_start]='S-KP'
+                    else:
+                        mapper[span_start:span_end+1]=['I-KP']*span_len
+                        mapper[span_start]='B-KP'
+                        mapper[span_end]='E-KP'
+                matched_kw = True
+                i += kw_len
+                continue
+            i += 1
 
-    # print(complete_text)
-    # print(mapper)
-    # for i,j in zip(complete_text,mapper):
-    #     print(j,'\t',i)
+        if matched_kw:
+            stats['keyword_matched'] += 1
+        else:
+            stats['keyword_unmatched'] += 1
+            if saw_overlap_conflict:
+                stats['unmatched_reasons']['overlap_conflict'] += 1
+            else:
+                stats['unmatched_reasons']['no_span_match'] += 1
+            if len(stats['unmatched_examples']) < 10:
+                stats['unmatched_examples'].append(raw_kw)
 
     final_mapper = []
     final_tokens = []
     start=0
-    # print(sentence_lengths, len(mapper))
     for slen in sentence_lengths:
         final_mapper.append(mapper[start:start+slen])
         final_tokens.append(complete_text[start:start+slen])
         start+=slen
 
-    # for i,j in zip(sentences,final_mapper):
-    #     print(i,j)
-    
+    if return_stats:
+        return complete_text, final_mapper, final_tokens, stats
     return complete_text, final_mapper, final_tokens
 
 # Mark Keywords
-def mark_keyword(keywords, words):
+def mark_keyword(keywords, words, schema='IOBES'):
     # Initial marker variable
     text = " ".join(words)
     position, text_len  = ['O'] * len(words), len(text)
@@ -143,13 +237,27 @@ def mark_keyword(keywords, words):
                    or (start == 0 and text[end] == ' ') \
                    or (text[start - 1] == ' ' and text[end] == ' '):
                 p_index = len(text[:start].split(" ")) - 1
-                if kw_num == 1:
+                if schema == 'BIO':
                     position[p_index] = 'B-KP'
-                else:
-                    position[p_index] = 'B-KP'
-                    for i in range(1, kw_num - 1):
-                        position[p_index + i] = 'I-KP'
-#                     position[p_index + kw_num - 1] = 'L-KP'
+                    if kw_num > 1:
+                        for i in range(1, kw_num):
+                            position[p_index + i] = 'I-KP'
+                elif schema == 'BILOU':
+                    if kw_num == 1:
+                        position[p_index] = 'U-KP'
+                    else:
+                        position[p_index] = 'B-KP'
+                        for i in range(1, kw_num - 1):
+                            position[p_index + i] = 'I-KP'
+                        position[p_index + kw_num - 1] = 'L-KP'
+                else: # IOBES
+                    if kw_num == 1:
+                        position[p_index] = 'S-KP'
+                    else:
+                        position[p_index] = 'B-KP'
+                        for i in range(1, kw_num - 1):
+                            position[p_index + i] = 'I-KP'
+                        position[p_index + kw_num - 1] = 'E-KP'
     return " ".join(words), position
 
 # Construct features of data
