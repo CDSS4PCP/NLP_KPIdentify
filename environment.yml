@@ -1,0 +1,47 @@
+name: cdss-kp
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pytorch
+  - torchvision
+  - torchaudio
+  - numpy
+  - pandas
+  - scikit-learn
+  - nltk
+  - tqdm
+  - requests
+  - pyyaml
+  - psutil
+  # Move compiled C-extensions to Conda to fetch pre-compiled binaries
+  - spacy=3.7.5
+  - pyahocorasick
+  - nmslib
+  - pip:
+      # NLP Core (spacy is now in Conda section)
+      - scispacy==0.6.2
+      - gensim==4.3.0
+      - seqeval==1.2.2
+      - sklearn-crfsuite==0.3.6
+      - python-crfsuite>=0.9.9
+      # spaCy Models (directly load from URL in run scripts or install as dependencies)
+      - https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+      - https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
+      - https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_lg-0.5.4.tar.gz
+      # Utilities and Helpers
+      - Unidecode==1.3.8
+      - contractions==0.1.73
+      - anyascii==0.3.1
+      - annotated-doc==0.0.4
+      - conllu==4.5.2
+      - textsearch==0.0.24
+      # APIs
+      - fastapi>=0.92.0
+      - uvicorn>=0.20.0
+      - python-multipart>=0.0.5
+      # Database
+      - psycopg2-binary>=2.9.1

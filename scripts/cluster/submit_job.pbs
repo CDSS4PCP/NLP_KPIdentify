@@ -1,0 +1,71 @@
+#!/bin/bash
+# ==============================================================================
+# Clemson Palmetto Supercomputer PBS Job Submission Script
+# ==============================================================================
+#PBS -N cdss_gna_pipeline
+#PBS -l select=1:ncpus=16:mem=64gb:ngpus=1:gpu_model=a100:walltime=06:00:00
+#PBS -j oe
+#PBS -m abe
+#PBS -M rgoli@clemson.edu
+
+# Move into the cluster submission work directory
+cd $PBS_O_WORKDIR
+
+echo "======================================================================"
+echo "Clemson Palmetto PBS Job Triggered"
+echo "======================================================================"
+echo "Job Name:           $PBS_JOBNAME"
+echo "Job ID:             $PBS_JOBID"
+echo "Execution Node:     $(hostname)"
+echo "Current Directory:  $(pwd)"
+echo "Submit Directory:   $PBS_O_WORKDIR"
+echo "Start Time:         $(date)"
+echo "======================================================================"
+
+# 1. Load Cluster Environment Modules
+echo "Loading required environment modules..."
+module purge
+module load anaconda3/2022.10-gcc/11.3.0
+module load cuda/11.8.0-gcc/11.3.0
+
+# 2. Activate Conda Environment
+echo "Activating Conda Environment..."
+# Sourcing profile.d is the standard way to initialize conda in non-interactive shells
+if [ -f /software/anaconda3/2022.10/etc/profile.d/conda.sh ]; then
+    source /software/anaconda3/2022.10/etc/profile.d/conda.sh
+else
+    # Fallback to local user conda profile
+    eval "$(conda shell.bash hook)"
+fi
+
+conda activate cdss
+
+# 3. Load Project Environment Variables (API Keys, Paths, etc.)
+if [ -f scripts/cluster/load_env.sh ]; then
+    echo "Loading cluster execution environment variables (load_env.sh)..."
+    source scripts/cluster/load_env.sh
+else
+    echo "Warning: scripts/cluster/load_env.sh not found. Proceeding with system defaults."
+fi
+
+# 4. Verify GPU Configuration via PyTorch/CUDA
+echo "Verifying CUDA capability..."
+python -c "
+import torch
+print('PyTorch Version:', torch.__file__)
+if torch.cuda.is_available():
+    print('✔ CUDA is available!')
+    print('Active Device Count:', torch.cuda.device_count())
+    print('Device Name:', torch.cuda.get_device_name(0))
+else:
+    print('❌ CUDA is NOT available. Script will fall back to CPU.')
+"
+
+# 5. Launch the Modular pipeline via python or torchrun
+# Run all modes of the pipeline sequentially: createData -> preTrain -> train -> testGS -> test
+echo "Launching global attention pipeline (gna_pipeline.py)..."
+python src/nlp/jobs/gna_pipeline.py --device cuda --mode clean,createData,preTrain,train,testGS --epochs 20 --batchSize 64
+
+echo "======================================================================"
+echo "Palmetto Job Completed at: $(date)"
+echo "======================================================================"

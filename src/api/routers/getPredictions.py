@@ -2,11 +2,11 @@ from fastapi import FastAPI, Request, Form, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from mainV2 import predict_kp
+from src.nlp.experiments.predictor import predict_kp
 import json
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates/")
+templates = Jinja2Templates(directory="web/templates")
 
 
 @router.get("/getPredictions", response_class=HTMLResponse)

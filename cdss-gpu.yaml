@@ -1,0 +1,52 @@
+name: cdss-gpu
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+
+  # Core ML/NLP stack
+  # Force CUDA builds to avoid solver selecting CPU-only variants.
+  - pytorch=2.11.*=gpu_cuda130*
+  - torchvision=0.26.*=cuda130*
+  - torchaudio=2.11.*=cuda130*
+  - numpy=1.24.*
+  - pandas=1.5.*
+  - scikit-learn=1.2.*
+  - gensim=4.3.*
+  - nltk=3.8.*
+  - tqdm
+  - requests
+
+  # API/runtime
+  - fastapi>=0.92,<1
+  - uvicorn>=0.20,<1
+  - python-multipart>=0.0.5
+
+  # Keep binary/compiled pieces in conda when possible
+  - spacy=3.7.5
+  - python-crfsuite>=0.9.9
+  - pyahocorasick
+  - nmslib
+
+  - pip:
+      - pubmed-parser>=0.3.0
+      - scispacy==0.6.2
+      - seqeval==1.2.2
+      - sklearn-crfsuite==0.3.6
+      - spacy-transformers==1.1.9
+      - transformers==4.25.1
+      - conllu==4.5.2
+      - contractions==0.1.73
+      - textsearch==0.0.24
+      - anyascii==0.3.1
+      - unidecode==1.3.8
+      - pyyaml==6.0
+      - psutil==5.9.4
+      - psycopg2-binary>=2.9.1
+
+      # spaCy/scispaCy models
+      - https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+      - https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
+      - https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_lg-0.5.4.tar.gz

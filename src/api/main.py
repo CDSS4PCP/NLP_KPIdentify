@@ -9,8 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from src.api.routers import getPredictions
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="web/templates")
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 # @app.get("/")
 # async def root():
