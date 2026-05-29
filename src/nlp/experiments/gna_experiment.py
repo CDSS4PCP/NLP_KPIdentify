@@ -45,6 +45,16 @@ class GNAExperiment(BaseExperiment):
         trainer.set_device(self.device)
         
         self.model = None
+        self.han_use_block_diagonal = bool(self.config.get("hanUseBlockDiagonal", getattr(config, "HAN_USE_BLOCK_DIAGONAL", False)))
+        self.han_batch_mode = str(self.config.get("hanBatchMode", getattr(config, "HAN_BATCH_MODE", "doc"))).lower()
+
+    def _unpack_batch(self, batch_data):
+        if len(batch_data) == 6:
+            inputs, targets, masks, feats_pos, feats_cont, doc_ids = batch_data
+        else:
+            inputs, targets, masks, feats_pos, feats_cont = batch_data
+            doc_ids = None
+        return inputs, targets, masks, feats_pos, feats_cont, doc_ids
 
     def prepare_data(self):
         print("Preparing data...")
@@ -443,24 +453,48 @@ class GNAExperiment(BaseExperiment):
 
             # Keep stochasticity while reusing the same preprocessed CPU batch tensors.
             for batch_idx in np.random.permutation(len(cached_batches)):
-                inputs, targets, masks, feats_pos, feats_cont = cached_batches[batch_idx]
+                inputs, targets, masks, feats_pos, feats_cont, doc_ids = self._unpack_batch(cached_batches[batch_idx])
                 inputs = inputs.to(self.device, non_blocking=use_amp)
                 targets = targets.to(self.device, non_blocking=use_amp)
                 masks = masks.to(self.device, non_blocking=use_amp)
                 feats_pos = feats_pos.to(self.device, non_blocking=use_amp)
                 feats_cont = feats_cont.to(self.device, non_blocking=use_amp)
+                if doc_ids is not None:
+                    doc_ids = doc_ids.to(self.device, non_blocking=use_amp)
 
                 optimizer.zero_grad(set_to_none=True)
                 if use_amp:
                     with torch.autocast(device_type="cuda", dtype=torch.float16):
-                        loss = self.model.neg_log_likelihood(inputs, targets, masks, feats_pos, feats_cont)
+                        if model_type == "han_crf":
+                            loss = self.model.neg_log_likelihood(
+                                inputs,
+                                targets,
+                                masks,
+                                feats_pos,
+                                feats_cont,
+                                doc_ids=doc_ids,
+                                use_block_mask=self.han_use_block_diagonal and doc_ids is not None,
+                            )
+                        else:
+                            loss = self.model.neg_log_likelihood(inputs, targets, masks, feats_pos, feats_cont)
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
                     scaler.step(optimizer)
                     scaler.update()
                 else:
-                    loss = self.model.neg_log_likelihood(inputs, targets, masks, feats_pos, feats_cont)
+                    if model_type == "han_crf":
+                        loss = self.model.neg_log_likelihood(
+                            inputs,
+                            targets,
+                            masks,
+                            feats_pos,
+                            feats_cont,
+                            doc_ids=doc_ids,
+                            use_block_mask=self.han_use_block_diagonal and doc_ids is not None,
+                        )
+                    else:
+                        loss = self.model.neg_log_likelihood(inputs, targets, masks, feats_pos, feats_cont)
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
                     optimizer.step()
@@ -480,18 +514,43 @@ class GNAExperiment(BaseExperiment):
                 total_val_loss = 0.0
                 val_batches = 0
                 with torch.no_grad():
-                    for v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont in cached_val_batches:
+                    for v_batch in cached_val_batches:
+                        v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont, v_doc_ids = self._unpack_batch(v_batch)
                         v_inputs = v_inputs.to(self.device, non_blocking=use_amp)
                         v_targets = v_targets.to(self.device, non_blocking=use_amp)
                         v_masks = v_masks.to(self.device, non_blocking=use_amp)
                         v_feats_pos = v_feats_pos.to(self.device, non_blocking=use_amp)
                         v_feats_cont = v_feats_cont.to(self.device, non_blocking=use_amp)
+                        if v_doc_ids is not None:
+                            v_doc_ids = v_doc_ids.to(self.device, non_blocking=use_amp)
 
                         if use_amp:
                             with torch.autocast(device_type="cuda", dtype=torch.float16):
-                                v_loss = self.model.neg_log_likelihood(v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont)
+                                if model_type == "han_crf":
+                                    v_loss = self.model.neg_log_likelihood(
+                                        v_inputs,
+                                        v_targets,
+                                        v_masks,
+                                        v_feats_pos,
+                                        v_feats_cont,
+                                        doc_ids=v_doc_ids,
+                                        use_block_mask=self.han_use_block_diagonal and v_doc_ids is not None,
+                                    )
+                                else:
+                                    v_loss = self.model.neg_log_likelihood(v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont)
                         else:
-                            v_loss = self.model.neg_log_likelihood(v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont)
+                            if model_type == "han_crf":
+                                v_loss = self.model.neg_log_likelihood(
+                                    v_inputs,
+                                    v_targets,
+                                    v_masks,
+                                    v_feats_pos,
+                                    v_feats_cont,
+                                    doc_ids=v_doc_ids,
+                                    use_block_mask=self.han_use_block_diagonal and v_doc_ids is not None,
+                                )
+                            else:
+                                v_loss = self.model.neg_log_likelihood(v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont)
                         total_val_loss += float(v_loss.detach().item())
                         val_batches += 1
 
@@ -598,24 +657,48 @@ class GNAExperiment(BaseExperiment):
                         gs_batches = 0
 
                         for batch_idx in np.random.permutation(len(gs_train_batches)):
-                            g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont = gs_train_batches[batch_idx]
+                            g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont, g_doc_ids = self._unpack_batch(gs_train_batches[batch_idx])
                             g_inputs = g_inputs.to(self.device, non_blocking=use_amp)
                             g_targets = g_targets.to(self.device, non_blocking=use_amp)
                             g_masks = g_masks.to(self.device, non_blocking=use_amp)
                             g_feats_pos = g_feats_pos.to(self.device, non_blocking=use_amp)
                             g_feats_cont = g_feats_cont.to(self.device, non_blocking=use_amp)
+                            if g_doc_ids is not None:
+                                g_doc_ids = g_doc_ids.to(self.device, non_blocking=use_amp)
 
                             gs_optimizer.zero_grad(set_to_none=True)
                             if use_amp:
                                 with torch.autocast(device_type="cuda", dtype=torch.float16):
-                                    g_loss = self.model.neg_log_likelihood(g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont)
+                                    if model_type == "han_crf":
+                                        g_loss = self.model.neg_log_likelihood(
+                                            g_inputs,
+                                            g_targets,
+                                            g_masks,
+                                            g_feats_pos,
+                                            g_feats_cont,
+                                            doc_ids=g_doc_ids,
+                                            use_block_mask=self.han_use_block_diagonal and g_doc_ids is not None,
+                                        )
+                                    else:
+                                        g_loss = self.model.neg_log_likelihood(g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont)
                                 scaler.scale(g_loss).backward()
                                 scaler.unscale_(gs_optimizer)
                                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
                                 scaler.step(gs_optimizer)
                                 scaler.update()
                             else:
-                                g_loss = self.model.neg_log_likelihood(g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont)
+                                if model_type == "han_crf":
+                                    g_loss = self.model.neg_log_likelihood(
+                                        g_inputs,
+                                        g_targets,
+                                        g_masks,
+                                        g_feats_pos,
+                                        g_feats_cont,
+                                        doc_ids=g_doc_ids,
+                                        use_block_mask=self.han_use_block_diagonal and g_doc_ids is not None,
+                                    )
+                                else:
+                                    g_loss = self.model.neg_log_likelihood(g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont)
                                 g_loss.backward()
                                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
                                 gs_optimizer.step()
@@ -630,17 +713,42 @@ class GNAExperiment(BaseExperiment):
                             val_loss_sum = 0.0
                             val_batches = 0
                             with torch.no_grad():
-                                for gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont in gs_val_batches:
+                                for gv_batch in gs_val_batches:
+                                    gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont, gv_doc_ids = self._unpack_batch(gv_batch)
                                     gv_inputs = gv_inputs.to(self.device, non_blocking=use_amp)
                                     gv_targets = gv_targets.to(self.device, non_blocking=use_amp)
                                     gv_masks = gv_masks.to(self.device, non_blocking=use_amp)
                                     gv_feats_pos = gv_feats_pos.to(self.device, non_blocking=use_amp)
                                     gv_feats_cont = gv_feats_cont.to(self.device, non_blocking=use_amp)
+                                    if gv_doc_ids is not None:
+                                        gv_doc_ids = gv_doc_ids.to(self.device, non_blocking=use_amp)
                                     if use_amp:
                                         with torch.autocast(device_type="cuda", dtype=torch.float16):
-                                            gv_loss = self.model.neg_log_likelihood(gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont)
+                                            if model_type == "han_crf":
+                                                gv_loss = self.model.neg_log_likelihood(
+                                                    gv_inputs,
+                                                    gv_targets,
+                                                    gv_masks,
+                                                    gv_feats_pos,
+                                                    gv_feats_cont,
+                                                    doc_ids=gv_doc_ids,
+                                                    use_block_mask=self.han_use_block_diagonal and gv_doc_ids is not None,
+                                                )
+                                            else:
+                                                gv_loss = self.model.neg_log_likelihood(gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont)
                                     else:
-                                        gv_loss = self.model.neg_log_likelihood(gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont)
+                                        if model_type == "han_crf":
+                                            gv_loss = self.model.neg_log_likelihood(
+                                                gv_inputs,
+                                                gv_targets,
+                                                gv_masks,
+                                                gv_feats_pos,
+                                                gv_feats_cont,
+                                                doc_ids=gv_doc_ids,
+                                                use_block_mask=self.han_use_block_diagonal and gv_doc_ids is not None,
+                                            )
+                                        else:
+                                            gv_loss = self.model.neg_log_likelihood(gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont)
                                     val_loss_sum += float(gv_loss.detach().item())
                                     val_batches += 1
                             avg_gs_val_loss = val_loss_sum / max(1, val_batches)
@@ -709,6 +817,40 @@ class GNAExperiment(BaseExperiment):
         nlp = None
         prcd_data = []
         doc_sents = []
+
+        def _build_batch(samples, doc_ids=None):
+            data_x, data_y, data_masks = [], [], []
+            data_pos, data_cont = [], []
+
+            for x, y, pos, lens, wfofs, tis, trs in samples:
+                idxs = [word_to_ix.get(w, word_to_ix.get('<UNK>', 0)) for w in x[:max_len]]
+                data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+                data_x.append(torch.tensor(idxs, dtype=torch.long))
+                data_y.append(torch.tensor([tag_to_ix.get(t, 0) for t in y[:max_len]], dtype=torch.long))
+                data_pos.append(torch.tensor(pos[:max_len], dtype=torch.long))
+                cont_t = torch.tensor([lens[:max_len], wfofs[:max_len], tis[:max_len], trs[:max_len]], dtype=torch.float).transpose(0, 1)
+                data_cont.append(cont_t)
+
+            if len(data_x) == 0:
+                return None
+
+            data_x[0] = nn.ConstantPad1d((0, max_len - data_x[0].shape[0]), 0)(data_x[0])
+            data_y[0] = nn.ConstantPad1d((0, max_len - data_y[0].shape[0]), 0)(data_y[0])
+            data_masks[0] = nn.ConstantPad1d((0, max_len - data_masks[0].shape[0]), 0)(data_masks[0])
+            data_pos[0] = nn.ConstantPad1d((0, max_len - data_pos[0].shape[0]), 0)(data_pos[0])
+            data_cont[0] = nn.ConstantPad2d((0, 0, 0, max_len - data_cont[0].shape[0]), 0)(data_cont[0])
+
+            packed = (
+                torch.stack(tuple(pad_sequence(data_x, batch_first=True))),
+                torch.stack(tuple(pad_sequence(data_y, batch_first=True))),
+                torch.stack(tuple(pad_sequence(data_masks, batch_first=True))),
+                torch.stack(tuple(pad_sequence(data_pos, batch_first=True))),
+                torch.stack(tuple(pad_sequence(data_cont, batch_first=True))),
+            )
+            if doc_ids is None:
+                return packed
+            return packed + (torch.tensor(doc_ids, dtype=torch.long),)
+
         for article in data:
             if 'sentences' not in article or not article['sentences']:
                 if nlp is None:
@@ -761,8 +903,9 @@ class GNAExperiment(BaseExperiment):
                 doc_sents.append(sent_count)
                     
         model_type = self.config.get("model_type", "bilstm_crf")
+        han_batch_mode = self.han_batch_mode
         pos_upsample = int(self.config.get("positiveUpsample", 1))
-        if self.config.get("mode") == "train" and pos_upsample > 1 and prcd_data:
+        if self.config.get("mode") == "train" and pos_upsample > 1 and prcd_data and model_type != "han_crf":
             pos_samples = [item for item in prcd_data if any(tag != "O" for tag in item[1])]
             neg_samples = [item for item in prcd_data if all(tag == "O" for tag in item[1])]
             if pos_samples and neg_samples:
@@ -770,67 +913,67 @@ class GNAExperiment(BaseExperiment):
                 np.random.shuffle(prcd_data)
         
         if model_type == "han_crf":
-            # For HAN_CRF, each document is yielded as a single batch to preserve document context
             prv = 0
+            docs = []
             for n in doc_sents:
-                data_x, data_y, data_masks = [], [], []
-                data_pos, data_cont = [], []
-                for x, y, pos, lens, wfofs, tis, trs in prcd_data[prv:prv+n]:
-                    idxs = [word_to_ix.get(w, word_to_ix.get('<UNK>', 0)) for w in x[:max_len]]
-                    data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
-                    data_x.append(torch.tensor(idxs, dtype=torch.long))
-                    data_y.append(torch.tensor([tag_to_ix.get(t, 0) for t in y[:max_len]], dtype=torch.long))
-                    data_pos.append(torch.tensor(pos[:max_len], dtype=torch.long))
-                    cont_t = torch.tensor([lens[:max_len], wfofs[:max_len], tis[:max_len], trs[:max_len]], dtype=torch.float).transpose(0, 1)
-                    data_cont.append(cont_t)
-                    
+                docs.append(prcd_data[prv:prv+n])
                 prv += n
-                if len(data_x) == 0:
-                    continue
-                    
-                data_x[0] = nn.ConstantPad1d((0, max_len - data_x[0].shape[0]), 0)(data_x[0])
-                data_y[0] = nn.ConstantPad1d((0, max_len - data_y[0].shape[0]), 0)(data_y[0])
-                data_masks[0] = nn.ConstantPad1d((0, max_len - data_masks[0].shape[0]), 0)(data_masks[0])
-                data_pos[0] = nn.ConstantPad1d((0, max_len - data_pos[0].shape[0]), 0)(data_pos[0])
-                data_cont[0] = nn.ConstantPad2d((0, 0, 0, max_len - data_cont[0].shape[0]), 0)(data_cont[0])
-                
-                yield (
-                    torch.stack(tuple(pad_sequence(data_x, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_y, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_masks, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_pos, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_cont, batch_first=True)))
-                )
+
+            if han_batch_mode == "fixed":
+                current_samples = []
+                current_doc_ids = []
+                current_doc_idx = 0
+
+                def _emit_current():
+                    nonlocal current_samples, current_doc_ids, current_doc_idx
+                    packed = _build_batch(current_samples, doc_ids=current_doc_ids)
+                    current_samples = []
+                    current_doc_ids = []
+                    current_doc_idx = 0
+                    return packed
+
+                for doc in docs:
+                    if not doc:
+                        continue
+                    remaining = doc
+                    while remaining:
+                        room = batch_size - len(current_samples)
+                        if room <= 0:
+                            packed = _emit_current()
+                            if packed is not None:
+                                yield packed
+                            room = batch_size
+
+                        take = min(room, len(remaining))
+                        slice_samples = remaining[:take]
+                        current_samples.extend(slice_samples)
+                        current_doc_ids.extend([current_doc_idx] * take)
+                        remaining = remaining[take:]
+
+                        if len(current_samples) >= batch_size:
+                            packed = _emit_current()
+                            if packed is not None:
+                                yield packed
+                        elif not remaining:
+                            current_doc_idx += 1
+
+                packed = _emit_current()
+                if packed is not None:
+                    yield packed
+            else:
+                # Legacy HAN behavior: one document per batch.
+                for doc in docs:
+                    packed = _build_batch(doc)
+                    if packed is None:
+                        continue
+                    yield packed
         else:
-            # For BiLSTM_CRF, we can pack sentences across documents up to batch_size for efficiency
+            # For BiLSTM_CRF, we can pack sentences across documents up to batch_size for efficiency.
             for n in range(0, len(prcd_data), batch_size):
-                data_x, data_y, data_masks = [], [], []
-                data_pos, data_cont = [], []
-                for x, y, pos, lens, wfofs, tis, trs in prcd_data[n:n+batch_size]:
-                    idxs = [word_to_ix.get(w, word_to_ix.get('<UNK>', 0)) for w in x[:max_len]]
-                    data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
-                    data_x.append(torch.tensor(idxs, dtype=torch.long))
-                    data_y.append(torch.tensor([tag_to_ix.get(t, 0) for t in y[:max_len]], dtype=torch.long))
-                    data_pos.append(torch.tensor(pos[:max_len], dtype=torch.long))
-                    cont_t = torch.tensor([lens[:max_len], wfofs[:max_len], tis[:max_len], trs[:max_len]], dtype=torch.float).transpose(0, 1)
-                    data_cont.append(cont_t)
-                    
-                if len(data_x) == 0:
+                packed = _build_batch(prcd_data[n:n+batch_size])
+                if packed is None:
                     continue
-                    
-                data_x[0] = nn.ConstantPad1d((0, max_len - data_x[0].shape[0]), 0)(data_x[0])
-                data_y[0] = nn.ConstantPad1d((0, max_len - data_y[0].shape[0]), 0)(data_y[0])
-                data_masks[0] = nn.ConstantPad1d((0, max_len - data_masks[0].shape[0]), 0)(data_masks[0])
-                data_pos[0] = nn.ConstantPad1d((0, max_len - data_pos[0].shape[0]), 0)(data_pos[0])
-                data_cont[0] = nn.ConstantPad2d((0, 0, 0, max_len - data_cont[0].shape[0]), 0)(data_cont[0])
-                
-                yield (
-                    torch.stack(tuple(pad_sequence(data_x, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_y, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_masks, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_pos, batch_first=True))),
-                    torch.stack(tuple(pad_sequence(data_cont, batch_first=True)))
-                )
+                yield packed
 
     def evaluate(self):
         print("Evaluating BiLSTM_CRF...")
@@ -970,10 +1113,24 @@ class GNAExperiment(BaseExperiment):
             textrank_dict = read_json_array(textrank_path) if os.path.exists(textrank_path) else {}
             
             with torch.no_grad():
-                for inputs, targets, masks, feats_pos, feats_cont in self._get_batches(testData, word_to_ix, tag_to_ix, tf_idf_dict, textrank_dict, batch_size, schema=schema):
+                for batch_data in self._get_batches(testData, word_to_ix, tag_to_ix, tf_idf_dict, textrank_dict, batch_size, schema=schema):
+                    inputs, targets, masks, feats_pos, feats_cont, doc_ids = self._unpack_batch(batch_data)
                     inputs, targets, masks = inputs.to(self.device), targets.to(self.device), masks.to(self.device)
                     feats_pos, feats_cont = feats_pos.to(self.device), feats_cont.to(self.device)
-                    _, tags = self.model(inputs, masks, feats_pos, feats_cont)
+                    if doc_ids is not None:
+                        doc_ids = doc_ids.to(self.device)
+
+                    if model_type == "han_crf":
+                        _, tags = self.model(
+                            inputs,
+                            masks,
+                            feats_pos,
+                            feats_cont,
+                            doc_ids=doc_ids,
+                            use_block_mask=self.han_use_block_diagonal and doc_ids is not None,
+                        )
+                    else:
+                        _, tags = self.model(inputs, masks, feats_pos, feats_cont)
                     
                     for pred, label_tensor, mask in zip(tags, targets, masks):
                         length = int(mask.sum().item())

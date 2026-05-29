@@ -71,7 +71,15 @@ class SentAttention(nn.Module):
         if bias:
             self.b = nn.Parameter(torch.zeros(step_dim))
         
-    def forward(self, h_it, s_i, mask=None):
+    def _build_block_mask(self, doc_ids, sentence_len, device):
+        if doc_ids is None:
+            return None
+        if doc_ids.dim() != 1:
+            doc_ids = doc_ids.view(-1)
+        query_doc_ids = doc_ids.repeat_interleave(sentence_len)
+        return (query_doc_ids.unsqueeze(1) == doc_ids.unsqueeze(0)).to(device=device, dtype=torch.float)
+
+    def forward(self, h_it, s_i, mask=None, doc_ids=None, use_block_mask=False):
         feature_dim = self.feature_dim
         step_dim = self.step_dim
         
@@ -95,6 +103,12 @@ class SentAttention(nn.Module):
         
         if mask is not None:
             a = a * mask.float().view(-1, 1)
+
+        if use_block_mask and doc_ids is not None:
+            if doc_ids.numel() != h_it.size(0):
+                raise ValueError(f"doc_ids size mismatch: expected {h_it.size(0)}, got {doc_ids.numel()}")
+            block_mask = self._build_block_mask(doc_ids.to(a.device), h_it.size(1), a.device)
+            a = a * block_mask
 
         a = a / (torch.sum(a, 1, keepdim=True) + 1e-10)
 
@@ -216,7 +230,7 @@ class HAN_CRF(nn.Module):
         return (torch.randn(2, batch_size, self.hidden_dim // 2).to(device),
                 torch.randn(2, batch_size, self.hidden_dim // 2).to(device))
 
-    def _get_lstm_features(self, sentences, masks, feats_pos=None, feats_cont=None):
+    def _get_lstm_features(self, sentences, masks, feats_pos=None, feats_cont=None, doc_ids=None, use_block_mask=False):
         B, L = sentences.shape
         self.hidden = self.init_hidden(B)
         self.hidden2 = self.init_hidden(B)
@@ -237,7 +251,13 @@ class HAN_CRF(nn.Module):
         sentence_embedding = self.word_attention_layer(lstm1_out, masks)
 
         # 4. Sentence Global Neural Attention
-        global_attn = self.sent_attention_layer(lstm1_out, sentence_embedding, masks)
+        global_attn = self.sent_attention_layer(
+            lstm1_out,
+            sentence_embedding,
+            masks,
+            doc_ids=doc_ids,
+            use_block_mask=use_block_mask,
+        )
 
         # 5. Concatenate and pass to LSTM 2
         global_info = torch.cat((lstm1_out, global_attn), 2)
@@ -319,13 +339,13 @@ class HAN_CRF(nn.Module):
             best_paths.append(best_path[-2::-1])
         return best_score, best_paths
 
-    def neg_log_likelihood(self, sentences, tags, masks, feats_pos=None, feats_cont=None):
-        feats = self._get_lstm_features(sentences, masks, feats_pos, feats_cont)
+    def neg_log_likelihood(self, sentences, tags, masks, feats_pos=None, feats_cont=None, doc_ids=None, use_block_mask=False):
+        feats = self._get_lstm_features(sentences, masks, feats_pos, feats_cont, doc_ids=doc_ids, use_block_mask=use_block_mask)
         forward_score = self._forward_alg(feats, masks)
         gold_score = self._score_sentence(feats, tags, masks)
         return (forward_score - gold_score).mean().to(sentences.device)
 
-    def forward(self, sentence, masks, feats_pos=None, feats_cont=None):
-        lstm_feats = self._get_lstm_features(sentence, masks, feats_pos, feats_cont)
+    def forward(self, sentence, masks, feats_pos=None, feats_cont=None, doc_ids=None, use_block_mask=False):
+        lstm_feats = self._get_lstm_features(sentence, masks, feats_pos, feats_cont, doc_ids=doc_ids, use_block_mask=use_block_mask)
         score, tag_seq = self._viterbi_decode(lstm_feats, masks)
         return score.to(sentence.device), tag_seq

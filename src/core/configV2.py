@@ -8,3 +8,7 @@ INTERIM_DATA = 'interim_data/'
 VOCAB = INTERIM_DATA+'vocab/'
 MODEL_FOLDER = INTERIM_DATA+'models/'
 RESULT_FOLDER = INTERIM_DATA+'results/'
+
+# HAN defaults (used when not provided by CLI runtime config).
+HAN_USE_BLOCK_DIAGONAL = False
+HAN_BATCH_MODE = 'doc'

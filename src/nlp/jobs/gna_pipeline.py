@@ -79,6 +79,8 @@ def run(args):
             "gsFineTuneTrainFraction": args.gsFineTuneTrainFraction,
             "gsFineTuneSeed": args.gsFineTuneSeed,
             "synthModel": args.synthModel,
+            "hanUseBlockDiagonal": args.hanUseBlockDiagonal,
+            "hanBatchMode": args.hanBatchMode,
         }
         
         experiment = GNAExperiment(config)
@@ -116,6 +118,8 @@ if __name__ == "__main__":
     parser.add_argument("--gsFineTuneTrainFraction", type=float, default=0.8, help="Train fraction for GS fine-tuning split")
     parser.add_argument("--gsFineTuneSeed", type=int, default=42, help="Seed used for GS fine-tuning split")
     parser.add_argument("--synthModel", type=str, default=None, help="spaCy model/path for synthetic keyword generation (defaults to outputs/models/cdssSciSpacy/model-best if present)")
+    parser.add_argument("--hanUseBlockDiagonal", action="store_true", help="Enable document-isolated block masking in HAN sentence attention")
+    parser.add_argument("--hanBatchMode", type=str, default="doc", choices=["doc", "fixed"], help="HAN batching strategy: doc=one-doc batches, fixed=pack documents up to batchSize sentences")
     parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, type=bool)
     parser.add_argument('-ttSplit', "--traintestSplit", type=int, default=3)
     parser.add_argument('-nLayers','--noLayers', type=int, default=4)
