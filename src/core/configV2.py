@@ -10,5 +10,5 @@ MODEL_FOLDER = INTERIM_DATA+'models/'
 RESULT_FOLDER = INTERIM_DATA+'results/'
 
 # HAN defaults (used when not provided by CLI runtime config).
-HAN_USE_BLOCK_DIAGONAL = False
-HAN_BATCH_MODE = 'doc'
+HAN_USE_BLOCK_DIAGONAL = True
+HAN_BATCH_MODE = 'fixed'

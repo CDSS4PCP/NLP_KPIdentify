@@ -74,6 +74,10 @@ def run(args):
             "numWorkers": args.numWorkers,
             "validationSplit": args.validationSplit,
             "earlyStopPatience": args.earlyStopPatience,
+            "kFolds": args.kFolds,
+            "kFoldIndex": args.kFoldIndex,
+            "kFoldSeed": args.kFoldSeed,
+            "cvPoolTrainAndTest": args.cvPoolTrainAndTest,
             "gsFineTuneEpochs": args.gsFineTuneEpochs,
             "gsFineTuneLr": args.gsFineTuneLr,
             "gsFineTuneTrainFraction": args.gsFineTuneTrainFraction,
@@ -81,6 +85,7 @@ def run(args):
             "synthModel": args.synthModel,
             "hanUseBlockDiagonal": args.hanUseBlockDiagonal,
             "hanBatchMode": args.hanBatchMode,
+            "hanFreezeEmbeddings": args.hanFreezeEmbeddings,
         }
         
         experiment = GNAExperiment(config)
@@ -113,13 +118,18 @@ if __name__ == "__main__":
     parser.add_argument("--numWorkers", type=int, default=None, help="DataLoader workers for preTrain BiLM (default auto; on WSL auto-falls back to 0)")
     parser.add_argument("--validationSplit", type=float, default=0.0, help="Fraction of train.json reserved for validation during train mode (0 disables)")
     parser.add_argument("--earlyStopPatience", type=int, default=0, help="Stop training after N non-improving validation epochs (<=0 disables)")
+    parser.add_argument("--kFolds", type=int, default=1, help="Number of folds for k-fold CV-style train/val split in train mode (1 disables)")
+    parser.add_argument("--kFoldIndex", type=int, default=None, help="Fold index to use as validation fold when kFolds>1")
+    parser.add_argument("--kFoldSeed", type=int, default=42, help="Random seed for k-fold permutation")
+    parser.add_argument("--cvPoolTrainAndTest", action=argparse.BooleanOptionalAction, default=False, help="When true, train mode pools train.json+test.json before CV splitting")
     parser.add_argument("--gsFineTuneEpochs", type=int, default=0, help="Optional post-train fine-tuning epochs on GS42+GS91 train fold (0 disables)")
     parser.add_argument("--gsFineTuneLr", type=float, default=3e-4, help="Learning rate for optional GS fine-tuning stage")
     parser.add_argument("--gsFineTuneTrainFraction", type=float, default=0.8, help="Train fraction for GS fine-tuning split")
     parser.add_argument("--gsFineTuneSeed", type=int, default=42, help="Seed used for GS fine-tuning split")
     parser.add_argument("--synthModel", type=str, default=None, help="spaCy model/path for synthetic keyword generation (defaults to outputs/models/cdssSciSpacy/model-best if present)")
-    parser.add_argument("--hanUseBlockDiagonal", action="store_true", help="Enable document-isolated block masking in HAN sentence attention")
-    parser.add_argument("--hanBatchMode", type=str, default="doc", choices=["doc", "fixed"], help="HAN batching strategy: doc=one-doc batches, fixed=pack documents up to batchSize sentences")
+    parser.add_argument("--hanUseBlockDiagonal", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable document-isolated block masking in HAN sentence attention (default: config)" )
+    parser.add_argument("--hanBatchMode", type=str, default=None, choices=["doc", "fixed"], help="HAN batching strategy: doc=one-doc batches, fixed=pack documents up to batchSize sentences (default: config)")
+    parser.add_argument("--hanFreezeEmbeddings", action="store_true", help="Freeze pre-trained HAN word embeddings during training")
     parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, type=bool)
     parser.add_argument('-ttSplit', "--traintestSplit", type=int, default=3)
     parser.add_argument('-nLayers','--noLayers', type=int, default=4)

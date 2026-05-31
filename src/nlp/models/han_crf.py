@@ -117,7 +117,7 @@ class SentAttention(nn.Module):
         return global_neural_attn
 
 class HAN_CRF(nn.Module):
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim=256, dropout=0.2, max_sent_len=128, use_pretrained_embd=None):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim=256, dropout=0.2, max_sent_len=128, use_pretrained_embd=None, freeze_embeddings=False):
         super(HAN_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
@@ -130,7 +130,7 @@ class HAN_CRF(nn.Module):
             self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         else:
             self.word_embeds, self.embedding_dim = use_pretrained_embd
-            self.word_embeds.requires_grad = True
+            self.word_embeds.requires_grad = not freeze_embeddings
 
         self.pos_embeds = nn.Embedding(50, 32)
         self.feature_mapping = nn.Linear(32 + 4, self.hidden_dim // 2)

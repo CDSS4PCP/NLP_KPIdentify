@@ -45,8 +45,16 @@ class GNAExperiment(BaseExperiment):
         trainer.set_device(self.device)
         
         self.model = None
-        self.han_use_block_diagonal = bool(self.config.get("hanUseBlockDiagonal", getattr(config, "HAN_USE_BLOCK_DIAGONAL", False)))
-        self.han_batch_mode = str(self.config.get("hanBatchMode", getattr(config, "HAN_BATCH_MODE", "doc"))).lower()
+        han_use_block = self.config.get("hanUseBlockDiagonal", None)
+        if han_use_block is None:
+            han_use_block = getattr(config, "HAN_USE_BLOCK_DIAGONAL", False)
+        self.han_use_block_diagonal = bool(han_use_block)
+
+        han_batch_mode = self.config.get("hanBatchMode", None)
+        if han_batch_mode is None:
+            han_batch_mode = getattr(config, "HAN_BATCH_MODE", "doc")
+        self.han_batch_mode = str(han_batch_mode).lower()
+        self.han_freeze_embeddings = bool(self.config.get("hanFreezeEmbeddings", False))
 
     def _unpack_batch(self, batch_data):
         if len(batch_data) == 6:
@@ -277,15 +285,57 @@ class GNAExperiment(BaseExperiment):
         # Step 1: Load training data
         step1_start = time.time()
         train_path = os.path.join(WORKING_PATH, config.JSON_DATA, "train.json")
+        test_path = os.path.join(WORKING_PATH, config.JSON_DATA, "test.json")
         try:
             trainData = read_json_array(train_path)
         except Exception:
             print("No training data found.")
             return
 
+        pool_train_test = bool(self.config.get("cvPoolTrainAndTest", False))
+        if pool_train_test:
+            try:
+                testDataForPool = read_json_array(test_path)
+                original_train_docs = len(trainData)
+                trainData = trainData + testDataForPool
+                print(
+                    f"CV pooling enabled: using train.json + test.json "
+                    f"(train_docs={original_train_docs}, test_docs={len(testDataForPool)}, pooled_docs={len(trainData)})."
+                )
+            except Exception as e:
+                print(f"Warning: could not load test.json for pooling ({e}); continuing with train.json only.")
+
         val_split = float(self.config.get("validationSplit", 0.1))
         valData = []
-        if 0.0 < val_split < 0.5 and len(trainData) > 10:
+        k_folds = int(self.config.get("kFolds", 1))
+        k_fold_seed = int(self.config.get("kFoldSeed", 42))
+        k_fold_index = self.config.get("kFoldIndex", None)
+
+        if k_folds > 1:
+            if len(trainData) <= k_folds:
+                print(
+                    f"Warning: kFolds={k_folds} is too large for train_docs={len(trainData)}; "
+                    "falling back to validationSplit."
+                )
+            else:
+                fold_order = np.random.default_rng(k_fold_seed).permutation(len(trainData))
+                folds = np.array_split(fold_order, k_folds)
+                if k_fold_index is None:
+                    k_fold_index = 0
+                    print("kFolds enabled but kFoldIndex not provided; defaulting to fold 0.")
+                if not (0 <= int(k_fold_index) < k_folds):
+                    raise ValueError(f"kFoldIndex must be in [0, {k_folds - 1}] when kFolds={k_folds}")
+
+                fold_idx = int(k_fold_index)
+                val_ids = set(int(x) for x in folds[fold_idx].tolist())
+                valData = [article for idx, article in enumerate(trainData) if idx in val_ids]
+                trainData = [article for idx, article in enumerate(trainData) if idx not in val_ids]
+                print(
+                    f"Using k-fold split: k={k_folds}, fold={fold_idx}, seed={k_fold_seed} "
+                    f"(train_docs={len(trainData)}, val_docs={len(valData)})."
+                )
+
+        if not valData and 0.0 < val_split < 0.5 and len(trainData) > 10:
             val_count = max(1, int(round(len(trainData) * val_split)))
             val_count = min(val_count, len(trainData) - 1)
             order = np.random.default_rng(42).permutation(len(trainData)).tolist()
@@ -346,7 +396,8 @@ class GNAExperiment(BaseExperiment):
                 vocab_size=len(word_to_ix),
                 tag_to_ix=tag_to_ix,
                 embedding_dim=300,
-                use_pretrained_embd=word_embeddings
+                use_pretrained_embd=word_embeddings,
+                freeze_embeddings=self.han_freeze_embeddings,
             )
         else:
             self.model = BiLSTM_CRF(
@@ -821,10 +872,11 @@ class GNAExperiment(BaseExperiment):
         def _build_batch(samples, doc_ids=None):
             data_x, data_y, data_masks = [], [], []
             data_pos, data_cont = [], []
+            pad_idx = word_to_ix.get('<PAD>', 0)
 
             for x, y, pos, lens, wfofs, tis, trs in samples:
                 idxs = [word_to_ix.get(w, word_to_ix.get('<UNK>', 0)) for w in x[:max_len]]
-                data_masks.append(torch.tensor([1 if idx else 0 for idx in idxs], dtype=torch.long))
+                data_masks.append(torch.tensor([0 if idx == pad_idx else 1 for idx in idxs], dtype=torch.long))
                 data_x.append(torch.tensor(idxs, dtype=torch.long))
                 data_y.append(torch.tensor([tag_to_ix.get(t, 0) for t in y[:max_len]], dtype=torch.long))
                 data_pos.append(torch.tensor(pos[:max_len], dtype=torch.long))
@@ -1041,7 +1093,8 @@ class GNAExperiment(BaseExperiment):
             self.model = HAN_CRF(
                 vocab_size=len(word_to_ix),
                 tag_to_ix=tag_to_ix,
-                embedding_dim=300
+                embedding_dim=300,
+                freeze_embeddings=self.han_freeze_embeddings,
             )
         else:
             self.model = BiLSTM_CRF(
@@ -1301,9 +1354,11 @@ class GNAExperiment(BaseExperiment):
         embed_file = os.path.join(WORKING_PATH, config.INTERIM_DATA, "LM_word2vec.bin")
         modelW2V.wv.save_word2vec_format(embed_file, binary=True)
         
-        int2token = {0: '<UNK>'}
-        cnt = 1
+        int2token = {0: '<PAD>', 1: '<UNK>'}
+        cnt = 2
         for word in modelW2V.wv.key_to_index.keys():
+            if word in ("<PAD>", "<UNK>"):
+                continue
             int2token[cnt] = word
             cnt += 1
         token2int = {t: i for i, t in int2token.items()}
