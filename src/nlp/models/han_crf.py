@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
@@ -22,38 +23,30 @@ def log_sum_exp(x):
     return max_score + (x - max_score.unsqueeze(-1)).exp().sum(-1).log()
 
 class WordAttention(nn.Module):
-    def __init__(self, feature_dim, step_dim, bias=True):
+    def __init__(self, feature_dim, step_dim=None, bias=False):
         super(WordAttention, self).__init__()
-        self.bias = bias
         self.feature_dim = feature_dim
         self.step_dim = step_dim
-        
-        self.weight = nn.Parameter(torch.empty(feature_dim, 1))
-        nn.init.kaiming_uniform_(self.weight)
-        
-        if bias:
-            self.b = nn.Parameter(torch.zeros(step_dim))
+        self.proj = nn.Linear(feature_dim, feature_dim, bias=bias)
+        self.context_vector = nn.Parameter(torch.empty(feature_dim, 1))
+        nn.init.kaiming_uniform_(self.context_vector)
         
     def forward(self, x, mask=None):
-        feature_dim = self.feature_dim
-        step_dim = self.step_dim
-        
-        # Multiply input by weight matrix
-        eij = torch.mm(
-            x.contiguous().view(-1, feature_dim), 
-            self.weight
-        ).view(-1, step_dim)
+        # Dynamic token-level projection: supports arbitrary sequence length L.
+        u = torch.tanh(self.proj(x))
+        eij = torch.matmul(u, self.context_vector).squeeze(-1)
+        eij = eij / (self.feature_dim ** 0.5)
 
-        if self.bias:
-            eij = eij + self.b
-            
-        eij = torch.tanh(eij)
-        a = torch.exp(eij)
-        
+        if mask is not None:
+            mask = mask.bool()
+            neg_inf = torch.finfo(eij.dtype).min
+            eij = eij.masked_fill(~mask, neg_inf)
+
+        a = F.softmax(eij, dim=-1)
+
         if mask is not None:
             a = a * mask.float()
-
-        a = a / (torch.sum(a, 1, keepdim=True) + 1e-10)
+            a = a / (torch.sum(a, -1, keepdim=True) + 1e-10)
 
         weighted_input = x * torch.unsqueeze(a, -1)
         return torch.sum(weighted_input, 1)
@@ -97,27 +90,110 @@ class SentAttention(nn.Module):
         
         if self.bias:
             eij = eij + self.b
-            
-        eij = torch.tanh(eij)
-        a = torch.exp(eij)
-        
-        if mask is not None:
-            a = a * mask.float().view(-1, 1)
+
+        # Scale logits to avoid overly sharp/flat softmax under varying norms.
+        eij = eij / (step_dim ** 0.5)
 
         if use_block_mask and doc_ids is not None:
             if doc_ids.numel() != h_it.size(0):
                 raise ValueError(f"doc_ids size mismatch: expected {h_it.size(0)}, got {doc_ids.numel()}")
-            block_mask = self._build_block_mask(doc_ids.to(a.device), h_it.size(1), a.device)
-            a = a * block_mask
+            block_mask = self._build_block_mask(doc_ids.to(eij.device), h_it.size(1), eij.device)
+            neg_inf = torch.finfo(eij.dtype).min
+            eij = eij.masked_fill(block_mask == 0, neg_inf)
 
-        a = a / (torch.sum(a, 1, keepdim=True) + 1e-10)
+        a = F.softmax(eij, dim=1)
+
+        if mask is not None:
+            a = a * mask.float().view(-1, 1)
 
         # Compute global neural attention representation
         global_neural_attn = torch.mm(a, s_i).view(-1, h_it.size(1), feature_dim)
         return global_neural_attn
 
+
+class TokenDocumentAttention(nn.Module):
+    def __init__(self, feature_dim, num_heads=4, attn_dropout=0.1):
+        super(TokenDocumentAttention, self).__init__()
+        if feature_dim % num_heads != 0:
+            raise ValueError(f"feature_dim={feature_dim} must be divisible by num_heads={num_heads}")
+        self.feature_dim = feature_dim
+        self.num_heads = num_heads
+        self.head_dim = feature_dim // num_heads
+
+        self.q_proj = nn.Linear(feature_dim, feature_dim)
+        self.k_proj = nn.Linear(feature_dim, feature_dim)
+        self.v_proj = nn.Linear(feature_dim, feature_dim)
+        self.out_proj = nn.Linear(feature_dim, feature_dim)
+        self.attn_dropout = nn.Dropout(attn_dropout)
+
+    def _attend_flat(self, flat_x, flat_mask):
+        # flat_x: [T, D], flat_mask: [T]
+        T, D = flat_x.shape
+        q = self.q_proj(flat_x).view(T, self.num_heads, self.head_dim).transpose(0, 1)  # [H, T, Dh]
+        k = self.k_proj(flat_x).view(T, self.num_heads, self.head_dim).transpose(0, 1)
+        v = self.v_proj(flat_x).view(T, self.num_heads, self.head_dim).transpose(0, 1)
+
+        attn_scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.head_dim)  # [H, T, T]
+        key_mask = flat_mask.view(1, 1, T)
+        neg_inf = torch.finfo(attn_scores.dtype).min
+        attn_scores = attn_scores.masked_fill(~key_mask, neg_inf)
+
+        attn_probs = F.softmax(attn_scores, dim=-1)
+        attn_probs = self.attn_dropout(attn_probs)
+        context = torch.matmul(attn_probs, v)  # [H, T, Dh]
+        context = context.transpose(0, 1).contiguous().view(T, D)
+        context = self.out_proj(context)
+        context = context * flat_mask.unsqueeze(-1).type_as(context)
+        return context
+
+    def forward(self, h_it, masks, doc_ids=None):
+        # h_it: [B, L, D], masks: [B, L]
+        B, L, D = h_it.shape
+        output = torch.zeros_like(h_it)
+        token_mask = masks.bool()
+
+        if doc_ids is None:
+            flat_x = h_it.reshape(B * L, D)
+            flat_mask = token_mask.reshape(B * L)
+            context = self._attend_flat(flat_x, flat_mask)
+            return context.view(B, L, D)
+
+        if doc_ids.dim() != 1:
+            doc_ids = doc_ids.view(-1)
+
+        unique_doc_ids = torch.unique(doc_ids)
+        for doc_id in unique_doc_ids:
+            sent_idx = (doc_ids == doc_id).nonzero(as_tuple=False).squeeze(1)
+            if sent_idx.numel() == 0:
+                continue
+
+            x_doc = h_it.index_select(0, sent_idx)
+            m_doc = token_mask.index_select(0, sent_idx)
+            S = x_doc.size(0)
+            flat_x = x_doc.reshape(S * L, D)
+            flat_mask = m_doc.reshape(S * L)
+
+            context_doc = self._attend_flat(flat_x, flat_mask).view(S, L, D)
+            output.index_copy_(0, sent_idx, context_doc)
+
+        return output
+
 class HAN_CRF(nn.Module):
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim=256, dropout=0.2, max_sent_len=128, use_pretrained_embd=None, freeze_embeddings=False):
+    def __init__(
+        self,
+        vocab_size,
+        tag_to_ix,
+        embedding_dim,
+        hidden_dim=256,
+        dropout=0.2,
+        max_sent_len=128,
+        use_pretrained_embd=None,
+        freeze_embeddings=False,
+        han_context_mode="sentence_only",
+        han_context_heads=4,
+        han_context_dropout=0.1,
+        han_use_gated_fusion=False,
+    ):
         super(HAN_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
@@ -125,6 +201,8 @@ class HAN_CRF(nn.Module):
         self.tagset_size = len(tag_to_ix)
         self.hidden_dim = hidden_dim
         self.max_sent_len = max_sent_len
+        self.han_context_mode = str(han_context_mode).lower()
+        self.han_use_gated_fusion = bool(han_use_gated_fusion) or self.han_context_mode == "token_doc_attn_gated"
 
         if use_pretrained_embd is None:
             self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
@@ -143,14 +221,23 @@ class HAN_CRF(nn.Module):
         self.lstm2 = nn.LSTM(self.hidden_dim * 2, self.hidden_dim // 2,
                             num_layers=1, bidirectional=True, batch_first=True, dropout=dropout)
 
-        self.word_attention_layer = WordAttention(self.hidden_dim, self.max_sent_len)
+        # Disable absolute-position bias to reduce transfer overfitting.
+        self.word_attention_layer = WordAttention(self.hidden_dim, self.max_sent_len, bias=False)
         self.sent_attention_layer = SentAttention(self.hidden_dim, self.hidden_dim)
+        self.token_doc_attention_layer = TokenDocumentAttention(
+            self.hidden_dim,
+            num_heads=int(han_context_heads),
+            attn_dropout=float(han_context_dropout),
+        )
+        self.gate_layer = nn.Linear(self.hidden_dim * 2, self.hidden_dim)
 
         self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
 
         self.transitions = nn.Parameter(torch.randn(self.tagset_size, self.tagset_size), requires_grad=True)
         self.transitions.data[self.tag_to_ix[START_TAG], :] = IMPOSSIBLE
         self.transitions.data[:, self.tag_to_ix[STOP_TAG]] = IMPOSSIBLE
+        self._apply_schema_constraints()
+        self.schema_constraints_applied = True
 
     def _apply_schema_constraints(self):
         schema = _infer_tag_schema(self.tag_to_ix)
@@ -247,20 +334,32 @@ class HAN_CRF(nn.Module):
         # 2. LSTM 1
         lstm1_out, self.hidden = self.lstm(embeds, self.hidden)
 
-        # 3. Word Attention Pooling
-        sentence_embedding = self.word_attention_layer(lstm1_out, masks)
+        if self.han_context_mode == "sentence_only":
+            # 3. Word Attention Pooling
+            sentence_embedding = self.word_attention_layer(lstm1_out, masks)
 
-        # 4. Sentence Global Neural Attention
-        global_attn = self.sent_attention_layer(
-            lstm1_out,
-            sentence_embedding,
-            masks,
-            doc_ids=doc_ids,
-            use_block_mask=use_block_mask,
-        )
+            # 4. Sentence Global Neural Attention
+            global_attn = self.sent_attention_layer(
+                lstm1_out,
+                sentence_embedding,
+                masks,
+                doc_ids=doc_ids,
+                use_block_mask=use_block_mask,
+            )
+        elif self.han_context_mode in {"token_doc_attn", "token_doc_attn_gated"}:
+            global_attn = self.token_doc_attention_layer(lstm1_out, masks, doc_ids=doc_ids)
+        else:
+            raise ValueError(f"Unsupported han_context_mode: {self.han_context_mode}")
+
+        if self.han_use_gated_fusion:
+            gate_in = torch.cat((lstm1_out, global_attn), dim=-1)
+            gate = torch.sigmoid(self.gate_layer(gate_in))
+            fused_context = gate * lstm1_out + (1.0 - gate) * global_attn
+            global_info = torch.cat((lstm1_out, fused_context), 2)
+        else:
+            global_info = torch.cat((lstm1_out, global_attn), 2)
 
         # 5. Concatenate and pass to LSTM 2
-        global_info = torch.cat((lstm1_out, global_attn), 2)
         lstm2_out, self.hidden2 = self.lstm2(global_info, self.hidden2)
 
         # 6. Linear tag projection

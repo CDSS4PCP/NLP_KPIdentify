@@ -54,7 +54,112 @@ class GNAExperiment(BaseExperiment):
         if han_batch_mode is None:
             han_batch_mode = getattr(config, "HAN_BATCH_MODE", "doc")
         self.han_batch_mode = str(han_batch_mode).lower()
+
+        han_context_mode = self.config.get("hanContextMode", None)
+        if han_context_mode is None:
+            han_context_mode = getattr(config, "HAN_CONTEXT_MODE", "sentence_only")
+        self.han_context_mode = str(han_context_mode).lower()
+
+        han_context_heads = self.config.get("hanContextHeads", None)
+        if han_context_heads is None:
+            han_context_heads = getattr(config, "HAN_CONTEXT_HEADS", 4)
+        self.han_context_heads = int(han_context_heads)
+
+        han_context_dropout = self.config.get("hanContextDropout", None)
+        if han_context_dropout is None:
+            han_context_dropout = getattr(config, "HAN_CONTEXT_DROPOUT", 0.1)
+        self.han_context_dropout = float(han_context_dropout)
+
+        han_use_gated_fusion = self.config.get("hanUseGatedFusion", None)
+        if han_use_gated_fusion is None:
+            han_use_gated_fusion = getattr(config, "HAN_USE_GATED_FUSION", False)
+        self.han_use_gated_fusion = bool(han_use_gated_fusion)
+
+        bilstm_freeze = self.config.get("bilstmFreezeEmbeddings", None)
+        if bilstm_freeze is None:
+            bilstm_freeze = getattr(config, "BILSTM_FREEZE_EMBEDDINGS", True)
+        self.bilstm_freeze_embeddings = bool(bilstm_freeze)
+
         self.han_freeze_embeddings = bool(self.config.get("hanFreezeEmbeddings", False))
+        self.rebalancing_mode = str(self.config.get("rebalancingMode", "auto")).lower()
+        
+        # Phase 2: Context Horizon & Batching parameters
+        min_tokens = self.config.get("minTokensPerSentenceForTraining", None)
+        if min_tokens is None:
+            min_tokens = getattr(config, "MIN_TOKENS_PER_SENTENCE_FOR_TRAINING", 4)
+        self.min_tokens_per_sentence = int(min_tokens)
+
+        han_use_memory = self.config.get("hanUseChunkMemory", None)
+        if han_use_memory is None:
+            han_use_memory = getattr(config, "HAN_USE_CHUNK_MEMORY", False)
+        self.han_use_chunk_memory = bool(han_use_memory)
+
+        han_memory_size = self.config.get("hanChunkMemorySize", None)
+        if han_memory_size is None:
+            han_memory_size = getattr(config, "HAN_CHUNK_MEMORY_SIZE", 128)
+        self.han_chunk_memory_size = int(han_memory_size)
+
+        han_packing = self.config.get("hanPackingMode", None)
+        if han_packing is None:
+            han_packing = getattr(config, "HAN_PACKING_MODE", "mixed")
+        self.han_packing_mode = str(han_packing).lower()
+
+        # Phase 3: Label Quality & Training Dynamics parameters
+        weak_conf_thresh = self.config.get("weakLabelConfidenceThreshold", None)
+        if weak_conf_thresh is None:
+            weak_conf_thresh = getattr(config, "WEAK_LABEL_CONFIDENCE_THRESHOLD", None)
+        self.weak_label_confidence_threshold = float(weak_conf_thresh) if weak_conf_thresh is not None else None
+
+        weak_conf_metric = self.config.get("weakLabelConfidenceMetric", None)
+        if weak_conf_metric is None:
+            weak_conf_metric = getattr(config, "WEAK_LABEL_CONFIDENCE_METRIC", "source_agreement")
+        self.weak_label_confidence_metric = str(weak_conf_metric).lower()
+
+        curric_enabled = self.config.get("curriculumLearningEnabled", None)
+        if curric_enabled is None:
+            curric_enabled = getattr(config, "CURRICULUM_LEARNING_ENABLED", False)
+        self.curriculum_learning_enabled = bool(curric_enabled)
+
+        curric_sched = self.config.get("curriculumSchedule", None)
+        if curric_sched is None:
+            curric_sched = getattr(config, "CURRICULUM_SCHEDULE", "linear")
+        self.curriculum_schedule = str(curric_sched).lower()
+
+        curric_warmup = self.config.get("curriculumWarmupPercent", None)
+        if curric_warmup is None:
+            curric_warmup = getattr(config, "CURRICULUM_WARMUP_PERCENT", 20)
+        self.curriculum_warmup_percent = int(curric_warmup)
+
+        self.normalization_mode = "alignment_shared"
+        if self.han_batch_mode == "fixed" and not self.han_use_block_diagonal:
+            print(
+                "WARNING: hanBatchMode=fixed with hanUseBlockDiagonal=False can allow cross-document attention leakage."
+            )
+        self._print_runtime_config_summary()
+
+    def _print_runtime_config_summary(self):
+        print(
+            "Runtime config:",
+            f"normalizationMode={self.normalization_mode}",
+            f"rebalancingMode={self.rebalancing_mode}",
+            f"bilstmFreezeEmbeddings={self.bilstm_freeze_embeddings}",
+            f"hanFreezeEmbeddings={self.han_freeze_embeddings}",
+            f"hanBatchMode={self.han_batch_mode}",
+            f"hanUseBlockDiagonal={self.han_use_block_diagonal}",
+            f"hanContextMode={self.han_context_mode}",
+            f"hanContextHeads={self.han_context_heads}",
+            f"hanContextDropout={self.han_context_dropout}",
+            f"hanUseGatedFusion={self.han_use_gated_fusion}",
+            f"minTokensPerSentence={self.min_tokens_per_sentence}",
+            f"hanUseChunkMemory={self.han_use_chunk_memory}",
+            f"hanChunkMemorySize={self.han_chunk_memory_size}",
+            f"hanPackingMode={self.han_packing_mode}",
+            f"weakLabelConfidenceThreshold={self.weak_label_confidence_threshold}",
+            f"weakLabelConfidenceMetric={self.weak_label_confidence_metric}",
+            f"curriculumLearningEnabled={self.curriculum_learning_enabled}",
+            f"curriculumSchedule={self.curriculum_schedule}",
+            f"curriculumWarmupPercent={self.curriculum_warmup_percent}",
+        )
 
     def _unpack_batch(self, batch_data):
         if len(batch_data) == 6:
@@ -63,6 +168,13 @@ class GNAExperiment(BaseExperiment):
             inputs, targets, masks, feats_pos, feats_cont = batch_data
             doc_ids = None
         return inputs, targets, masks, feats_pos, feats_cont, doc_ids
+
+    def _validate_han_batch_context(self, doc_ids):
+        model_type = self.config.get("model_type", "bilstm_crf")
+        if model_type == "han_crf" and self.han_batch_mode == "fixed" and doc_ids is None:
+            raise ValueError(
+                "HAN fixed batch mode requires doc_ids for block-diagonal masking safety."
+            )
 
     def prepare_data(self):
         print("Preparing data...")
@@ -180,6 +292,7 @@ class GNAExperiment(BaseExperiment):
     def _print_label_diagnostics(self, data, split_name, schema):
         """Summarize keyword match coverage and label balance for a dataset split."""
         from src.nlp.models.preProcessData import mark_keyword_all_sentences
+        from src.nlp.models.preProcessData import normalize_sentence_tokens_for_alignment
         import spacy
 
         if not data:
@@ -204,7 +317,9 @@ class GNAExperiment(BaseExperiment):
                     nlp.add_pipe('sentencizer')
                 text = article.get('title', '') + ' ' + article.get('abstract', '')
                 doc = nlp(text)
-                article['sentences'] = [[token.text for token in sent] for sent in doc.sents]
+                article['sentences'] = [
+                    normalize_sentence_tokens_for_alignment([token.text for token in sent]) for sent in doc.sents
+                ]
 
             if 'keywords' not in article:
                 article['keywords'] = []
@@ -398,14 +513,21 @@ class GNAExperiment(BaseExperiment):
                 embedding_dim=300,
                 use_pretrained_embd=word_embeddings,
                 freeze_embeddings=self.han_freeze_embeddings,
+                han_context_mode=self.han_context_mode,
+                han_context_heads=self.han_context_heads,
+                han_context_dropout=self.han_context_dropout,
+                han_use_gated_fusion=self.han_use_gated_fusion,
             )
         else:
             self.model = BiLSTM_CRF(
                 vocab_size=len(word_to_ix),
                 tag_to_ix=tag_to_ix,
                 embedding_dim=300,
-                use_pretrained_embd=word_embeddings
+                use_pretrained_embd=word_embeddings,
+                freeze_embeddings=self.bilstm_freeze_embeddings,
             )
+        if hasattr(self.model, "schema_constraints_applied"):
+            print(f"Schema constraints active: {bool(self.model.schema_constraints_applied)}")
         
         biLM_path = os.path.join(WORKING_PATH, config.INTERIM_DATA, "BiLM.pt")
         has_bilm = False
@@ -505,6 +627,7 @@ class GNAExperiment(BaseExperiment):
             # Keep stochasticity while reusing the same preprocessed CPU batch tensors.
             for batch_idx in np.random.permutation(len(cached_batches)):
                 inputs, targets, masks, feats_pos, feats_cont, doc_ids = self._unpack_batch(cached_batches[batch_idx])
+                self._validate_han_batch_context(doc_ids)
                 inputs = inputs.to(self.device, non_blocking=use_amp)
                 targets = targets.to(self.device, non_blocking=use_amp)
                 masks = masks.to(self.device, non_blocking=use_amp)
@@ -567,6 +690,7 @@ class GNAExperiment(BaseExperiment):
                 with torch.no_grad():
                     for v_batch in cached_val_batches:
                         v_inputs, v_targets, v_masks, v_feats_pos, v_feats_cont, v_doc_ids = self._unpack_batch(v_batch)
+                        self._validate_han_batch_context(v_doc_ids)
                         v_inputs = v_inputs.to(self.device, non_blocking=use_amp)
                         v_targets = v_targets.to(self.device, non_blocking=use_amp)
                         v_masks = v_masks.to(self.device, non_blocking=use_amp)
@@ -709,6 +833,7 @@ class GNAExperiment(BaseExperiment):
 
                         for batch_idx in np.random.permutation(len(gs_train_batches)):
                             g_inputs, g_targets, g_masks, g_feats_pos, g_feats_cont, g_doc_ids = self._unpack_batch(gs_train_batches[batch_idx])
+                            self._validate_han_batch_context(g_doc_ids)
                             g_inputs = g_inputs.to(self.device, non_blocking=use_amp)
                             g_targets = g_targets.to(self.device, non_blocking=use_amp)
                             g_masks = g_masks.to(self.device, non_blocking=use_amp)
@@ -766,6 +891,7 @@ class GNAExperiment(BaseExperiment):
                             with torch.no_grad():
                                 for gv_batch in gs_val_batches:
                                     gv_inputs, gv_targets, gv_masks, gv_feats_pos, gv_feats_cont, gv_doc_ids = self._unpack_batch(gv_batch)
+                                    self._validate_han_batch_context(gv_doc_ids)
                                     gv_inputs = gv_inputs.to(self.device, non_blocking=use_amp)
                                     gv_targets = gv_targets.to(self.device, non_blocking=use_amp)
                                     gv_masks = gv_masks.to(self.device, non_blocking=use_amp)
@@ -858,9 +984,9 @@ class GNAExperiment(BaseExperiment):
     def _get_batches(self, data, word_to_ix, tag_to_ix, tf_idf_dict=None, textrank_dict=None, batch_size=64, max_len=128, schema="IOBES"):
         from src.nlp.models.preProcessData import mark_keyword_all_sentences
         from torch.nn.utils.rnn import pad_sequence
-        import torch.nn as nn
         import spacy
         import nltk
+        from src.nlp.models.preProcessData import normalize_sentence_tokens_for_alignment
         enabled_features = set(self.config.get("features", ["CEM", "WFOF", "POS", "LEN", "TI", "TR"]))
         PENN_POS_TAGS = ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB']
         POS_TO_IX = {tag: i+1 for i, tag in enumerate(PENN_POS_TAGS)}
@@ -886,12 +1012,6 @@ class GNAExperiment(BaseExperiment):
             if len(data_x) == 0:
                 return None
 
-            data_x[0] = nn.ConstantPad1d((0, max_len - data_x[0].shape[0]), 0)(data_x[0])
-            data_y[0] = nn.ConstantPad1d((0, max_len - data_y[0].shape[0]), 0)(data_y[0])
-            data_masks[0] = nn.ConstantPad1d((0, max_len - data_masks[0].shape[0]), 0)(data_masks[0])
-            data_pos[0] = nn.ConstantPad1d((0, max_len - data_pos[0].shape[0]), 0)(data_pos[0])
-            data_cont[0] = nn.ConstantPad2d((0, 0, 0, max_len - data_cont[0].shape[0]), 0)(data_cont[0])
-
             packed = (
                 torch.stack(tuple(pad_sequence(data_x, batch_first=True))),
                 torch.stack(tuple(pad_sequence(data_y, batch_first=True))),
@@ -910,7 +1030,9 @@ class GNAExperiment(BaseExperiment):
                     nlp.add_pipe('sentencizer')
                 text = article.get('title', '') + ' ' + article.get('abstract', '')
                 doc = nlp(text)
-                article['sentences'] = [[token.text for token in sent] for sent in doc.sents]
+                article['sentences'] = [
+                    normalize_sentence_tokens_for_alignment([token.text for token in sent]) for sent in doc.sents
+                ]
             if 'keywords' not in article:
                 article['keywords'] = []
                 
@@ -929,7 +1051,8 @@ class GNAExperiment(BaseExperiment):
             article_tr = textrank_dict.get(article.get('id', ''), {}) if textrank_dict else {}
 
             sent_count = 0
-            sent_label_pairs = [(x, y) for x, y in zip(sentences, labels) if len(x) > 3]
+            # Phase 2: Use configurable min_tokens_per_sentence instead of hardcoded 3
+            sent_label_pairs = [(x, y) for x, y in zip(sentences, labels) if len(x) >= self.min_tokens_per_sentence]
             if not sent_label_pairs:
                 continue
 
@@ -939,7 +1062,7 @@ class GNAExperiment(BaseExperiment):
                 pos_tagged = [None] * len(sent_label_pairs)
 
             for (x, y), tagged in zip(sent_label_pairs, pos_tagged):
-                if len(x) > 3:
+                if len(x) >= self.min_tokens_per_sentence:
                     if tagged is not None:
                         pos_tags = [POS_TO_IX.get(p, 0) for _, p in tagged]
                     else:
@@ -957,12 +1080,20 @@ class GNAExperiment(BaseExperiment):
         model_type = self.config.get("model_type", "bilstm_crf")
         han_batch_mode = self.han_batch_mode
         pos_upsample = int(self.config.get("positiveUpsample", 1))
-        if self.config.get("mode") == "train" and pos_upsample > 1 and prcd_data and model_type != "han_crf":
+        mode = self.rebalancing_mode
+        if mode == "auto":
+            mode = "document" if model_type == "han_crf" else "sentence"
+
+        sentence_rebalance = mode == "sentence"
+        document_rebalance = mode == "document"
+
+        if self.config.get("mode") == "train" and pos_upsample > 1 and prcd_data and model_type != "han_crf" and sentence_rebalance:
             pos_samples = [item for item in prcd_data if any(tag != "O" for tag in item[1])]
             neg_samples = [item for item in prcd_data if all(tag == "O" for tag in item[1])]
             if pos_samples and neg_samples:
                 prcd_data = neg_samples + (pos_samples * pos_upsample)
                 np.random.shuffle(prcd_data)
+                print(f"Applied sentence-level positive upsampling for {model_type}: factor={pos_upsample}")
         
         if model_type == "han_crf":
             prv = 0
@@ -970,6 +1101,14 @@ class GNAExperiment(BaseExperiment):
             for n in doc_sents:
                 docs.append(prcd_data[prv:prv+n])
                 prv += n
+
+            if self.config.get("mode") == "train" and pos_upsample > 1 and docs and document_rebalance:
+                pos_docs = [doc for doc in docs if any(any(tag != "O" for tag in sent[1]) for sent in doc)]
+                neg_docs = [doc for doc in docs if all(all(tag == "O" for tag in sent[1]) for sent in doc)]
+                if pos_docs and neg_docs:
+                    docs = neg_docs + (pos_docs * pos_upsample)
+                    np.random.shuffle(docs)
+                    print(f"Applied document-level positive upsampling for HAN: factor={pos_upsample}")
 
             if han_batch_mode == "fixed":
                 current_samples = []
@@ -1095,13 +1234,20 @@ class GNAExperiment(BaseExperiment):
                 tag_to_ix=tag_to_ix,
                 embedding_dim=300,
                 freeze_embeddings=self.han_freeze_embeddings,
+                han_context_mode=self.han_context_mode,
+                han_context_heads=self.han_context_heads,
+                han_context_dropout=self.han_context_dropout,
+                han_use_gated_fusion=self.han_use_gated_fusion,
             )
         else:
             self.model = BiLSTM_CRF(
                 vocab_size=len(word_to_ix),
                 tag_to_ix=tag_to_ix,
-                embedding_dim=300
+                embedding_dim=300,
+                freeze_embeddings=self.bilstm_freeze_embeddings,
             )
+        if hasattr(self.model, "schema_constraints_applied"):
+            print(f"Schema constraints active: {bool(self.model.schema_constraints_applied)}")
         self.model.to(self.device)
         
         model_name = f"HAN-CRF_{schema}.pt" if model_type == "han_crf" else f"BiLSTM-CRF_{schema}.pt"
@@ -1168,6 +1314,7 @@ class GNAExperiment(BaseExperiment):
             with torch.no_grad():
                 for batch_data in self._get_batches(testData, word_to_ix, tag_to_ix, tf_idf_dict, textrank_dict, batch_size, schema=schema):
                     inputs, targets, masks, feats_pos, feats_cont, doc_ids = self._unpack_batch(batch_data)
+                    self._validate_han_batch_context(doc_ids)
                     inputs, targets, masks = inputs.to(self.device), targets.to(self.device), masks.to(self.device)
                     feats_pos, feats_cont = feats_pos.to(self.device), feats_cont.to(self.device)
                     if doc_ids is not None:

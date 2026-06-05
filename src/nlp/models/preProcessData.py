@@ -80,6 +80,19 @@ def _tokenize_for_matching(text, keep_stopwords=True):
     words = [word for word in words if len(word) > 0]
     return words
 
+
+def tokenize_token_for_alignment(token):
+    """Normalize a single token using the same path as keyword/span matching."""
+    return _tokenize_for_matching(token, keep_stopwords=True)
+
+
+def normalize_sentence_tokens_for_alignment(sentence_tokens):
+    """Normalize a tokenized sentence for consistent train/eval span alignment."""
+    normalized = []
+    for token in sentence_tokens:
+        normalized.extend(tokenize_token_for_alignment(token))
+    return normalized
+
 def sent2words(sent):
     '''Pre-process sentence text to words'''
     

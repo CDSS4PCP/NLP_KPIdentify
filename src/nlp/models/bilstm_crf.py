@@ -28,7 +28,7 @@ def log_sum_exp(x):
     return max_score + (x - max_score.unsqueeze(-1)).exp().sum(-1).log()
 
 class BiLSTM_CRF(nn.Module):
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim=256, use_pretrained_embd=None):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim=256, use_pretrained_embd=None, freeze_embeddings=True):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
@@ -40,7 +40,7 @@ class BiLSTM_CRF(nn.Module):
             self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         else:
             self.word_embeds, self.embedding_dim = use_pretrained_embd
-            self.word_embeds.requires_grad = False
+            self.word_embeds.requires_grad = not freeze_embeddings
 
         self.pos_embeds = nn.Embedding(50, 32)
         self.feature_mapping = nn.Linear(32 + 4, self.hidden_dim // 2)
@@ -52,6 +52,8 @@ class BiLSTM_CRF(nn.Module):
         self.transitions = nn.Parameter(torch.randn(self.tagset_size, self.tagset_size), requires_grad=True)
         self.transitions.data[self.tag_to_ix[START_TAG], :] = IMPOSSIBLE
         self.transitions.data[:, self.tag_to_ix[STOP_TAG]] = IMPOSSIBLE
+        self._apply_schema_constraints()
+        self.schema_constraints_applied = True
 
     def _apply_schema_constraints(self):
         schema = _infer_tag_schema(self.tag_to_ix)

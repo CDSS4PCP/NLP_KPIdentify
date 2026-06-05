@@ -1,0 +1,17 @@
+rank,log_file,gs42_f1,gs91_f1,mean_gs_f1,avg_epoch_s,warning_count
+1,p3_run4_han_IOBES_adamw_lr1e-3_conf08.txt,45.30,61.48,53.39,28.17,2
+2,p2_run4_han_IOBES_adamw_lr1e-3_minTokens4_memOn_mixed.txt,44.90,61.54,53.22,27.96,2
+3,p3_run1_han_IOBES_adamw_lr1e-3_baseline.txt,44.47,61.80,53.13,27.34,2
+4,p2_run1_han_IOBES_adamw_lr1e-3_minTokens4_memOff.txt,44.87,61.30,53.08,27.02,2
+5,p3_run6_han_IOBES_adamw_lr1e-3_curric_sqrt.txt,44.70,61.46,53.08,28.04,2
+6,p2_run8_han_IOBES_adamw_lr1e-3_minTokens1_memOn_strict.txt,44.24,61.87,53.05,26.53,2
+7,p3_run2_han_IOBES_adamw_lr1e-3_conf06.txt,44.47,61.53,53.00,26.67,2
+8,p2_run3_han_IOBES_adamw_lr1e-3_minTokens1_memOff.txt,44.28,61.69,52.98,29.23,2
+9,p2_run2_han_IOBES_adamw_lr1e-3_minTokens2_memOff.txt,44.69,61.27,52.98,27.99,2
+10,p2_run7_han_IOBES_adamw_lr1e-3_minTokens2_memOn_strict.txt,44.63,61.25,52.94,27.12,2
+11,p3_run8_han_IOBES_adamw_lr1e-3_combined_conf07_sqrt.txt,44.26,61.60,52.93,28.12,2
+12,p3_run3_han_IOBES_adamw_lr1e-3_conf07.txt,44.65,61.10,52.88,26.71,2
+13,p3_run5_han_IOBES_adamw_lr1e-3_curric_lin.txt,44.55,61.16,52.85,27.53,2
+14,p2_run5_han_IOBES_adamw_lr1e-3_minTokens2_memOn_mixed.txt,44.69,60.95,52.82,27.48,2
+15,p3_run7_han_IOBES_adamw_lr1e-3_curric_exp.txt,44.20,61.12,52.66,28.49,2
+16,p2_run6_han_IOBES_adamw_lr1e-3_minTokens1_memOn_mixed.txt,44.20,60.90,52.55,27.55,2

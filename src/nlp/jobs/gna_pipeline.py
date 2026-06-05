@@ -86,6 +86,12 @@ def run(args):
             "hanUseBlockDiagonal": args.hanUseBlockDiagonal,
             "hanBatchMode": args.hanBatchMode,
             "hanFreezeEmbeddings": args.hanFreezeEmbeddings,
+            "hanContextMode": args.hanContextMode,
+            "hanContextHeads": args.hanContextHeads,
+            "hanContextDropout": args.hanContextDropout,
+            "hanUseGatedFusion": args.hanUseGatedFusion,
+            "bilstmFreezeEmbeddings": args.bilstmFreezeEmbeddings,
+            "rebalancingMode": args.rebalancingMode,
         }
         
         experiment = GNAExperiment(config)
@@ -129,7 +135,22 @@ if __name__ == "__main__":
     parser.add_argument("--synthModel", type=str, default=None, help="spaCy model/path for synthetic keyword generation (defaults to outputs/models/cdssSciSpacy/model-best if present)")
     parser.add_argument("--hanUseBlockDiagonal", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable document-isolated block masking in HAN sentence attention (default: config)" )
     parser.add_argument("--hanBatchMode", type=str, default=None, choices=["doc", "fixed"], help="HAN batching strategy: doc=one-doc batches, fixed=pack documents up to batchSize sentences (default: config)")
-    parser.add_argument("--hanFreezeEmbeddings", action="store_true", help="Freeze pre-trained HAN word embeddings during training")
+    parser.add_argument("--hanFreezeEmbeddings", action=argparse.BooleanOptionalAction, default=None, help="Freeze/unfreeze pre-trained HAN word embeddings during training (default: experiment behavior)")
+    parser.add_argument("--hanContextMode", type=str, default=None, choices=["sentence_only", "token_doc_attn", "token_doc_attn_gated"], help="HAN document context mode")
+    parser.add_argument("--hanContextHeads", type=int, default=None, help="Attention heads for HAN token-level document attention")
+    parser.add_argument("--hanContextDropout", type=float, default=None, help="Attention dropout for HAN token-level document attention")
+    parser.add_argument("--hanUseGatedFusion", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable HAN gated fusion of local and global token context")
+    parser.add_argument("--bilstmFreezeEmbeddings", action=argparse.BooleanOptionalAction, default=None, help="Freeze/unfreeze pre-trained BiLSTM word embeddings during training (default: config)")
+    parser.add_argument("--rebalancingMode", type=str, default="auto", choices=["auto", "off", "sentence", "document"], help="Positive upsampling strategy: auto=model-aware default, off=disable, sentence=sentence-level, document=document-level")
+    parser.add_argument("--minTokensPerSentenceForTraining", type=int, default=None, help="Minimum tokens per sentence to include in training (Phase 2 ablation)")
+    parser.add_argument("--hanUseChunkMemory", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable document-chunk memory across batch boundaries (Phase 2)")
+    parser.add_argument("--hanChunkMemorySize", type=int, default=None, help="Size of compressed chunk memory representation")
+    parser.add_argument("--hanPackingMode", type=str, default=None, choices=["mixed", "strict_doc"], help="Batch packing mode: mixed=allow doc spillover, strict_doc=keep doc boundaries")
+    parser.add_argument("--weakLabelConfidenceThreshold", type=float, default=None, help="Confidence threshold for weak label filtering: only train on labels with confidence >= threshold (Phase 3, None=disabled)")
+    parser.add_argument("--weakLabelConfidenceMetric", type=str, default=None, choices=["source_agreement", "combined"], help="Metric for computing label confidence (Phase 3)")
+    parser.add_argument("--curriculumLearningEnabled", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable curriculum learning: train on easy (high-confidence) samples first (Phase 3)")
+    parser.add_argument("--curriculumSchedule", type=str, default=None, choices=["linear", "sqrt", "exp"], help="Curriculum learning schedule: how quickly to increase difficulty (Phase 3)")
+    parser.add_argument("--curriculumWarmupPercent", type=int, default=None, help="Percentage of epochs to spend on easy samples only in curriculum learning (Phase 3)")
     parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, type=bool)
     parser.add_argument('-ttSplit', "--traintestSplit", type=int, default=3)
     parser.add_argument('-nLayers','--noLayers', type=int, default=4)

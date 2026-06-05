@@ -1,0 +1,17 @@
+config_id,model,schema,optimizer,lr,batch_size,epochs,pos_upsample,han_batch_mode,han_block,han_freeze,bilstm_freeze,log_file,status
+m31_bilstm_crf_BIO_adamw_lr1e-3,bilstm_crf,BIO,adamw,1e-3,64,20,2,fixed,true,false,true,m31_bilstm_crf_BIO_adamw_lr1e-3.txt,completed
+m31_bilstm_crf_BIO_adamw_lr5e-4,bilstm_crf,BIO,adamw,5e-4,64,20,2,fixed,true,false,true,m31_bilstm_crf_BIO_adamw_lr5e-4.txt,completed
+m31_bilstm_crf_BIO_sgd_lr1e-3,bilstm_crf,BIO,sgd,1e-3,64,20,2,fixed,true,false,true,m31_bilstm_crf_BIO_sgd_lr1e-3.txt,completed
+m31_bilstm_crf_BIO_sgd_lr5e-4,bilstm_crf,BIO,sgd,5e-4,64,20,2,fixed,true,false,true,m31_bilstm_crf_BIO_sgd_lr5e-4.txt,completed
+m31_bilstm_crf_IOBES_adamw_lr1e-3,bilstm_crf,IOBES,adamw,1e-3,64,20,2,fixed,true,false,true,m31_bilstm_crf_IOBES_adamw_lr1e-3.txt,completed
+m31_bilstm_crf_IOBES_adamw_lr5e-4,bilstm_crf,IOBES,adamw,5e-4,64,20,2,fixed,true,false,true,m31_bilstm_crf_IOBES_adamw_lr5e-4.txt,completed
+m31_bilstm_crf_IOBES_sgd_lr1e-3,bilstm_crf,IOBES,sgd,1e-3,64,20,2,fixed,true,false,true,m31_bilstm_crf_IOBES_sgd_lr1e-3.txt,completed
+m31_bilstm_crf_IOBES_sgd_lr5e-4,bilstm_crf,IOBES,sgd,5e-4,64,20,2,fixed,true,false,true,m31_bilstm_crf_IOBES_sgd_lr5e-4.txt,completed
+m31_han_crf_BIO_adamw_lr1e-3,han_crf,BIO,adamw,1e-3,64,20,2,fixed,true,false,true,m31_han_crf_BIO_adamw_lr1e-3.txt,completed
+m31_han_crf_BIO_adamw_lr5e-4,han_crf,BIO,adamw,5e-4,64,20,2,fixed,true,false,true,m31_han_crf_BIO_adamw_lr5e-4.txt,completed
+m31_han_crf_BIO_sgd_lr1e-3,han_crf,BIO,sgd,1e-3,64,20,2,fixed,true,false,true,m31_han_crf_BIO_sgd_lr1e-3.txt,completed
+m31_han_crf_BIO_sgd_lr5e-4,han_crf,BIO,sgd,5e-4,64,20,2,fixed,true,false,true,m31_han_crf_BIO_sgd_lr5e-4.txt,completed
+m31_han_crf_IOBES_adamw_lr1e-3,han_crf,IOBES,adamw,1e-3,64,20,2,fixed,true,false,true,m31_han_crf_IOBES_adamw_lr1e-3.txt,completed
+m31_han_crf_IOBES_adamw_lr5e-4,han_crf,IOBES,adamw,5e-4,64,20,2,fixed,true,false,true,m31_han_crf_IOBES_adamw_lr5e-4.txt,completed
+m31_han_crf_IOBES_sgd_lr1e-3,han_crf,IOBES,sgd,1e-3,64,20,2,fixed,true,false,true,m31_han_crf_IOBES_sgd_lr1e-3.txt,completed
+m31_han_crf_IOBES_sgd_lr5e-4,han_crf,IOBES,sgd,5e-4,64,20,2,fixed,true,false,true,m31_han_crf_IOBES_sgd_lr5e-4.txt,completed
