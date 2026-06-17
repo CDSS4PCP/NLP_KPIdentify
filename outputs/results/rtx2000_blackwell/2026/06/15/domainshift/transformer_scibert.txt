@@ -1,0 +1,67 @@
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+TransformerExperiment device: cuda | seed: 42
+Fine-tuning transformer baseline: allenai/scibert_scivocab_uncased
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Some weights of the model checkpoint at allenai/scibert_scivocab_uncased were not used when initializing BertForTokenClassification: ['cls.seq_relationship.weight', 'cls.predictions.decoder.bias', 'cls.predictions.transform.dense.bias', 'cls.seq_relationship.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.bias', 'cls.predictions.transform.LayerNorm.bias']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at allenai/scibert_scivocab_uncased and are newly initialized: ['classifier.weight', 'classifier.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Training subsampled to trainSampleSize=10000 (from 73810 docs, seed=42).
+/home/rohangoli/remote_mount/src/nlp/experiments/transformer_experiment.py:214: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+/home/rohangoli/remote_mount/src/nlp/experiments/transformer_experiment.py:223: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=use_amp):
+Epoch 1/3 | loss=0.1740 | 205.8s
+Epoch 2/3 | loss=0.1362 | 217.9s
+Epoch 3/3 | loss=0.1104 | 215.3s
+Saved fine-tuned transformer to /home/rohangoli/remote_mount/interim_data/transformer_scibert
+
+Evaluating on In-Domain Test dataset: test.json
+              precision    recall  f1-score   support
+
+          KP       0.58      0.44      0.50    126589
+
+   micro avg       0.58      0.44      0.50    126589
+   macro avg       0.58      0.44      0.50    126589
+weighted avg       0.58      0.44      0.50    126589
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    58.37% |    43.50% |    49.85% |    93.49%
+-----------------------------------------------------------------
+Dumped 8201 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/15/domainshift/predictions/transformer_scibert/predictions_test.json
+
+Evaluating on Gold Standard 42 dataset: testgs42.json
+              precision    recall  f1-score   support
+
+          KP       0.19      0.04      0.06      1291
+
+   micro avg       0.19      0.04      0.06      1291
+   macro avg       0.19      0.04      0.06      1291
+weighted avg       0.19      0.04      0.06      1291
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    18.73% |     3.64% |     6.10% |    80.58%
+-----------------------------------------------------------------
+Dumped 42 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/15/domainshift/predictions/transformer_scibert/predictions_testgs42.json
+
+Evaluating on Gold Standard 91 dataset: testgs91.json
+              precision    recall  f1-score   support
+
+          KP       0.23      0.05      0.08      2945
+
+   micro avg       0.23      0.05      0.08      2945
+   macro avg       0.23      0.05      0.08      2945
+weighted avg       0.23      0.05      0.08      2945
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    22.75% |     5.16% |     8.41% |    78.58%
+-----------------------------------------------------------------
+Dumped 91 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/15/domainshift/predictions/transformer_scibert/predictions_testgs91.json

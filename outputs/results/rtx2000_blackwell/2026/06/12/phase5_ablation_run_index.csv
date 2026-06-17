@@ -1,0 +1,16 @@
+config_id,context_mode,use_bilm,random_embed,gs_finetune_epochs,seed,log_file,status
+p5_full_model,token_doc_attn_gated,true,false,0,42,p5_full_model.txt,dry_run
+p5_no_doc_attn,sentence_only,true,false,0,42,p5_no_doc_attn.txt,dry_run
+p5_no_bilm,token_doc_attn_gated,false,false,0,42,p5_no_bilm.txt,dry_run
+p5_random_embed,token_doc_attn_gated,true,true,0,42,p5_random_embed.txt,dry_run
+p5_synth_plus_gs,token_doc_attn_gated,true,false,10,42,p5_synth_plus_gs.txt,dry_run
+p5_full_model,token_doc_attn_gated,true,false,0,42,p5_full_model.txt,dry_run
+p5_no_doc_attn,sentence_only,true,false,0,42,p5_no_doc_attn.txt,dry_run
+p5_no_bilm,token_doc_attn_gated,false,false,0,42,p5_no_bilm.txt,dry_run
+p5_random_embed,token_doc_attn_gated,true,true,0,42,p5_random_embed.txt,dry_run
+p5_synth_plus_gs,token_doc_attn_gated,true,false,10,42,p5_synth_plus_gs.txt,dry_run
+p5_full_model,token_doc_attn_gated,true,false,0,42,p5_full_model.txt,completed
+p5_no_doc_attn,sentence_only,true,false,0,42,p5_no_doc_attn.txt,completed
+p5_no_bilm,token_doc_attn_gated,false,false,0,42,p5_no_bilm.txt,completed
+p5_random_embed,token_doc_attn_gated,true,true,0,42,p5_random_embed.txt,completed
+p5_synth_plus_gs,token_doc_attn_gated,true,false,10,42,p5_synth_plus_gs.txt,completed

@@ -1,0 +1,10 @@
+config_id,hf_model,epochs,batch_size,lr,max_length,seed,log_file,status
+p4_pubmedbert,pubmedbert,3,16,3e-5,256,42,p4_pubmedbert.txt,dry_run
+p4_biobert,biobert,3,16,3e-5,256,42,p4_biobert.txt,dry_run
+p4_scibert,scibert,3,16,3e-5,256,42,p4_scibert.txt,dry_run
+p4_pubmedbert,pubmedbert,3,16,3e-5,256,42,p4_pubmedbert.txt,dry_run
+p4_biobert,biobert,3,16,3e-5,256,42,p4_biobert.txt,dry_run
+p4_scibert,scibert,3,16,3e-5,256,42,p4_scibert.txt,dry_run
+p4_pubmedbert,pubmedbert,3,16,3e-5,256,42,p4_pubmedbert.txt,completed
+p4_biobert,biobert,3,16,3e-5,256,42,p4_biobert.txt,completed
+p4_scibert,scibert,3,16,3e-5,256,42,p4_scibert.txt,completed

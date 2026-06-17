@@ -1,0 +1,44 @@
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+TransformerExperiment device: cuda | seed: 42
+Zero-shot transfer baseline: d4data/biomedical-ner-all (pretrained NER head, entity->keyphrase mapping, seed 42)
+
+Evaluating on Gold Standard 42 dataset: testgs42.json
+              precision    recall  f1-score   support
+
+          KP       0.12      0.11      0.12      1291
+
+   micro avg       0.12      0.11      0.12      1291
+   macro avg       0.12      0.11      0.12      1291
+weighted avg       0.12      0.11      0.12      1291
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    12.33% |    10.92% |    11.58% |    70.92%
+-----------------------------------------------------------------
+Dumped 42 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/12/predictions/p8b_ner_transfer/predictions_testgs42.json
+
+Evaluating on Gold Standard 91 dataset: testgs91.json
+              precision    recall  f1-score   support
+
+          KP       0.14      0.12      0.13      2945
+
+   micro avg       0.14      0.12      0.13      2945
+   macro avg       0.14      0.12      0.13      2945
+weighted avg       0.14      0.12      0.13      2945
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    14.38% |    12.33% |    13.27% |    68.80%
+-----------------------------------------------------------------
+Dumped 91 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/12/predictions/p8b_ner_transfer/predictions_testgs91.json
+Documents: 42
+Point F1: 11.58%
+Bootstrap mean F1: 11.59% (SD 1.36)
+95% CI: [8.92%, 14.39%] over 2000 iters
+Documents: 91
+Point F1: 13.27%
+Bootstrap mean F1: 13.29% (SD 1.03)
+95% CI: [11.32%, 15.39%] over 2000 iters

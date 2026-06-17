@@ -28,6 +28,11 @@ dependencies:
       - seqeval==1.2.2
       - sklearn-crfsuite==0.3.6
       - python-crfsuite>=0.9.9
+      # Transformer baselines (reviewer concern #1: PubMedBERT/BioBERT/SciBERT token classification)
+      - transformers>=4.25,<5
+      - safetensors>=0.3.0
+      # Public keyphrase datasets (KPBioMed via HuggingFace Hub streaming)
+      - datasets>=2.14,<3
       # spaCy Models (directly load from URL in run scripts or install as dependencies)
       - https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
       - https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz

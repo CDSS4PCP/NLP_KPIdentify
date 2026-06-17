@@ -161,7 +161,6 @@ class LanguageModel:
             return sent + ['<UNK>'] * (len(sent) - seq_len)
 
     def get_integer_seq(self, seq, tokenized=True):
-        if tokenized:
-            return [self.token2int[w] for w in seq]
-        else:
-            return [self.token2int[w] for w in seq.split()]
+        unk = self.token2int.get('<UNK>', 1)
+        tokens = seq if tokenized else seq.split()
+        return [self.token2int.get(w, unk) for w in tokens]

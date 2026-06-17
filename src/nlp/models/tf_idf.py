@@ -5,16 +5,17 @@ from collections import Counter
 
 # Calculate IDF
 def cal_idf(datas):
-    total_files  = len(datas)
-    all_words = set([j for line in datas for j in line])
-    temp = {word: 0.0 for word in all_words}
-    for word in temp.keys():
-        for words in datas:
-            if word in words:
-                temp[word] += 1.0
+    total_files = len(datas)
+    # Single-pass document-frequency count: O(total tokens) instead of O(vocab x docs).
+    # Produces document frequencies (and therefore IDF values) identical to the previous
+    # nested-loop implementation, but scales to corpora with hundreds of thousands of docs.
+    document_frequency = Counter()
+    for words in datas:
+        for word in set(words):
+            document_frequency[word] += 1.0
     idf = {}
-    for k, v in temp.items():
-        idf[k] = math.log((total_files + 1) / (v + 1), 2)
+    for word, freq in document_frequency.items():
+        idf[word] = math.log((total_files + 1) / (freq + 1), 2)
     return idf
 
 # Calculate TF-IDF

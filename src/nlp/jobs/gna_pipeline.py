@@ -92,6 +92,19 @@ def run(args):
             "hanUseGatedFusion": args.hanUseGatedFusion,
             "bilstmFreezeEmbeddings": args.bilstmFreezeEmbeddings,
             "rebalancingMode": args.rebalancingMode,
+            "seed": args.seed,
+            "trainFraction": args.trainFraction,
+            "useRandomEmbeddings": args.useRandomEmbeddings,
+            "dumpPredictions": args.dumpPredictions,
+            "useBiLM": args.useBiLM,
+            "dataSource": args.dataSource,
+            "jsonDataDir": args.jsonDataDir,
+            "dataSampleSize": args.dataSampleSize,
+            "valFraction": args.valFraction,
+            "kpbiomedSubset": args.kpbiomedSubset,
+            "pubmedakeFile": args.pubmedakeFile,
+            "w2vMinCount": args.w2vMinCount,
+            "trainSampleSize": args.trainSampleSize,
         }
         
         experiment = GNAExperiment(config)
@@ -154,5 +167,18 @@ if __name__ == "__main__":
     parser.add_argument("-preGenSynthDS", "--preGenSyntheticData", default=False, type=bool)
     parser.add_argument('-ttSplit', "--traintestSplit", type=int, default=3)
     parser.add_argument('-nLayers','--noLayers', type=int, default=4)
+    parser.add_argument("--seed", type=int, default=None, help="Global RNG seed (python/numpy/torch) for reproducible runs and multi-seed variance experiments (Phase 0)")
+    parser.add_argument("--trainFraction", type=float, default=None, help="Explicit train fraction (0-1) overriding --traintestSplit; enables split-sensitivity experiments e.g. 0.70/0.80 (Phase 0)")
+    parser.add_argument("--useRandomEmbeddings", action=argparse.BooleanOptionalAction, default=False, help="Ablation: skip pre-trained Word2Vec embeddings and use random init even if LM_word2vec.bin exists (Phase 0)")
+    parser.add_argument("--useBiLM", action=argparse.BooleanOptionalAction, default=True, help="Ablation: transfer pre-trained BiLM weights into the tagger; --no-useBiLM skips transfer even if BiLM.pt exists (concern #3)")
+    parser.add_argument("--dumpPredictions", type=str, default=None, help="Directory to dump per-document gold/predicted entity tags for error analysis & bootstrap CI (Phase 0)")
+    parser.add_argument("--dataSource", type=str, default="synthetic", choices=["synthetic", "kpbiomed", "pubmedake"], help="Training-data source for createData: synthetic labels (default) or a public dataset (KPBioMed/PubMedAKE)")
+    parser.add_argument("--jsonDataDir", type=str, default=None, help="Override JSON_DATA directory for this run (read/write train.json,test.json,testgs*.json). Defaults per --dataSource.")
+    parser.add_argument("--dataSampleSize", type=int, default=5000, help="Number of documents to sample from the public dataset during createData (dataSource != synthetic)")
+    parser.add_argument("--valFraction", type=float, default=0.1, help="Fraction of public records held out into test.json during public createData")
+    parser.add_argument("--kpbiomedSubset", type=str, default="small", choices=["small", "medium", "large"], help="KPBioMed HuggingFace config size to stream when dataSource=kpbiomed")
+    parser.add_argument("--pubmedakeFile", type=str, default=None, help="Path to a downloaded PubMedAKE split JSON (e.g. small_train.json) when dataSource=pubmedake")
+    parser.add_argument("--w2vMinCount", type=int, default=5, help="Word2Vec min_count during preTrain: drops rare tokens to shrink the BiLM softmax vocab (default 5)")
+    parser.add_argument("--trainSampleSize", type=int, default=None, help="Cap the number of train.json documents used during train mode (None=use all)")
     args = parser.parse_args()
     run(args)

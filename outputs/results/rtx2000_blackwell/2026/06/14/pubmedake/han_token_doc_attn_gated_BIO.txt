@@ -1,0 +1,30 @@
+============================================================
+Running mode: train
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=doc hanUseBlockDiagonal=False hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in train mode...
+Training BiLSTM_CRF...
+Training subsampled to trainSampleSize=10000 (from 73810 docs, seed=42).
+Step 1: Loaded training data JSON in 19.2565 seconds (train_docs=9000, val_docs=1000).
+Step 2: Loaded vocabularies in 0.0516 seconds (Size: 17766).
+Loading pre-trained Word2Vec embeddings...
+Step 3: Loaded pre-trained Word2Vec embeddings in 0.4522 seconds.
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+Schema constraints active: True
+Loading pre-trained Bi-Language Model weights...
+Step 4: Initialized model & routed to device 'cuda' in 3.0306 seconds (BiLM weights: True).
+Label diagnostics [train] | docs=9000 tokens=2348388 kp_tokens=199005 kp_ratio=0.0847 kw_nonempty=49801/49801 kw_matched=44207 kw_unmatched=5594 match_ratio=0.8877
+Label diagnostics [train] top unmatched keywords: sars-cov-2, meta-analysis, nf-kb, non-small cell lung cancer, mir- p
+Label diagnostics [train] unmatched reasons: no_span_match=5439, overlap_conflict=155
+Label diagnostics [val] | docs=1000 tokens=261817 kp_tokens=22427 kp_ratio=0.0857 kw_nonempty=5557/5557 kw_matched=4949 kw_unmatched=608 match_ratio=0.8906
+Label diagnostics [val] top unmatched keywords: sars-cov-2, meta-analysis, rat, nf-kb, polymorphism
+Label diagnostics [val] unmatched reasons: no_span_match=595, overlap_conflict=13
+Step 5a: Prepared 9000 train and 1000 val CPU batches in 156.84s (cached for all epochs).
+Epoch  1/20 | Train Loss: 4.6134 | Val Loss: 3.4243 | Time: 458.22s | Checkpoint Saved
+Epoch  2/20 | Train Loss: 3.9938 | Val Loss: 3.4698 | Time: 465.73s | No Save
+Epoch  3/20 | Train Loss: 3.7395 | Val Loss: 3.5911 | Time: 456.17s | No Save
+Terminated

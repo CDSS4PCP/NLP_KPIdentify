@@ -1,0 +1,14 @@
+config_id,train_fraction,seed,log_file,status
+p6_split_033,0.33,42,p6_split_033.txt,dry_run
+p6_split_070,0.70,42,p6_split_070.txt,dry_run
+p6_split_080,0.80,42,p6_split_080.txt,dry_run
+p6_split_033,0.33,42,p6_split_033.txt,dry_run
+p6_split_070,0.70,42,p6_split_070.txt,dry_run
+p6_split_080,0.80,42,p6_split_080.txt,dry_run
+p6_split_033,0.33,42,p6_split_033.txt,failed
+p6_split_033,0.33,42,p6_split_033.txt,dry_run
+p6_split_070,0.70,42,p6_split_070.txt,dry_run
+p6_split_080,0.80,42,p6_split_080.txt,dry_run
+p6_split_033,0.33,42,p6_split_033.txt,completed
+p6_split_070,0.70,42,p6_split_070.txt,completed
+p6_split_080,0.80,42,p6_split_080.txt,completed

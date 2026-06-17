@@ -1,0 +1,47 @@
+============================================================
+Running mode: preTrain
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=doc hanUseBlockDiagonal=False hanContextMode=sentence_only hanContextHeads=4 hanContextDropout=0.1 hanUseGatedFusion=False minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in preTrain mode...
+Pre-training language model...
+preTrain corpus subsampled to dataSampleSize=5000 (train_docs=5000, test_docs=500, seed=42).
+Step 1: Loaded train/test dataset JSON in 19.3526 seconds.
+Step 2: Extracted sentences corpus in 0.0483 seconds (Total sents: 60105).
+Training Word2Vec model...
+Step 3: Trained and saved Word2Vec embeddings in 5.7333 seconds (Vocab size: 17766, CPU workers: 15).
+Training Bi-Directional Language Model...
+Step 4: Generated input/target sequences in 6.4323 seconds (Train seqs: 1037121, Test seqs: 103124).
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.3 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+/home/rohangoli/remote_mount/src/nlp/models/trainer.py:87: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=True)
+CUDA device: NVIDIA RTX PRO 2000 Blackwell Generation Laptop GPU
+DataLoader workers: 0 | pin_memory: True
+Starting Bi-Language Model training on device: cuda...
+Epoch: 1/5... Completed in 119.60s | mean_loss : 2.65 | Perplexity : 14.12
+Epoch: 2/5... Completed in 123.48s | mean_loss : 1.70 | Perplexity : 5.46
+Epoch: 3/5... Completed in 110.25s | mean_loss : 1.60 | Perplexity : 4.95
+Epoch: 4/5... Completed in 118.06s | mean_loss : 1.59 | Perplexity : 4.91
+Epoch: 5/5... Completed in 119.36s | mean_loss : 1.59 | Perplexity : 4.88
+Total BiLM training time: 590.75s (Avg per epoch: 118.15s)
+Test Perplexity: 10.16 (Evaluated in 2.25s)
+Step 5: Completed BiLM neural network training in 597.31 seconds.
+Step 6: Saved language model checkpoint to /home/rohangoli/remote_mount/interim_data/BiLM.pt in 0.6801 seconds.
+
+==================================================
+PRE-TRAIN MODE SUMMARY (BiLM on device: cuda)
+Total Pre-Train Mode Time: 629.56 seconds
+  - Step 1: Loading Data:      19.3526s
+  - Step 2: Sentences Corpus:  0.0483s
+  - Step 3: Word2Vec Training: 5.7333s
+  - Step 4: Sequence Splitting:6.4323s
+  - Step 5: BiLM Training:     597.31s
+  - Step 6: Save Checkpoint:   0.6801s
+==================================================
+
+============================================================
+Mode preTrain completed in 629.81 seconds
+============================================================

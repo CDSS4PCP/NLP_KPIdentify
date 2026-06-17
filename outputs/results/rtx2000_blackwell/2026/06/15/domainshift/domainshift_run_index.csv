@@ -1,0 +1,5 @@
+model,family,schema,seed,log_file,status
+han_crf,gna,BIO,42,han_token_doc_attn_gated_BIO.txt,completed
+biobert,transformer,n/a,42,transformer_biobert.txt,completed
+scibert,transformer,n/a,42,transformer_scibert.txt,completed
+pubmedbert,transformer,n/a,42,transformer_pubmedbert.txt,completed

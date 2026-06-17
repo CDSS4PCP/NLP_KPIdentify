@@ -1,0 +1,14 @@
+nohup: ignoring input
+############################################################
+# DOMAIN-SHIFT VALIDATION on pubmedake  (mode=train,test,testGS)
+############################################################
+----- HAN gated BIO -----
+HAN gated BIO -> completed
+----- Transformer biobert -----
+Transformer biobert -> completed
+----- Transformer scibert -----
+Transformer scibert -> completed
+----- Transformer pubmedbert -----
+Transformer pubmedbert -> completed
+
+Domain-shift validation complete. Run index: /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/15/domainshift/domainshift_run_index.csv

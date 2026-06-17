@@ -1,0 +1,16 @@
+dataset,config_id,family,model,schema,seed,log_file,status
+kpbiomed,bilstm_crf_BIO,gna,bilstm_crf,BIO,42,bilstm_crf_BIO.txt,completed
+kpbiomed,bilstm_crf_IOBES,gna,bilstm_crf,IOBES,42,bilstm_crf_IOBES.txt,completed
+kpbiomed,bilstm_crf_BILOU,gna,bilstm_crf,BILOU,42,bilstm_crf_BILOU.txt,completed
+kpbiomed,han_sentence_only_BIO,gna,han_crf,BIO,42,han_sentence_only_BIO.txt,completed
+kpbiomed,han_sentence_only_IOBES,gna,han_crf,IOBES,42,han_sentence_only_IOBES.txt,completed
+kpbiomed,han_sentence_only_BILOU,gna,han_crf,BILOU,42,han_sentence_only_BILOU.txt,completed
+kpbiomed,han_token_doc_attn_BIO,gna,han_crf,BIO,42,han_token_doc_attn_BIO.txt,completed
+kpbiomed,han_token_doc_attn_IOBES,gna,han_crf,IOBES,42,han_token_doc_attn_IOBES.txt,completed
+kpbiomed,han_token_doc_attn_BILOU,gna,han_crf,BILOU,42,han_token_doc_attn_BILOU.txt,completed
+kpbiomed,han_token_doc_attn_gated_BIO,gna,han_crf,BIO,42,han_token_doc_attn_gated_BIO.txt,completed
+kpbiomed,han_token_doc_attn_gated_IOBES,gna,han_crf,IOBES,42,han_token_doc_attn_gated_IOBES.txt,completed
+kpbiomed,han_token_doc_attn_gated_BILOU,gna,han_crf,BILOU,42,han_token_doc_attn_gated_BILOU.txt,completed
+kpbiomed,transformer_biobert,transformer,biobert,n/a,42,transformer_biobert.txt,completed
+kpbiomed,transformer_scibert,transformer,scibert,n/a,42,transformer_scibert.txt,completed
+kpbiomed,transformer_pubmedbert,transformer,pubmedbert,n/a,42,transformer_pubmedbert.txt,completed

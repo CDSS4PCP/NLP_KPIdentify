@@ -16,10 +16,50 @@ import numpy as np
 import time
 from collections import Counter
 
+def set_global_seed(seed):
+    """Set global RNG seeds across python, numpy and torch for reproducible runs.
+
+    Phase 0 foundation for variance / statistical-testing experiments: without this
+    the pipeline left torch/numpy/python RNGs unseeded, so repeated runs were not
+    reproducible. Returns the resolved seed.
+    """
+    import random as _random
+    seed = int(seed)
+    _random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    print(f"Global RNG seed set: {seed}")
+    return seed
+
 class GNAExperiment(BaseExperiment):
     def __init__(self, config):
         super().__init__("GNAExperiment", config)
         self.preprocessor = TextPreprocessor()
+
+        # Resolve the active JSON_DATA directory for this run. An explicit --jsonDataDir wins;
+        # otherwise a non-synthetic --dataSource selects its default public-dataset folder.
+        # Setting the module-level config global propagates to every config.JSON_DATA reference.
+        # NB: the __init__ parameter is named `config` (a dict) and shadows the imported config
+        # module here, so mutate the module via its own import alias.
+        from src.core import configV2 as _config_module
+        data_source = self.config.get("dataSource", "synthetic") or "synthetic"
+        json_dir_override = self.config.get("jsonDataDir", None)
+        if not json_dir_override and data_source != "synthetic":
+            if data_source == "kpbiomed":
+                json_dir_override = getattr(_config_module, "PUBLIC_DATA_KPBIOMED", None)
+            elif data_source == "pubmedake":
+                json_dir_override = getattr(_config_module, "PUBLIC_DATA_PUBMEDAKE", None)
+        if json_dir_override:
+            _config_module.JSON_DATA = json_dir_override
+            print(f"Using JSON_DATA directory: {_config_module.JSON_DATA} (dataSource={data_source})")
+
+        seed_value = self.config.get("seed", None)
+        if seed_value is not None:
+            self.seed = set_global_seed(seed_value)
+        else:
+            self.seed = None
         
         device_str = self.config.get("device")
         if device_str:
@@ -179,6 +219,9 @@ class GNAExperiment(BaseExperiment):
     def prepare_data(self):
         print("Preparing data...")
         WORKING_PATH = os.getcwd()
+        data_source = self.config.get("dataSource", "synthetic") or "synthetic"
+        if data_source != "synthetic":
+            return self._prepare_public_data(WORKING_PATH, data_source)
         json_data_folder = os.path.join(WORKING_PATH, config.JSON_DATA)
         if not os.path.exists(json_data_folder): os.makedirs(json_data_folder)
         interim_data_folder = os.path.join(WORKING_PATH, config.INTERIM_DATA)
@@ -261,7 +304,8 @@ class GNAExperiment(BaseExperiment):
             model_name=resolved_model,
             additional_data=miscData,
             train_test_split=self.config.get("traintestSplit", 3),
-            split_seed=42,
+            split_seed=self.config.get("seed") if self.config.get("seed") is not None else 42,
+            train_fraction=self.config.get("trainFraction", None),
         )
         synth_time = time.time() - synth_start
         print(f"Synthetic labels generation completed in {synth_time:.2f} seconds.")
@@ -270,6 +314,67 @@ class GNAExperiment(BaseExperiment):
         print("Checking for existing Gold Standard testsets (testgs42, testgs91) to compute features...")
         from src.nlp.models.tf_idf import tf_idf
         from src.nlp.models.textrank import textrank
+        for gs_file in ["testgs42.json", "testgs91.json"]:
+            gs_path = os.path.join(json_data_folder, gs_file)
+            if os.path.exists(gs_path):
+                gs_data = read_json_array(gs_path)
+                datas = [d['abstract'].split() + d['title'].split() for d in gs_data]
+                tf_idf_res = tf_idf(datas)
+                textrank_res = textrank(datas)
+                tf_idf_save = {d['id']: tf_idf_res[i] for i, d in enumerate(gs_data)}
+                textrank_save = {d['id']: textrank_res[i] for i, d in enumerate(gs_data)}
+                base_name = gs_file.split('.')[0]
+                save_json(tf_idf_save, os.path.join(json_data_folder, f"{base_name}_tf_idf.json"))
+                save_json(textrank_save, os.path.join(json_data_folder, f"{base_name}_textrank.json"))
+                print(f"Computed TF-IDF and TextRank for {gs_file}")
+
+        print("Data preparation complete.")
+
+    def _prepare_public_data(self, working_path, data_source):
+        """Build train/test splits from a public dataset (KPBioMed / PubMedAKE).
+
+        Replaces synthetic label generation. Writes train.json/test.json + feature dicts into
+        the active config.JSON_DATA directory, then computes TF-IDF/TextRank for any GS testsets
+        so testGS evaluation and GS fine-tuning resolve their feature files.
+        """
+        from src.nlp.data.public_datasets import (
+            load_kpbiomed,
+            load_pubmedake,
+            build_public_dataset,
+        )
+        from src.nlp.models.tf_idf import tf_idf
+        from src.nlp.models.textrank import textrank
+
+        json_data_folder = os.path.join(working_path, config.JSON_DATA)
+        os.makedirs(json_data_folder, exist_ok=True)
+
+        sample_size = self.config.get("dataSampleSize", 5000)
+        val_fraction = float(self.config.get("valFraction", 0.1))
+        seed = self.config.get("seed") if self.config.get("seed") is not None else 42
+
+        build_start = time.time()
+        if data_source == "kpbiomed":
+            raw = load_kpbiomed(
+                sample_size=sample_size,
+                hf_subset=self.config.get("kpbiomedSubset", "small"),
+                split="train",
+                seed=seed,
+            )
+        elif data_source == "pubmedake":
+            pubmedake_file = self.config.get("pubmedakeFile", None)
+            if not pubmedake_file:
+                pubmedake_file = os.path.join(
+                    working_path, getattr(config, "PUBMEDAKE_RAW_DIR", ""), "small_train.json"
+                )
+            raw = load_pubmedake(pubmedake_file, sample_size=sample_size, seed=seed)
+        else:
+            raise ValueError(f"Unknown public dataSource: {data_source}")
+
+        build_public_dataset(raw, json_data_folder, val_fraction=val_fraction, seed=seed)
+        print(f"Public dataset ({data_source}) build completed in {time.time() - build_start:.2f} seconds.")
+
+        # Pre-compute TF-IDF and TextRank for any existing GS testsets.
+        print("Checking for existing Gold Standard testsets (testgs42, testgs91) to compute features...")
         for gs_file in ["testgs42.json", "testgs91.json"]:
             gs_path = os.path.join(json_data_folder, gs_file)
             if os.path.exists(gs_path):
@@ -407,6 +512,18 @@ class GNAExperiment(BaseExperiment):
             print("No training data found.")
             return
 
+        # Optional cap on training documents to speed up the experiment matrix.
+        train_sample_size = self.config.get("trainSampleSize", None)
+        if train_sample_size and train_sample_size > 0 and len(trainData) > train_sample_size:
+            seed = self.config.get("seed") if self.config.get("seed") is not None else 42
+            idx = np.random.default_rng(seed).permutation(len(trainData))[:train_sample_size]
+            original_train_docs = len(trainData)
+            trainData = [trainData[i] for i in idx]
+            print(
+                f"Training subsampled to trainSampleSize={train_sample_size} "
+                f"(from {original_train_docs} docs, seed={seed})."
+            )
+
         pool_train_test = bool(self.config.get("cvPoolTrainAndTest", False))
         if pool_train_test:
             try:
@@ -490,7 +607,10 @@ class GNAExperiment(BaseExperiment):
         embed_file = os.path.join(WORKING_PATH, config.INTERIM_DATA, "LM_word2vec.bin")
         word_embeddings = None
         has_embd = False
-        if os.path.exists(embed_file):
+        use_random_embeddings = bool(self.config.get("useRandomEmbeddings", False))
+        if use_random_embeddings:
+            print("Ablation: --useRandomEmbeddings set; skipping pre-trained Word2Vec embeddings (random init).")
+        elif os.path.exists(embed_file):
             print("Loading pre-trained Word2Vec embeddings...")
             word_embeddings = EmbeddingsReader.from_binary(
                 filename=embed_file,
@@ -531,7 +651,10 @@ class GNAExperiment(BaseExperiment):
         
         biLM_path = os.path.join(WORKING_PATH, config.INTERIM_DATA, "BiLM.pt")
         has_bilm = False
-        if os.path.exists(biLM_path):
+        use_bilm = bool(self.config.get("useBiLM", True))
+        if not use_bilm:
+            print("Ablation: --no-useBiLM set; skipping BiLM weight transfer (random LSTM init).")
+        elif os.path.exists(biLM_path):
             print("Loading pre-trained Bi-Language Model weights...")
             model_stateDict = self.model.state_dict()
             pretrainedLM_stateDict = torch.load(biLM_path, map_location='cpu')
@@ -1285,6 +1408,12 @@ class GNAExperiment(BaseExperiment):
             seqeval_scheme = IOB2
         elif schema == "BILOU":
             seqeval_scheme = BILOU
+
+        dump_predictions_dir = self.config.get("dumpPredictions", None)
+        if dump_predictions_dir:
+            os.makedirs(dump_predictions_dir, exist_ok=True)
+        # Reverse vocabulary lookup for reconstructing token text in prediction dumps.
+        ix_to_word_lookup = {int(k): v for k, v in ix_to_word.items()} if isinstance(ix_to_word, dict) else {i: w for i, w in enumerate(ix_to_word)}
         
         for test_path, label in datasets_to_eval:
             print(f"\nEvaluating on {label} dataset: {os.path.basename(test_path)}")
@@ -1299,6 +1428,7 @@ class GNAExperiment(BaseExperiment):
             # Step 3: Inference predictions loop
             step3_start = time.time()
             y_preds, y_targets = [], []
+            dump_records = []
             
             base_name = os.path.basename(test_path).split('.')[0]
             tf_idf_path = os.path.join(WORKING_PATH, config.JSON_DATA, f"{base_name}_tf_idf.json")
@@ -1332,7 +1462,7 @@ class GNAExperiment(BaseExperiment):
                     else:
                         _, tags = self.model(inputs, masks, feats_pos, feats_cont)
                     
-                    for pred, label_tensor, mask in zip(tags, targets, masks):
+                    for seq_idx, (pred, label_tensor, mask) in enumerate(zip(tags, targets, masks)):
                         length = int(mask.sum().item())
                         temp_preds = [ix_to_tag.get(i, "O") for i in pred[:length]]
                         temp_targets = [ix_to_tag.get(i, "O") for i in label_tensor.cpu().tolist()[:length]]
@@ -1342,6 +1472,15 @@ class GNAExperiment(BaseExperiment):
                         
                         y_preds.append(temp_preds)
                         y_targets.append(temp_targets)
+
+                        if dump_predictions_dir:
+                            token_ids = inputs[seq_idx].cpu().tolist()[:length]
+                            tokens = [ix_to_word_lookup.get(int(t), "<UNK>") for t in token_ids]
+                            dump_records.append({
+                                "tokens": tokens,
+                                "gold": temp_targets,
+                                "pred": temp_preds,
+                            })
             
             step3_time = time.time() - step3_start
             print(f"Step 3: Inference prediction loop completed in {step3_time:.2f} seconds.")
@@ -1429,6 +1568,18 @@ class GNAExperiment(BaseExperiment):
             
             step4_time = time.time() - step4_start
             print(f"Step 4: Metric calculations & reports completed in {step4_time:.4f} seconds.")
+
+            if dump_predictions_dir:
+                dump_path = os.path.join(dump_predictions_dir, f"predictions_{base_name}.json")
+                save_json({
+                    "dataset_label": label,
+                    "source_file": os.path.basename(test_path),
+                    "schema": schema,
+                    "model_type": model_type,
+                    "seed": self.seed,
+                    "records": dump_records,
+                }, dump_path)
+                print(f"Dumped {len(dump_records)} prediction sequences to {dump_path}")
             
             ds_total_time = time.time() - step1_start
             print("\n" + "="*50)
@@ -1456,6 +1607,23 @@ class GNAExperiment(BaseExperiment):
         except Exception as e:
             print(f"Could not load train/test json: {e}")
             return
+
+        # Optional corpus subsampling to keep BiLM pre-training tractable on very large public datasets.
+        sample_size = self.config.get("dataSampleSize", None)
+        if sample_size and sample_size > 0:
+            seed = self.config.get("seed") if self.config.get("seed") is not None else 42
+            rng = np.random.default_rng(seed)
+            if len(trainData) > sample_size:
+                idx = rng.permutation(len(trainData))[:sample_size]
+                trainData = [trainData[i] for i in idx]
+            test_cap = max(1, int(round(sample_size * float(self.config.get("valFraction", 0.1)))))
+            if len(testData) > test_cap:
+                idx = rng.permutation(len(testData))[:test_cap]
+                testData = [testData[i] for i in idx]
+            print(
+                f"preTrain corpus subsampled to dataSampleSize={sample_size} "
+                f"(train_docs={len(trainData)}, test_docs={len(testData)}, seed={seed})."
+            )
         step1_time = time.time() - step1_start
         print(f"Step 1: Loaded train/test dataset JSON in {step1_time:.4f} seconds.")
             
@@ -1492,10 +1660,11 @@ class GNAExperiment(BaseExperiment):
         step3_start = time.time()
         print("Training Word2Vec model...")
         w2v_workers = max(1, (os.cpu_count() or 4) - 1)
+        w2v_min_count = int(self.config.get("w2vMinCount", 5))
         modelW2V = gensim.models.Word2Vec(
             sentences=total_corpus_sentences,
             vector_size=300, window=5,
-            min_count=0, workers=w2v_workers,
+            min_count=w2v_min_count, workers=w2v_workers,
             sg=1, seed=42
         )
         embed_file = os.path.join(WORKING_PATH, config.INTERIM_DATA, "LM_word2vec.bin")

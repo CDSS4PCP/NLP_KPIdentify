@@ -3,6 +3,11 @@ PUBMED_PROCESSED_DATA = 'data/pubmed_data/processed_data/processed_full_data.xml
 PUBMED_PROCESSED_DATA_GS = 'data/pubmed_data/processed_data/processed_44_abstracts_test.xml'
 HOLDOUT_DATA = 'data/HoldOut_Total.txt'
 JSON_DATA = 'data/pubmed_data/json_data_synthetic_labels_v2'
+# Public-dataset JSON_DATA directories (replace synthetic labels with gold/extractive keyphrases).
+PUBLIC_DATA_KPBIOMED = 'data/pubmed_data/json_data_kpbiomed'
+PUBLIC_DATA_PUBMEDAKE = 'data/pubmed_data/json_data_pubmedake'
+# Local download location for raw PubMedAKE (Zenodo 6330817) split files.
+PUBMEDAKE_RAW_DIR = 'data/pubmed_data/raw_data/pubmedake'
 PRE_PROCESSED_DATA = 'data/pubmed_data/preprocess_data'
 INTERIM_DATA = 'interim_data/'
 VOCAB = INTERIM_DATA+'vocab/'

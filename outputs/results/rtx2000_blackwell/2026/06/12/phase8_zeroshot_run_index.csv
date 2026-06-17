@@ -1,0 +1,9 @@
+config_id,hf_model,mode,extra,max_length,seed,log_file,status
+p8a_pubmedbert_randomhead,pubmedbert,inferGS,,256,42,p8a_pubmedbert_randomhead.txt,dry_run
+p8a_biobert_randomhead,biobert,inferGS,,256,42,p8a_biobert_randomhead.txt,dry_run
+p8a_scibert_randomhead,scibert,inferGS,,256,42,p8a_scibert_randomhead.txt,dry_run
+p8b_ner_transfer,pubmedbert,transferGS,d4data/biomedical-ner-all,256,42,p8b_ner_transfer.txt,dry_run
+p8a_pubmedbert_randomhead,pubmedbert,inferGS,,256,42,p8a_pubmedbert_randomhead.txt,completed
+p8a_biobert_randomhead,biobert,inferGS,,256,42,p8a_biobert_randomhead.txt,completed
+p8a_scibert_randomhead,scibert,inferGS,,256,42,p8a_scibert_randomhead.txt,completed
+p8b_ner_transfer,pubmedbert,transferGS,d4data/biomedical-ner-all,256,42,p8b_ner_transfer.txt,completed
