@@ -24,6 +24,8 @@ keywordExtraction/GNA_Files/*.h5
 keywordExtraction/GNA_Files/*.model
 
 outputs/models/*
+outputs/paper*
+outputs/review*
 
 # Ignore interim data
 interim_data/**/*
