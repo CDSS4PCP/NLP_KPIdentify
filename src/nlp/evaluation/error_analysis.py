@@ -61,7 +61,14 @@ def _overlap(a: Span, b: Span) -> int:
 
 
 def _is_abbreviation(tokens: List[str], span: Span) -> bool:
-    """Heuristic: single-token all-uppercase or short (<=4 char) alpha acronym."""
+    """Heuristic: single short alphabetic token that looks like an acronym.
+
+    The labeling pipeline frequently lowercases tokens, so capitalization cannot be
+    relied on (e.g. ``aki``, ``copd``, ``asti`` arrive lowercased). We therefore flag a
+    single alphabetic token as acronym-like when it is all-uppercase (when casing is
+    preserved) OR when it is short (2-4 characters). This is case-insensitive so the
+    bucket is populated on lowercased gold standards instead of always being zero.
+    """
     words = tokens[span[0]:span[1]]
     if len(words) != 1:
         return False
@@ -70,7 +77,7 @@ def _is_abbreviation(tokens: List[str], span: Span) -> bool:
         return False
     if w.isupper() and len(w) >= 2:
         return True
-    return len(w) <= 4 and w.upper() == w
+    return 2 <= len(w) <= 4
 
 
 def _span_text(tokens: List[str], span: Span) -> str:

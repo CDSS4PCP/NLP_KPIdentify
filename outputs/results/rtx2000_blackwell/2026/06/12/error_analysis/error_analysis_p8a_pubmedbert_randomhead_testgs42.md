@@ -1,0 +1,56 @@
+# Error Analysis — Gold Standard 42
+
+Source: `testgs42.json` · schema: BIO · model: transformer_pubmedbert · seed: 42
+
+## Summary
+
+| Category | Count | % of errors |
+|----------|-------|-------------|
+| False Positive | 2 | 0.2% |
+| False Negative | 1119 | 95.3% |
+| Boundary Error | 53 | 4.5% |
+| Abbreviation | 39 | 3.3% |
+| Nested Phrase | 1070 | 91.1% |
+| True Positive | 0 | — |
+
+- Strict entity precision (TP / (TP+FP+boundary)): **0.00%**
+- Strict entity recall (TP / (TP+FN+boundary)): **0.00%**
+- Total predicted spans: 55 · Total gold spans: 1172
+
+## Annotated Examples
+
+### False Positive (2 total)
+- spurious pred: `924 compared with`
+- spurious pred: `944 95 ci 0 942 to`
+
+### False Negative (1119 total)
+- missed gold: `optimizing`
+- missed gold: `developed`
+- missed gold: `disseminate`
+- missed gold: `design`
+- missed gold: `enable`
+- missed gold: `prescription errors`
+
+### Boundary Error (53 total)
+- gold: `clinical practice guidelines` → pred: `asti a guideline based drug ordering system for primary care existing computer based ordering systems for physicians provide effective drug centered checks but offer little assistance for optimizing the overall patient centered treatment strategy evidence based clinical practice guidelines have been developed to disseminate state of the art information concerning treatment strategy but these guidelines are poorly used in routine practice the asti project aims to design a guideline based ordering system to enable general practitioners to avoid prescription errors and to improve compliance with best therapeutic practices the critic mode operates as a background process and corrects the physician 's prescription on the basis of automatically triggered elementary rules that account for isolated guideline recommendations the guided mode directs the physician to the best treatment by browsing a comprehensive guideline knowledge base represented as a decision tree a first prototype applied to hypertension is currently under development`
+- gold: `clinical decision support system cdss` → pred: `construction of a clinical decision support system for undergoing surgery based on domain ontology and rules reasoning objective to construct a clinical decision support system cdss for undergoing surgery based on domain ontology and rules reasoning in the setting of hospitalized diabetic patients`
+- gold: `conceptualization formalization implementation` → pred: `and methods the ontology was created with a modified ontology development method including specification and conceptualization formalization implementation and evaluation and maintenance the protege web ontology language editor was used to implement the ontology embedded clinical knowledge was elicited to complement the domain ontology with formal concept analysis the decision rules were translated into jena format which jena can use to infer recommendations based on patient clinical situations results the ontology includes 31 classes and 13 properties plus 38 jena rules that were built to generate recommendations the evaluation studies confirmed the correctness of the ontology acceptance of recommendations satisfaction with the system and usefulness of the ontology for glycemic management of diabetic patients undergoing surgery especially for domain experts conclusions the contribution of this research is to set up an evidence based hybrid ontology and an evaluation method for cdss the system can help clinicians to achieve inpatient glycemic control in diabetic patients undergoing surgery while avoiding hypoglycemia`
+- gold: `sharable clinical decision support system` → pred: `development of a service oriented sharable clinical decision support system based on ontology for chronic disease clinical decision support systems cdsss have been proved as an efficient way to improve health care quality however the inflexibility in integrating multiple clinical practice guidelines multi cpgs the mass input workload of patient data and the difficulty in system sharing become barriers of cdsss implementation in this paper we proposed a framework of cdss for chronic disease based on ontology and service oriented architecture soa to improve these defects we used ontology for knowledge base construction on multi cpgs integration to overcome their differences as well as reduce the input procedure of patient data by ontology reasoning furthermore we built the cdss on an soa structure to provide flexibility in system and data sharing such that patients could get suggestions from the same system for self management of chronic disease a typical case was used to validate the cdss functions and accuracy two clients were developed to illustrate the soa superiority`
+- gold: `developing clinical decision support systems` → pred: `a task based support architecture for developing point of care clinical decision support systems for the emergency department objectives the purpose of this study was to create a task based support architecture for developing clinical decision support systems cdsss that assist physicians in making decisions at the point of care in the emergency department ed the backbone of the proposed architecture was established by a task based emergency workflow model for a patient physician encounter methods the architecture was designed according to an agent oriented paradigm specifically we used the o mase organization based multi agent system engineering method that allows for iterative translation of functional requirements into architectural components e g agents the agent oriented paradigm was extended with ontology driven design to implement ontological models representing knowledge required by specific agents to operate results the task based architecture allows for the creation of a cdss that is aligned with the task based emergency workflow model it facilitates decoupling of executable components agents from embedded domain knowledge ontological models thus supporting their interoperability sharing and reuse the generic architecture was implemented as a pilot system met3 ae a cdss to help with the management of pediatric asthma exacerbation in the ed the system was evaluated in a hospital ed conclusions the architecture allows for the creation of a cdss that integrates support for all tasks from the task based emergency workflow model and interacts with hospital information systems`
+- gold: `electronic health record ehr` → pred: `translational medicine and patient safety in europe transform architecture for the learning health system in europe unlabelled the learning health system lhs describes linking routine healthcare systems directly with both research translation and knowledge translation as an extension of the evidence based medicine paradigm taking advantage of the ubiquitous use of electronic health record ehr systems transform is an eu fp7 project that seeks to develop an infrastructure for the lhs in european primary care methods the project is based on three clinical use cases a genotype phenotype study in diabetes a randomised controlled trial with gastroesophageal reflux disease and a diagnostic decision support system for chest pain abdominal pain and shortness of breath results four models were developed clinical research clinical data provenance and diagnosis that form the basis of the projects approach to interoperability these models are maintained as ontologies with binding of terms to define precise data elements cdisc odm and sdm standards are extended using an archetype approach to enable a two level model of individual data elements representing both research content and clinical content separate configurations of the transform tools serve each use case conclusions the project has been successful in using ontologies and archetypes to develop a highly flexible solution to the problem of heterogeneity of data sources presented by the lhs`
+
+### Abbreviation (39 total)
+- missed gold: `used`
+- missed gold: `used`
+- missed gold: `cdss`
+- missed gold: `cdss`
+- missed gold: `cdss`
+- missed gold: `sdm`
+
+### Nested Phrase (1070 total)
+- gold: `clinical practice guidelines` → pred: `asti a guideline based drug ordering system for primary care existing computer based ordering systems for physicians provide effective drug centered checks but offer little assistance for optimizing the overall patient centered treatment strategy evidence based clinical practice guidelines have been developed to disseminate state of the art information concerning treatment strategy but these guidelines are poorly used in routine practice the asti project aims to design a guideline based ordering system to enable general practitioners to avoid prescription errors and to improve compliance with best therapeutic practices the critic mode operates as a background process and corrects the physician 's prescription on the basis of automatically triggered elementary rules that account for isolated guideline recommendations the guided mode directs the physician to the best treatment by browsing a comprehensive guideline knowledge base represented as a decision tree a first prototype applied to hypertension is currently under development`
+- missed gold: `optimizing`
+- missed gold: `developed`
+- missed gold: `disseminate`
+- missed gold: `design`
+- missed gold: `enable`

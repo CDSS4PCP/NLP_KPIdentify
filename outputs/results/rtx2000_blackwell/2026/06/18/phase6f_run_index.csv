@@ -1,0 +1,12 @@
+config_id,train_fraction,features,epochs,mode,seed,log_file,status
+p6f_feat_none,0.10,NONE,20,train,test,testGS,42,p6f_feat_none.txt,completed
+p6f_feat_noPOS,0.10,CEM+WFOF+LEN+TI+TR,20,train,test,testGS,42,p6f_feat_noPOS.txt,completed
+p6f_feat_noWFOF,0.10,CEM+POS+LEN+TI+TR,20,train,test,testGS,42,p6f_feat_noWFOF.txt,completed
+p6f_feat_noLEN,0.10,CEM+WFOF+POS+TI+TR,20,train,test,testGS,42,p6f_feat_noLEN.txt,completed
+p6f_feat_noTI,0.10,CEM+WFOF+POS+LEN+TR,20,train,test,testGS,42,p6f_feat_noTI.txt,completed
+p6f_feat_noTR,0.10,CEM+WFOF+POS+LEN+TI,20,train,test,testGS,42,p6f_feat_noTR.txt,completed
+p6f_feat_onlyPOS,0.10,POS,20,train,test,testGS,42,p6f_feat_onlyPOS.txt,completed
+p6f_feat_onlyLEN,0.10,LEN,20,train,test,testGS,42,p6f_feat_onlyLEN.txt,completed
+p6f_feat_onlyWFOF,0.10,WFOF,20,train,test,testGS,42,p6f_feat_onlyWFOF.txt,completed
+p6f_feat_onlyTI,0.10,TI,20,train,test,testGS,42,p6f_feat_onlyTI.txt,completed
+p6f_feat_onlyTR,0.10,TR,20,train,test,testGS,42,p6f_feat_onlyTR.txt,completed

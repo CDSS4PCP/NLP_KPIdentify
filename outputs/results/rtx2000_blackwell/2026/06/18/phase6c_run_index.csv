@@ -1,0 +1,10 @@
+config_id,train_fraction,bilm,epochs,seed,log_file,status
+p6c_untrained_f010_bilm,0.10,true,0,42,p6c_untrained_f010_bilm.txt,completed
+p6c_nobilm_010,0.10,false,20,42,p6c_nobilm_010.txt,completed
+p6c_nobilm_025,0.25,false,20,42,p6c_nobilm_025.txt,completed
+p6c_nobilm_033,0.33,false,20,42,p6c_nobilm_033.txt,completed
+p6c_nobilm_050,0.50,false,20,42,p6c_nobilm_050.txt,completed
+p6c_nobilm_070,0.70,false,20,42,p6c_nobilm_070.txt,completed
+p6c_nobilm_075,0.75,false,20,42,p6c_nobilm_075.txt,completed
+p6c_nobilm_080,0.80,false,20,42,p6c_nobilm_080.txt,completed
+p6c_nobilm_100,1.00,false,20,42,p6c_nobilm_100.txt,completed

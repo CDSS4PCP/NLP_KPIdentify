@@ -1,0 +1,1 @@
+Re-split labeled corpus: total=82011, train_fraction=0.1000, train_docs=8201, test_docs=73810, seed=42.

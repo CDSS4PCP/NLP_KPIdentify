@@ -31,12 +31,24 @@ $$
 \rho \;=\; \frac{\#\{\text{KP tokens}\}}{\#\{\text{tokens}\}}
 $$
 
-| Corpus | Role | Docs (train) | $\rho$ (train) | Keyword style |
-|---|---|---:|---:|---|
-| Synthetic CDSS v2 | in-domain (old) | 2 461 | **0.261** | dense weak labels |
-| **KPBioMed** | public train | 90 000 (cap 10 000) | **0.055** | sparse author keywords |
-| **PubMedAKE** | public train | 73 810 (cap 10 000) | **0.085** | sparse author keywords |
-| GS42 / GS91 | test (CDSS) | 42 / 91 | **0.188 / 0.203** | dense expert annotation |
+| Corpus | Role | Docs (train) | $\rho$ (train) | Keyword style | DataSet size | Notes |
+|---|---|---:|---:|---|---:|---|
+| Synthetic CDSS v2 | in-domain | 1049 | **0.261** | dense weak labels | **3148** (1049 train + 2099 test) | Synthetic KP-labelled CDSS set = 3 281 parsed abstracts − 133 GS docs (0.33/0.67 split) |
+| **KPBioMed** | public train | 90000 (cap 10 000) | **0.055** | sparse author keywords | **5.6 M total**; 100000 used (90000 train + 10 000 test) | KPBioMed *large* split — PubMed abstracts with author-supplied keywords; 100 000 docs sampled (~1.8 % of 5.6 M) at 0.9 train / 0.1 test; sparsest corpus ($\rho$ ≈ 0.055) |
+| **PubMedAKE** | public train | 73810 | **0.085** | sparse author keywords | **843 269 total**; 82 011 used (8201 train [0.1] + 73 810 test [0.9]) | PubMedAKE — PubMed abstracts with author-supplied keywords; 82 011 docs sampled (~10 % of 843 269) at a reversed 0.1 train / 0.9 test split; main public train set ($\rho$ ≈ 0.085) |
+| GS42 / GS91 | test (CDSS) | 42 / 91 | **0.188 / 0.203** | dense expert annotation | **133** (GS42 42 + GS91 91) | CDSS expert (HDE) Gold Standards; GS42 also used for fine-tuning; cross-domain test target |
+
+**Dataset provenance (CDSS, verified against `data/`):**
+
+| Stage | Abstracts |
+|---|---:|
+| Total after parsing PubMed XML | 3 326 |
+| + ACM abstracts [8] + HDE Set 2 PMIDs not in XML [4] | 12 |
+| New total with duplicates (GS42 also in full-text XML) | 3 380 |
+| − Abstracts with < 3 sentences (little/no abstract) | 99 |
+| **Total dataset** (after short-abstract removal) | **3 281** (1 093 train + 2 188 test) |
+| − Total Gold Standard removed (GS42 42 + GS91 91) | 133 |
+| **Synthetic-labelled dataset** (final) | **3 148** (1 049 train + 2 099 test) |
 
 **Key mismatch:** the public training corpora are **3–5× sparser** in keyphrase density than the Gold-Standard test sets they are evaluated against:
 

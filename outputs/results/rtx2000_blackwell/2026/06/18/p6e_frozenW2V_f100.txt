@@ -1,0 +1,184 @@
+Re-split labeled corpus: total=3281, train_fraction=1.0000, train_docs=3280, test_docs=1, seed=42.
+============================================================
+Running mode: train
+============================================================
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=True hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in train mode...
+Training BiLSTM_CRF...
+Step 1: Loaded training data JSON in 0.6833 seconds (train_docs=3280, val_docs=0).
+Step 2: Loaded vocabularies in 0.0411 seconds (Size: 17766).
+Loading pre-trained Word2Vec embeddings...
+Step 3: Loaded pre-trained Word2Vec embeddings in 0.4065 seconds.
+Schema constraints active: True
+Loading pre-trained Bi-Language Model weights...
+Step 4: Initialized model & routed to device 'cuda' in 0.6949 seconds (BiLM weights: True).
+Label diagnostics [train] | docs=3280 tokens=753143 kp_tokens=197125 kp_ratio=0.2617 kw_nonempty=124467/124469 kw_matched=95648 kw_unmatched=28819 match_ratio=0.7685
+Label diagnostics [train] top unmatched keywords: patients, implementation, management, CDSS, monitoring
+Label diagnostics [train] unmatched reasons: overlap_conflict=28812, no_span_match=7
+Step 5a: Prepared 539 train and 0 val CPU batches in 49.07s (cached for all epochs).
+Epoch  1/20 | Train Loss: 9.6971 | Val Loss: n/a | Time: 38.13s | Checkpoint Saved
+Epoch  2/20 | Train Loss: 7.8686 | Val Loss: n/a | Time: 33.10s | Checkpoint Saved
+Epoch  3/20 | Train Loss: 7.4427 | Val Loss: n/a | Time: 34.72s | Checkpoint Saved
+Epoch  4/20 | Train Loss: 7.1592 | Val Loss: n/a | Time: 35.00s | Checkpoint Saved
+Epoch  5/20 | Train Loss: 6.9316 | Val Loss: n/a | Time: 35.13s | Checkpoint Saved
+Epoch  6/20 | Train Loss: 6.7080 | Val Loss: n/a | Time: 35.28s | Checkpoint Saved
+Epoch  7/20 | Train Loss: 6.4882 | Val Loss: n/a | Time: 34.95s | Checkpoint Saved
+Epoch  8/20 | Train Loss: 6.2767 | Val Loss: n/a | Time: 36.06s | Checkpoint Saved
+Epoch  9/20 | Train Loss: 6.0499 | Val Loss: n/a | Time: 36.49s | Checkpoint Saved
+Epoch 10/20 | Train Loss: 5.8272 | Val Loss: n/a | Time: 36.84s | Checkpoint Saved
+Epoch 11/20 | Train Loss: 5.6017 | Val Loss: n/a | Time: 35.25s | Checkpoint Saved
+Epoch 12/20 | Train Loss: 5.3769 | Val Loss: n/a | Time: 36.75s | Checkpoint Saved
+Epoch 13/20 | Train Loss: 5.1725 | Val Loss: n/a | Time: 37.44s | Checkpoint Saved
+Epoch 14/20 | Train Loss: 4.9824 | Val Loss: n/a | Time: 36.18s | Checkpoint Saved
+Epoch 15/20 | Train Loss: 4.8067 | Val Loss: n/a | Time: 34.46s | Checkpoint Saved
+Epoch 16/20 | Train Loss: 4.6461 | Val Loss: n/a | Time: 34.86s | Checkpoint Saved
+Epoch 17/20 | Train Loss: 4.5170 | Val Loss: n/a | Time: 34.09s | Checkpoint Saved
+Epoch 18/20 | Train Loss: 4.4040 | Val Loss: n/a | Time: 34.08s | Checkpoint Saved
+Epoch 19/20 | Train Loss: 4.2920 | Val Loss: n/a | Time: 34.66s | Checkpoint Saved
+Epoch 20/20 | Train Loss: 4.2348 | Val Loss: n/a | Time: 37.67s | Checkpoint Saved
+Step 5: Completed 20 training epochs in 796.66 seconds (Avg per epoch: 35.56s; prep: 49.07s).
+
+==================================================
+TRAIN MODE SUMMARY (HAN_CRF on device: cuda)
+Total Train Mode Time: 798.49 seconds
+  - Step 1: Loading Data:      0.6833s
+  - Step 2: Loading Vocab:     0.0411s
+  - Step 3: Embeddings Load:   0.4065s
+  - Step 4: Model & Device:    0.6949s
+  - Step 5: Epochs Train Loop: 796.66s (Avg: 35.56s/epoch)
+==================================================
+
+============================================================
+Mode train completed in 798.64 seconds
+============================================================
+============================================================
+Running mode: testGS
+============================================================
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=True hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in testGS mode...
+Evaluating BiLSTM_CRF...
+Step 1: Loaded vocabulary mappings in 0.0450 seconds.
+Schema constraints active: True
+Loaded model weights from /home/rohangoli/remote_mount/interim_data/HAN-CRF_IOBES.pt
+Step 2: Initialized model & loaded weights on 'cuda' in 0.4156 seconds.
+
+Evaluating on Gold Standard 42 dataset: testgs42.json
+Label diagnostics [gold_standard_42] | docs=42 tokens=10126 kp_tokens=1906 kp_ratio=0.1882 kw_nonempty=1087/1087 kw_matched=945 kw_unmatched=142 match_ratio=0.8694
+Label diagnostics [gold_standard_42] top unmatched keywords: rule-based , rule-based, semantic interoperability , implementation, decision-making 
+Label diagnostics [gold_standard_42] unmatched reasons: no_span_match=92, overlap_conflict=50
+Step 3: Inference prediction loop completed in 0.99 seconds.
+Metrics on Gold Standard 42 DS:
+Label counts (target): {'B-KP': 386, 'I-KP': 229, 'E-KP': 386, 'S-KP': 905, 'O': 8220}
+Label counts (pred):   {'B-KP': 452, 'I-KP': 189, 'E-KP': 452, 'S-KP': 1492, 'O': 7541}
+Confusion Matrix:
+[[ 189   12    4   47  134]
+ [   5  113   34   10   67]
+ [   0    9  163   56  158]
+ [  26    1   21  576  281]
+ [ 232   54  230  803 6901]]
+Row sums (target support by label order): [386, 229, 386, 905, 8220]
+Note: Rows represent Actual/True labels, Columns represent Predicted labels.
+Label order: ['B-KP', 'I-KP', 'E-KP', 'S-KP', 'O']
+-------------------------------------------------------------------------------------------------------------------
+Label      |      TP |      FN |      FP |       TN | Accuracy | Misclass |    Prec. |   Recall |    Spec. |       F1
+-------------------------------------------------------------------------------------------------------------------
+B-KP       |   189.0 |   197.0 |   263.0 |   9477.0 |   0.9546 |   0.0454 |   0.4181 |   0.4896 |   0.9730 |   0.4511
+I-KP       |   113.0 |   116.0 |    76.0 |   9821.0 |   0.9810 |   0.0190 |   0.5979 |   0.4934 |   0.9923 |   0.5407
+E-KP       |   163.0 |   223.0 |   289.0 |   9451.0 |   0.9494 |   0.0506 |   0.3606 |   0.4223 |   0.9703 |   0.3890
+S-KP       |   576.0 |   329.0 |   916.0 |   8305.0 |   0.8770 |   0.1230 |   0.3861 |   0.6365 |   0.9007 |   0.4806
+O          |  6901.0 |  1319.0 |   640.0 |   1266.0 |   0.8065 |   0.1935 |   0.9151 |   0.8395 |   0.6642 |   0.8757
+-------------------------------------------------------------------------------------------------------------------
+Average    |       - |       - |       - |        - |   0.9137 |   0.0863 |   0.5356 |   0.5763 |   0.9001 |   0.5474
+-------------------------------------------------------------------------------------------------------------------
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.37      0.56      0.45      1291
+
+   micro avg       0.37      0.56      0.45      1291
+   macro avg       0.37      0.56      0.45      1291
+weighted avg       0.37      0.56      0.45      1291
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    37.35% |    56.24% |    44.88% |    78.43%
+-----------------------------------------------------------------
+Step 4: Metric calculations & reports completed in 0.4360 seconds.
+Dumped 440 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/18/predictions/p6e_frozenW2V_f100/predictions_testgs42.json
+
+==================================================
+EVALUATION SUMMARY ON GOLD STANDARD 42 (HAN_CRF on device: cuda)
+Total Dataset Eval Time: 2.88 seconds
+  - Step 1: Loading Vocabs:    0.0450s
+  - Step 2: Model Loading:     0.4156s
+  - Step 3: Batch Inference:   0.99s
+  - Step 4: Metric Report:     0.4360s
+==================================================
+
+
+Evaluating on Gold Standard 91 dataset: testgs91.json
+Label diagnostics [gold_standard_91] | docs=91 tokens=19872 kp_tokens=4024 kp_ratio=0.2025 kw_nonempty=2364/2364 kw_matched=2091 kw_unmatched=273 match_ratio=0.8845
+Label diagnostics [gold_standard_91] top unmatched keywords: guideline-based, follow-up, real-time, rule-based, ontology-based
+Label diagnostics [gold_standard_91] unmatched reasons: no_span_match=191, overlap_conflict=82
+Step 3: Inference prediction loop completed in 2.08 seconds.
+Metrics on Gold Standard 91 DS:
+Label counts (target): {'B-KP': 771, 'I-KP': 308, 'E-KP': 771, 'S-KP': 2174, 'O': 15846}
+Label counts (pred):   {'B-KP': 802, 'I-KP': 270, 'E-KP': 802, 'S-KP': 2602, 'O': 15394}
+Confusion Matrix:
+[[  489    21     6    36   219]
+ [    2   154    48     4   100]
+ [    7    18   446    74   226]
+ [   29     5    59  1571   510]
+ [  275    72   243   917 14339]]
+Row sums (target support by label order): [771, 308, 771, 2174, 15846]
+Note: Rows represent Actual/True labels, Columns represent Predicted labels.
+Label order: ['B-KP', 'I-KP', 'E-KP', 'S-KP', 'O']
+-------------------------------------------------------------------------------------------------------------------
+Label      |      TP |      FN |      FP |       TN | Accuracy | Misclass |    Prec. |   Recall |    Spec. |       F1
+-------------------------------------------------------------------------------------------------------------------
+B-KP       |   489.0 |   282.0 |   313.0 |  18786.0 |   0.9701 |   0.0299 |   0.6097 |   0.6342 |   0.9836 |   0.6217
+I-KP       |   154.0 |   154.0 |   116.0 |  19446.0 |   0.9864 |   0.0136 |   0.5704 |   0.5000 |   0.9941 |   0.5329
+E-KP       |   446.0 |   325.0 |   356.0 |  18743.0 |   0.9657 |   0.0343 |   0.5561 |   0.5785 |   0.9814 |   0.5671
+S-KP       |  1571.0 |   603.0 |  1031.0 |  16665.0 |   0.9178 |   0.0822 |   0.6038 |   0.7226 |   0.9417 |   0.6579
+O          | 14339.0 |  1507.0 |  1055.0 |   2969.0 |   0.8711 |   0.1289 |   0.9315 |   0.9049 |   0.7378 |   0.9180
+-------------------------------------------------------------------------------------------------------------------
+Average    |       - |       - |       - |        - |   0.9422 |   0.0578 |   0.6543 |   0.6680 |   0.9277 |   0.6595
+-------------------------------------------------------------------------------------------------------------------
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.59      0.68      0.63      2945
+
+   micro avg       0.59      0.68      0.63      2945
+   macro avg       0.59      0.68      0.63      2945
+weighted avg       0.59      0.68      0.63      2945
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    58.64% |    67.78% |    62.88% |    85.55%
+-----------------------------------------------------------------
+Step 4: Metric calculations & reports completed in 0.2295 seconds.
+Dumped 886 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/18/predictions/p6e_frozenW2V_f100/predictions_testgs91.json
+
+==================================================
+EVALUATION SUMMARY ON GOLD STANDARD 91 (HAN_CRF on device: cuda)
+Total Dataset Eval Time: 6.53 seconds
+  - Step 1: Loading Vocabs:    0.0450s
+  - Step 2: Model Loading:     0.4156s
+  - Step 3: Batch Inference:   2.08s
+  - Step 4: Metric Report:     0.2295s
+==================================================
+
+============================================================
+Mode testGS completed in 6.56 seconds
+============================================================
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)

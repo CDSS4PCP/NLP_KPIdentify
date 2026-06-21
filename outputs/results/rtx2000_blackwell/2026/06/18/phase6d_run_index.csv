@@ -1,0 +1,9 @@
+config_id,train_fraction,randinit,bilm,epochs,seed,log_file,status
+p6d_randinit_010,0.10,true,false,20,42,p6d_randinit_010.txt,completed
+p6d_randinit_025,0.25,true,false,20,42,p6d_randinit_025.txt,completed
+p6d_randinit_033,0.33,true,false,20,42,p6d_randinit_033.txt,completed
+p6d_randinit_050,0.50,true,false,20,42,p6d_randinit_050.txt,completed
+p6d_randinit_070,0.70,true,false,20,42,p6d_randinit_070.txt,completed
+p6d_randinit_075,0.75,true,false,20,42,p6d_randinit_075.txt,completed
+p6d_randinit_080,0.80,true,false,20,42,p6d_randinit_080.txt,completed
+p6d_randinit_100,1.00,true,false,20,42,p6d_randinit_100.txt,completed

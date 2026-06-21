@@ -1,0 +1,8 @@
+experiment,family,model,context,schema,train_fraction,seed,mode,log_file,status
+phase6g,gna,bilstm_crf,sentence_only,BIO,0.10,42,train,test,testGS,p6g_bilstm_crf_BIO.txt,completed
+phase6g,gna,bilstm_crf,sentence_only,IOBES,0.10,42,train,test,testGS,p6g_bilstm_crf_IOBES.txt,completed
+phase6g,gna,bilstm_crf,sentence_only,BILOU,0.10,42,train,test,testGS,p6g_bilstm_crf_BILOU.txt,completed
+phase6g,gna,han_crf,sentence_only,BIO,0.10,42,train,test,testGS,p6g_han_sentence_only_BIO.txt,completed
+phase6g,gna,han_crf,sentence_only,IOBES,0.10,42,train,test,testGS,p6g_han_sentence_only_IOBES.txt,completed
+phase6g,gna,han_crf,sentence_only,BILOU,0.10,42,train,test,testGS,p6g_han_sentence_only_BILOU.txt,completed
+phase6g,gna,han_crf,token_doc_attn,BIO,0.10,42,train,test,testGS,p6g_han_token_doc_attn_BIO.txt,completed

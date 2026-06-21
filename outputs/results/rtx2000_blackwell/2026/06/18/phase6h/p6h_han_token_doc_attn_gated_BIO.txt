@@ -1,0 +1,98 @@
+============================================================
+Running mode: train
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in train mode...
+Training BiLSTM_CRF...
+Step 1: Loaded training data JSON in 2.5692 seconds (train_docs=8201, val_docs=0).
+Step 2: Loaded vocabularies in 0.0650 seconds (Size: 22136).
+Loading pre-trained Word2Vec embeddings...
+Step 3: Loaded pre-trained Word2Vec embeddings in 0.6786 seconds.
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+Schema constraints active: True
+Loading pre-trained Bi-Language Model weights...
+Step 4: Initialized model & routed to device 'cuda' in 2.0189 seconds (BiLM weights: True).
+Label diagnostics [train] | docs=8201 tokens=2138099 kp_tokens=180007 kp_ratio=0.0842 kw_nonempty=45366/45366 kw_matched=40143 kw_unmatched=5223 match_ratio=0.8849
+Label diagnostics [train] top unmatched keywords: sars-cov-2, meta-analysis, non-small cell lung cancer, mir- p, epithelial-mesenchymal transition
+Label diagnostics [train] unmatched reasons: no_span_match=5065, overlap_conflict=158
+Applied document-level positive upsampling for HAN: factor=2
+Step 5a: Prepared 2767 train and 0 val CPU batches in 148.71s (cached for all epochs).
+Epoch  1/20 | Train Loss: 4.5631 | Val Loss: n/a | Time: 216.52s | Checkpoint Saved
+Epoch  2/20 | Train Loss: 3.5463 | Val Loss: n/a | Time: 203.29s | Checkpoint Saved
+Epoch  3/20 | Train Loss: 3.0169 | Val Loss: n/a | Time: 200.46s | Checkpoint Saved
+Epoch  4/20 | Train Loss: 2.5527 | Val Loss: n/a | Time: 198.34s | Checkpoint Saved
+Epoch  5/20 | Train Loss: 2.1884 | Val Loss: n/a | Time: 202.04s | Checkpoint Saved
+Epoch  6/20 | Train Loss: 1.9106 | Val Loss: n/a | Time: 197.69s | Checkpoint Saved
+Epoch  7/20 | Train Loss: 1.7350 | Val Loss: n/a | Time: 203.00s | Checkpoint Saved
+Epoch  8/20 | Train Loss: 1.6200 | Val Loss: n/a | Time: 207.47s | Checkpoint Saved
+Epoch  9/20 | Train Loss: 1.5491 | Val Loss: n/a | Time: 201.51s | Checkpoint Saved
+Epoch 10/20 | Train Loss: 1.5006 | Val Loss: n/a | Time: 205.24s | Checkpoint Saved
+Epoch 11/20 | Train Loss: 1.4673 | Val Loss: n/a | Time: 204.05s | Checkpoint Saved
+Epoch 12/20 | Train Loss: 1.4416 | Val Loss: n/a | Time: 192.38s | Checkpoint Saved
+Epoch 13/20 | Train Loss: 1.4230 | Val Loss: n/a | Time: 201.18s | Checkpoint Saved
+Epoch 14/20 | Train Loss: 1.4090 | Val Loss: n/a | Time: 199.77s | Checkpoint Saved
+Epoch 15/20 | Train Loss: 1.3982 | Val Loss: n/a | Time: 202.07s | Checkpoint Saved
+Epoch 16/20 | Train Loss: 1.3894 | Val Loss: n/a | Time: 205.98s | Checkpoint Saved
+Epoch 17/20 | Train Loss: 1.3748 | Val Loss: n/a | Time: 201.19s | Checkpoint Saved
+Epoch 18/20 | Train Loss: 1.3692 | Val Loss: n/a | Time: 197.44s | Checkpoint Saved
+Epoch 19/20 | Train Loss: 1.3645 | Val Loss: n/a | Time: 196.88s | Checkpoint Saved
+Epoch 20/20 | Train Loss: 1.3539 | Val Loss: n/a | Time: 196.39s | Checkpoint Saved
+Step 5: Completed 20 training epochs in 4252.38 seconds (Avg per epoch: 201.64s; prep: 148.71s).
+
+==================================================
+TRAIN MODE SUMMARY (HAN_CRF on device: cuda)
+Total Train Mode Time: 4257.72 seconds
+  - Step 1: Loading Data:      2.5692s
+  - Step 2: Loading Vocab:     0.0650s
+  - Step 3: Embeddings Load:   0.6786s
+  - Step 4: Model & Device:    2.0189s
+  - Step 5: Epochs Train Loop: 4252.38s (Avg: 201.64s/epoch)
+==================================================
+
+============================================================
+Mode train completed in 4265.03 seconds
+============================================================
+============================================================
+Running mode: test
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in test mode...
+Evaluating BiLSTM_CRF...
+Step 1: Loaded vocabulary mappings in 0.0773 seconds.
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+Schema constraints active: True
+Loaded model weights from /home/rohangoli/remote_mount/interim_data/HAN-CRF_BIO.pt
+Step 2: Initialized model & loaded weights on 'cuda' in 0.6518 seconds.
+
+Evaluating on Test dataset: test.json
+Label diagnostics [test] | docs=73810 tokens=19529353 kp_tokens=1629830 kp_ratio=0.0835 kw_nonempty=409069/409069 kw_matched=362996 kw_unmatched=46073 match_ratio=0.8874
+Label diagnostics [test] top unmatched keywords: sars-cov-2, meta-analysis, mir- p, nf-kb, child
+Label diagnostics [test] unmatched reasons: no_span_match=44760, overlap_conflict=1313
+============================================================
+Running mode: test
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=token_doc_attn_gated hanContextHeads=8 hanContextDropout=0.1 hanUseGatedFusion=True minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in test mode...
+Evaluating BiLSTM_CRF...
+Step 1: Loaded vocabulary mappings in 0.0668 seconds.
+/home/rohangoli/miniconda3/envs/cdss-gpu/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1013: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+Schema constraints active: True
+Loaded model weights from /home/rohangoli/remote_mount/interim_data/HAN-CRF_BIO.pt
+Step 2: Initialized model & loaded weights on 'cuda' in 1.6110 seconds.
+
+Evaluating on Test dataset: test.json
+Label diagnostics [test] | docs=73810 tokens=19529353 kp_tokens=1629830 kp_ratio=0.0835 kw_nonempty=409069/409069 kw_matched=362996 kw_unmatched=46073 match_ratio=0.8874
+Label diagnostics [test] top unmatched keywords: sars-cov-2, meta-analysis, mir- p, nf-kb, child
+Label diagnostics [test] unmatched reasons: no_span_match=44760, overlap_conflict=1313

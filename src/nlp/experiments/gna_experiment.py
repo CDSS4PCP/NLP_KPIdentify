@@ -741,6 +741,17 @@ class GNAExperiment(BaseExperiment):
         stale_epochs = 0
         trained_epochs = 0
 
+        if epochs <= 0:
+            # Untrained baseline: persist the freshly-initialized model (pretrained
+            # LM/embeddings already transferred, tagging/CRF head random) without any
+            # supervised updates, so testGS evaluates a true no-training floor.
+            torch.save(self.model.state_dict(), model_path)
+            print(
+                f"epochs={epochs} (<=0): saved randomly-initialized model to {model_path} "
+                "(pretrained LM transferred, CRF head random); skipping supervised training."
+            )
+            return
+
         for epoch in range(epochs):
             epoch_start = time.time()
             self.model.train()

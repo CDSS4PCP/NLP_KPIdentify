@@ -1,0 +1,6 @@
+config_id,train_fraction,seed,log_file,status
+p6_split_010,0.10,42,p6_split_010.txt,completed
+p6_split_025,0.25,42,p6_split_025.txt,completed
+p6_split_050,0.50,42,p6_split_050.txt,completed
+p6_split_075,0.75,42,p6_split_075.txt,completed
+p6_split_100,1.00,42,p6_split_100.txt,completed

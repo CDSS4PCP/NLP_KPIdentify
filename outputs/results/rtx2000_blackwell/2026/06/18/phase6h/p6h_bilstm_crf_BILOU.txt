@@ -1,0 +1,127 @@
+============================================================
+Running mode: train
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=sentence_only hanContextHeads=4 hanContextDropout=0.1 hanUseGatedFusion=False minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in train mode...
+Training BiLSTM_CRF...
+Step 1: Loaded training data JSON in 2.3188 seconds (train_docs=8201, val_docs=0).
+Step 2: Loaded vocabularies in 0.0543 seconds (Size: 22136).
+Loading pre-trained Word2Vec embeddings...
+Step 3: Loaded pre-trained Word2Vec embeddings in -0.9805 seconds.
+Schema constraints active: True
+Loading pre-trained Bi-Language Model weights...
+Step 4: Initialized model & routed to device 'cuda' in 1.5607 seconds (BiLM weights: True).
+Label diagnostics [train] | docs=8201 tokens=2138099 kp_tokens=180007 kp_ratio=0.0842 kw_nonempty=45366/45366 kw_matched=40143 kw_unmatched=5223 match_ratio=0.8849
+Label diagnostics [train] top unmatched keywords: sars-cov-2, meta-analysis, non-small cell lung cancer, mir- p, epithelial-mesenchymal transition
+Label diagnostics [train] unmatched reasons: no_span_match=5065, overlap_conflict=158
+Applied sentence-level positive upsampling for bilstm_crf: factor=2
+Step 5a: Prepared 2274 train and 0 val CPU batches in 126.60s (cached for all epochs).
+Epoch  1/20 | Train Loss: 6.7919 | Val Loss: n/a | Time: 114.68s | Checkpoint Saved
+Epoch  2/20 | Train Loss: 5.6199 | Val Loss: n/a | Time: 112.05s | Checkpoint Saved
+Epoch  3/20 | Train Loss: 5.0065 | Val Loss: n/a | Time: 115.10s | Checkpoint Saved
+Epoch  4/20 | Train Loss: 4.4620 | Val Loss: n/a | Time: 116.14s | Checkpoint Saved
+Epoch  5/20 | Train Loss: 4.0590 | Val Loss: n/a | Time: 111.40s | Checkpoint Saved
+Epoch  6/20 | Train Loss: 3.8165 | Val Loss: n/a | Time: 111.06s | Checkpoint Saved
+Epoch  7/20 | Train Loss: 3.6909 | Val Loss: n/a | Time: 111.93s | Checkpoint Saved
+Epoch  8/20 | Train Loss: 3.6232 | Val Loss: n/a | Time: 109.01s | Checkpoint Saved
+Epoch  9/20 | Train Loss: 3.5900 | Val Loss: n/a | Time: 111.91s | Checkpoint Saved
+Epoch 10/20 | Train Loss: 3.5621 | Val Loss: n/a | Time: 115.65s | Checkpoint Saved
+Epoch 11/20 | Train Loss: 3.5406 | Val Loss: n/a | Time: 113.42s | Checkpoint Saved
+Epoch 12/20 | Train Loss: 3.5266 | Val Loss: n/a | Time: 113.55s | Checkpoint Saved
+Epoch 13/20 | Train Loss: 3.5124 | Val Loss: n/a | Time: 116.52s | Checkpoint Saved
+Epoch 14/20 | Train Loss: 3.4990 | Val Loss: n/a | Time: 114.10s | Checkpoint Saved
+Epoch 15/20 | Train Loss: 3.4910 | Val Loss: n/a | Time: 119.23s | Checkpoint Saved
+Epoch 16/20 | Train Loss: 3.4778 | Val Loss: n/a | Time: 111.44s | Checkpoint Saved
+Epoch 17/20 | Train Loss: 3.4687 | Val Loss: n/a | Time: 110.54s | Checkpoint Saved
+Epoch 18/20 | Train Loss: 3.4613 | Val Loss: n/a | Time: 115.45s | Checkpoint Saved
+Epoch 19/20 | Train Loss: 3.4529 | Val Loss: n/a | Time: 112.24s | Checkpoint Saved
+Epoch 20/20 | Train Loss: 3.4409 | Val Loss: n/a | Time: 111.56s | Checkpoint Saved
+Step 5: Completed 20 training epochs in 2459.42 seconds (Avg per epoch: 113.35s; prep: 126.60s).
+
+==================================================
+TRAIN MODE SUMMARY (BILSTM_CRF on device: cuda)
+Total Train Mode Time: 2462.37 seconds
+  - Step 1: Loading Data:      2.3188s
+  - Step 2: Loading Vocab:     0.0543s
+  - Step 3: Embeddings Load:   -0.9805s
+  - Step 4: Model & Device:    1.5607s
+  - Step 5: Epochs Train Loop: 2459.42s (Avg: 113.35s/epoch)
+==================================================
+
+============================================================
+Mode train completed in 2463.18 seconds
+============================================================
+============================================================
+Running mode: test
+============================================================
+Using JSON_DATA directory: /home/rohangoli/remote_mount/data/pubmed_data/json_data_pubmedake (dataSource=pubmedake)
+Global RNG seed set: 42
+Forcefully using device: cuda
+Runtime config: normalizationMode=alignment_shared rebalancingMode=auto bilstmFreezeEmbeddings=True hanFreezeEmbeddings=False hanBatchMode=fixed hanUseBlockDiagonal=True hanContextMode=sentence_only hanContextHeads=4 hanContextDropout=0.1 hanUseGatedFusion=False minTokensPerSentence=4 hanUseChunkMemory=False hanChunkMemorySize=128 hanPackingMode=mixed weakLabelConfidenceThreshold=None weakLabelConfidenceMetric=source_agreement curriculumLearningEnabled=False curriculumSchedule=linear curriculumWarmupPercent=20
+Running in test mode...
+Evaluating BiLSTM_CRF...
+Step 1: Loaded vocabulary mappings in 0.0611 seconds.
+Schema constraints active: True
+Loaded model weights from /home/rohangoli/remote_mount/interim_data/BiLSTM-CRF_BILOU.pt
+Step 2: Initialized model & loaded weights on 'cuda' in 0.4449 seconds.
+
+Evaluating on Test dataset: test.json
+Label diagnostics [test] | docs=73810 tokens=19529353 kp_tokens=1629830 kp_ratio=0.0835 kw_nonempty=409069/409069 kw_matched=362996 kw_unmatched=46073 match_ratio=0.8874
+Label diagnostics [test] top unmatched keywords: sars-cov-2, meta-analysis, mir- p, nf-kb, child
+Label diagnostics [test] unmatched reasons: no_span_match=44760, overlap_conflict=1313
+Step 3: Inference prediction loop completed in 1608.51 seconds.
+Metrics on Test DS:
+Label counts (target): {'B-KP': 375500, 'I-KP': 111739, 'L-KP': 375487, 'U-KP': 766304, 'O': 17880690}
+Label counts (pred):   {'B-KP': 297970, 'I-KP': 89649, 'L-KP': 297970, 'U-KP': 647932, 'O': 18176199}
+Confusion Matrix:
+[[  131448     6008     2114    23428   212502]
+ [    7373    29599     6350     2842    65575]
+ [    1799     5647   132832    25285   209924]
+ [   20188     2264    21813   309750   412289]
+ [  137162    46131   134861   286627 17275909]]
+Row sums (target support by label order): [375500, 111739, 375487, 766304, 17880690]
+Note: Rows represent Actual/True labels, Columns represent Predicted labels.
+Label order: ['B-KP', 'I-KP', 'L-KP', 'U-KP', 'O']
+-------------------------------------------------------------------------------------------------------------------
+Label      |      TP |      FN |      FP |       TN | Accuracy | Misclass |    Prec. |   Recall |    Spec. |       F1
+-------------------------------------------------------------------------------------------------------------------
+B-KP       | 131448.0 | 244052.0 | 166522.0 | 18967698.0 |   0.9790 |   0.0210 |   0.4411 |   0.3501 |   0.9913 |   0.3904
+I-KP       | 29599.0 | 82140.0 | 60050.0 | 19337931.0 |   0.9927 |   0.0073 |   0.3302 |   0.2649 |   0.9969 |   0.2939
+L-KP       | 132832.0 | 242655.0 | 165138.0 | 18969095.0 |   0.9791 |   0.0209 |   0.4458 |   0.3538 |   0.9914 |   0.3945
+U-KP       | 309750.0 | 456554.0 | 338182.0 | 18405234.0 |   0.9593 |   0.0407 |   0.4781 |   0.4042 |   0.9820 |   0.4380
+O          | 17275909.0 | 604781.0 | 900290.0 | 728740.0 |   0.9229 |   0.0771 |   0.9505 |   0.9662 |   0.4473 |   0.9583
+-------------------------------------------------------------------------------------------------------------------
+Average    |       - |       - |       - |        - |   0.9666 |   0.0334 |   0.5291 |   0.4678 |   0.8818 |   0.4950
+-------------------------------------------------------------------------------------------------------------------
+SeqEval Metrics:
+              precision    recall  f1-score   support
+
+          KP       0.46      0.38      0.41   1141743
+
+   micro avg       0.46      0.38      0.41   1141743
+   macro avg       0.46      0.38      0.41   1141743
+weighted avg       0.46      0.38      0.41   1141743
+
+-----------------------------------------------------------------
+SeqEval Overall   | Precision |    Recall |  F1-Score |  Accuracy
+-----------------------------------------------------------------
+Score (%)         |    45.52% |    37.71% |    41.25% |    91.64%
+-----------------------------------------------------------------
+Step 4: Metric calculations & reports completed in 185.2580 seconds.
+Dumped 810211 prediction sequences to /home/rohangoli/remote_mount/outputs/results/rtx2000_blackwell/2026/06/18/phase6h/predictions/bilstm_crf_BILOU/predictions_test.json
+
+==================================================
+EVALUATION SUMMARY ON TEST (BILSTM_CRF on device: cuda)
+Total Dataset Eval Time: 2323.78 seconds
+  - Step 1: Loading Vocabs:    0.0611s
+  - Step 2: Model Loading:     0.4449s
+  - Step 3: Batch Inference:   1608.51s
+  - Step 4: Metric Report:     185.2580s
+==================================================
+
+============================================================
+Mode test completed in 2325.56 seconds
+============================================================
